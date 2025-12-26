@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, FlatList, Alert } from 'react-native';
 import { userService } from '../services/api';
+import { DivisionBadge } from '../components/DivisionBadge';
 
 const LeaderboardScreen = () => {
   const [users, setUsers] = useState<any[]>([]);
@@ -23,12 +24,20 @@ const LeaderboardScreen = () => {
 
   const renderItem = ({ item, index }: any) => (
     <View style={styles.item}>
-      <Text style={styles.rank}>#{index + 1}</Text>
+      <Text style={styles.rank}>#{item.rank || index + 1}</Text>
       <View style={styles.userInfo}>
         <Text style={styles.username}>{item.displayName}</Text>
-        <Text style={styles.points}>{item.totalPoints} pts</Text>
+        <View style={styles.divisionRow}>
+          {item.division && (
+            <DivisionBadge
+              division={item.division}
+              divisionInfo={item.divisionInfo}
+              size="small"
+            />
+          )}
+          <Text style={styles.points}>{item.eloRating} ELO</Text>
+        </View>
       </View>
-      <Text style={styles.elo}>{item.eloRating}</Text>
     </View>
   );
 
@@ -84,11 +93,16 @@ const styles = StyleSheet.create({
   username: {
     fontSize: 16,
     fontWeight: 'bold',
+    marginBottom: 6,
+  },
+  divisionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   points: {
     fontSize: 14,
     color: '#666',
-    marginTop: 2,
   },
   elo: {
     fontSize: 18,

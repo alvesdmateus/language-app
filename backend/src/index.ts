@@ -1,4 +1,5 @@
 import express from 'express';
+import { createServer } from 'http';
 import cors from 'cors';
 import helmet from 'helmet';
 import compression from 'compression';
@@ -8,11 +9,16 @@ import userRoutes from './routes/user';
 import quizRoutes from './routes/quiz';
 import matchRoutes from './routes/match';
 import { errorHandler } from './middleware/errorHandler';
+import { socketService } from './services/socketService';
 
 dotenv.config();
 
 const app = express();
+const httpServer = createServer(app);
 const PORT = process.env.PORT || 3000;
+
+// Initialize Socket.IO
+socketService.initialize(httpServer);
 
 // Middleware
 app.use(helmet());
@@ -26,7 +32,13 @@ app.use(express.urlencoded({ extended: true }));
 
 // Routes
 app.get('/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+  res.json({
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    websocket: {
+      connected: socketService.getConnectedUsersCount(),
+    },
+  });
 });
 
 app.use('/api/auth', authRoutes);
@@ -38,9 +50,10 @@ app.use('/api/match', matchRoutes);
 app.use(errorHandler);
 
 // Start server
-app.listen(PORT, () => {
+httpServer.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
   console.log(`📝 Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`🔌 WebSocket server ready`);
 });
 
 export default app;

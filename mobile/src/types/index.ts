@@ -1,9 +1,31 @@
+export enum Division {
+  UNRANKED = 'UNRANKED',
+  BRONZE = 'BRONZE',
+  SILVER = 'SILVER',
+  GOLD = 'GOLD',
+  PLATINUM = 'PLATINUM',
+  DIAMOND = 'DIAMOND',
+  MASTER = 'MASTER',
+  GRANDMASTER = 'GRANDMASTER',
+}
+
+export interface DivisionInfo {
+  division: Division;
+  tier: number;
+  minElo: number;
+  maxElo: number;
+  color: string;
+  displayName: string;
+}
+
 export interface User {
   id: string;
   email: string;
   username: string;
   displayName: string;
   eloRating: number;
+  division: Division;
+  divisionInfo?: DivisionInfo;
   totalPoints: number;
   currentStreak: number;
   longestStreak: number;

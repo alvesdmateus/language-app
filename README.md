@@ -5,11 +5,19 @@ A full-stack mobile application focused on language learning through daily pract
 ## Features
 
 - Daily Quiz: Complete a new quiz every day to maintain your learning streak
-- Ranked Matchmaking: Compete against other players for ELO rating
+- Ranked Matchmaking: Compete against other players for ELO rating with intelligent matchmaking
 - Casual Matchmaking: Practice without affecting your rating
 - Leaderboard: See top players and track your progress
 - User Profiles: Track streaks, points, and statistics
 - JWT Authentication: Secure user authentication and authorization
+- ELO Rating System: Fair skill-based matchmaking and rating calculations
+- Division System: 8 divisions from Unranked to Grandmaster with tier progression
+- Real-Time Updates: WebSocket-powered live matchmaking notifications
+
+For detailed information:
+- Matchmaking System: [MATCHMAKING.md](./MATCHMAKING.md)
+- Division System: [DIVISIONS.md](./DIVISIONS.md)
+- WebSocket Features: [WEBSOCKETS.md](./WEBSOCKETS.md)
 
 ## Tech Stack
 
@@ -87,7 +95,12 @@ npm run prisma:generate
 npm run prisma:migrate
 ```
 
-6. Start the development server:
+6. Seed the database with sample questions and users:
+```bash
+npm run prisma:seed
+```
+
+7. Start the development server:
 ```bash
 npm run dev
 ```

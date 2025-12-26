@@ -7,6 +7,17 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum Division {
+  UNRANKED
+  BRONZE
+  SILVER
+  GOLD
+  PLATINUM
+  DIAMOND
+  MASTER
+  GRANDMASTER
+}
+
 model User {
   id        String   @id @default(uuid())
   email     String   @unique
@@ -18,6 +29,7 @@ model User {
 
   // Stats
   eloRating Int      @default(1000)
+  division  Division @default(BRONZE)
   totalPoints Int    @default(0)
   currentStreak Int  @default(0)
   longestStreak Int  @default(0)
@@ -29,6 +41,7 @@ model User {
   matchResults MatchResult[]
 
   @@index([eloRating])
+  @@index([division])
   @@index([username])
 }
 

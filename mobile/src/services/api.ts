@@ -61,6 +61,10 @@ export const matchService = {
     const response = await api.post('/match/find', { type });
     return response.data;
   },
+  leaveLobby: async () => {
+    const response = await api.post('/match/leave');
+    return response.data;
+  },
   submitMatchResult: async (matchId: string, answers: Record<string, string>) => {
     const response = await api.post('/match/submit', { matchId, answers });
     return response.data;

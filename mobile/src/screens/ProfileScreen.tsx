@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useAuth } from '../context/AuthContext';
+import { DivisionBadge, DivisionCard } from '../components/DivisionBadge';
 
 const ProfileScreen = () => {
   const { user, logout } = useAuth();
@@ -8,6 +9,14 @@ const ProfileScreen = () => {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Profile</Text>
+
+      {user?.divisionInfo && (
+        <DivisionCard
+          division={user.division}
+          divisionInfo={user.divisionInfo}
+          eloRating={user.eloRating}
+        />
+      )}
 
       <View style={styles.card}>
         <View style={styles.row}>
@@ -26,6 +35,12 @@ const ProfileScreen = () => {
 
       <View style={styles.card}>
         <Text style={styles.cardTitle}>Statistics</Text>
+        <View style={styles.row}>
+          <Text style={styles.label}>Division</Text>
+          {user?.division && (
+            <DivisionBadge division={user.division} divisionInfo={user.divisionInfo} size="small" />
+          )}
+        </View>
         <View style={styles.row}>
           <Text style={styles.label}>ELO Rating</Text>
           <Text style={styles.value}>{user?.eloRating}</Text>
