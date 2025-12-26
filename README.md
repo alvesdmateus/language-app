@@ -4,17 +4,40 @@ A full-stack mobile application focused on language learning through daily pract
 
 ## Features
 
+### Learning & Practice
 - Daily Quiz: Complete a new quiz every day to maintain your learning streak
-- Ranked Matchmaking: Compete against other players for ELO rating with intelligent matchmaking
-- Casual Matchmaking: Practice without affecting your rating
-- Leaderboard: See top players and track your progress
-- User Profiles: Track streaks, points, and statistics
-- JWT Authentication: Secure user authentication and authorization
-- ELO Rating System: Fair skill-based matchmaking and rating calculations
+- Flashcard Learning: Study with interactive flashcards featuring card-flipping animations and progress tracking
+- 8 Supported Languages: Portuguese, Spanish, English, Italian, French, German, Japanese, Korean
+
+### Competitive Game Modes
+- **Battle Mode**: Intense 5-question matches with 45s per question, ELO-based difficulty
+- **Ranked Mode**: Compete for language-specific ELO ratings
+- **Casual Mode**: Practice without affecting your rating
+- **Custom Lobbies**: Configure match settings (duration, difficulty, power-ups)
+
+### Progression System
+- Multi-Language ELO: Separate rating for each of 8 languages
 - Division System: 8 divisions from Unranked to Grandmaster with tier progression
-- Real-Time Updates: WebSocket-powered live matchmaking notifications
+- Language-Specific Stats: Track wins, losses, draws per language
+- Leaderboards: Language-specific rankings
+
+### Match Features
+- Smart Winner Determination: Accuracy → Speed → Draw
+- ELO-Based Difficulty: Questions adapt to player skill level
+  - Beginner: Easy only
+  - Mid-ladder: Easy to Medium
+  - High-ELO: Medium to Hard
+  - Top percent: Hard only
+- Real-Time Updates: WebSocket-powered live match notifications
+- Timing Tracking: Precise answer timing for tiebreakers
+
+### Technical Features
+- JWT Authentication: Secure user authentication and authorization
+- Fair Matchmaking: Language and ELO-based opponent matching
+- Real-Time WebSockets: Live match updates and notifications
 
 For detailed information:
+- Game Logic: [backend/GAME_LOGIC.md](./backend/GAME_LOGIC.md)
 - Matchmaking System: [MATCHMAKING.md](./MATCHMAKING.md)
 - Division System: [DIVISIONS.md](./DIVISIONS.md)
 - WebSocket Features: [WEBSOCKETS.md](./WEBSOCKETS.md)
@@ -154,18 +177,32 @@ This will start:
 
 ### Match
 - `POST /api/match/find` - Find a match (authenticated)
+- `POST /api/match/leave` - Leave matchmaking lobby (authenticated)
 - `POST /api/match/submit` - Submit match results (authenticated)
+- `GET /api/match/:matchId` - Get match details (authenticated)
+- `GET /api/match/status` - Check matchmaking status (authenticated)
+
+### Language Statistics
+- `GET /api/language-stats` - Get all language stats for user (authenticated)
+- `GET /api/language-stats/:language` - Get stats for specific language (authenticated)
+- `GET /api/language-stats/:language/leaderboard` - Get language leaderboard (authenticated)
+- `GET /api/language-stats/:language/history` - Get match history for language (authenticated)
+
+### Flashcards
+- `GET /api/flashcards` - Get flashcards for studying (authenticated)
+- `GET /api/flashcards/categories` - Get available question types and difficulties (authenticated)
 
 ## Database Schema
 
 The application uses the following main models:
 
 - **User**: User accounts with authentication and statistics
+- **LanguageStats**: Per-language ELO ratings and match statistics (8 languages)
 - **DailyQuiz**: Daily quiz questions and metadata
 - **DailyQuizCompletion**: User quiz completions and scores
-- **Match**: Matchmaking sessions (ranked/casual)
-- **MatchResult**: Individual match results and ELO changes
-- **Question**: Question bank for quizzes and matches
+- **Match**: Matchmaking sessions (ranked/casual/battle/custom) with language and settings
+- **MatchResult**: Individual match results with timing data and ELO changes
+- **Question**: Question bank with language and difficulty categorization
 
 ## Development
 
@@ -180,7 +217,15 @@ npm run prisma:studio
 
 ### Database Migrations
 
-Create a new migration:
+After pulling the latest game logic changes, run:
+
+```bash
+cd backend
+npx prisma migrate dev --name add_game_logic
+npx prisma generate
+```
+
+Or create a new migration:
 
 ```bash
 cd backend
@@ -209,14 +254,44 @@ JWT_EXPIRES_IN=7d
 CORS_ORIGIN=http://localhost:19006
 ```
 
+## Game Modes Guide
+
+### Battle Mode
+- 5 questions, 45 seconds each
+- ELO-based automatic difficulty
+- Affects language-specific rating
+- Fast-paced competitive gameplay
+
+### Custom Lobby
+- Configure match settings:
+  - Question duration: 30, 45, or 60 seconds
+  - Difficulty: Easy, Medium, or Hard
+  - Power-ups: Enabled or disabled
+- 10 questions per match
+- Practice mode (no ELO changes)
+
+### Ranked Mode
+- Competitive play with ELO changes
+- 10 questions per match
+- ELO-based difficulty matching
+- Language-specific rankings
+
+### Casual Mode
+- Relaxed gameplay
+- No rating changes
+- 10 questions per match
+- Mixed difficulty
+
 ## Future Enhancements
 
-- Real-time matchmaking with WebSockets
-- Multiple language support
+- Power-up system implementation (UI/mechanics)
+- Team battles (2v2, 3v3)
+- Tournament mode
 - Voice recognition for pronunciation practice
 - Social features (friends, chat)
 - Achievement system
 - Push notifications for daily reminders
+- Seasonal rankings and rewards
 
 ## License
 

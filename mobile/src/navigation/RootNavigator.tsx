@@ -9,6 +9,7 @@ import DailyQuizScreen from '../screens/DailyQuizScreen';
 import MatchmakingScreen from '../screens/MatchmakingScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import LeaderboardScreen from '../screens/LeaderboardScreen';
+import FlashcardsScreen from '../screens/FlashcardsScreen';
 import { RootStackParamList } from '../types';
 
 const Stack = createStackNavigator<RootStackParamList>();
@@ -20,6 +21,7 @@ const MainTabs = () => {
       <Tab.Screen name="Home" component={HomeScreen} />
       <Tab.Screen name="DailyQuiz" component={DailyQuizScreen} options={{ title: 'Daily Quiz' }} />
       <Tab.Screen name="Matchmaking" component={MatchmakingScreen} />
+      <Tab.Screen name="Flashcards" component={FlashcardsScreen} />
       <Tab.Screen name="Leaderboard" component={LeaderboardScreen} />
       <Tab.Screen name="Profile" component={ProfileScreen} />
     </Tab.Navigator>

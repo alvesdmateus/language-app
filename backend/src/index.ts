@@ -8,6 +8,8 @@ import authRoutes from './routes/auth';
 import userRoutes from './routes/user';
 import quizRoutes from './routes/quiz';
 import matchRoutes from './routes/match';
+import flashcardRoutes from './routes/flashcard';
+import languageStatsRoutes from './routes/languageStats';
 import { errorHandler } from './middleware/errorHandler';
 import { socketService } from './services/socketService';
 
@@ -45,6 +47,8 @@ app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/quiz', quizRoutes);
 app.use('/api/match', matchRoutes);
+app.use('/api/flashcards', flashcardRoutes);
+app.use('/api/language-stats', languageStatsRoutes);
 
 // Error handling
 app.use(errorHandler);

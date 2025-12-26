@@ -3,9 +3,12 @@ import { AuthRequest } from '../middleware/auth';
 import prisma from '../utils/db';
 import { AppError } from '../middleware/errorHandler';
 import { matchmakingService } from '../services/matchmakingService';
+import { gameService } from '../services/gameService';
 import { calculateMultiPlayerRatings } from '../utils/elo';
 import { updateUserElo } from '../services/userService';
 import { getDivisionFromElo } from '../utils/division';
+import { socketService } from '../services/socketService';
+import { Language, QuestionDifficulty, MatchType } from '@prisma/client';
 
 /**
  * Join matchmaking lobby and find a match
@@ -16,24 +19,41 @@ export const findMatch = async (
   next: NextFunction
 ) => {
   try {
-    const { type } = req.body;
+    const { type, language, customSettings, isBattleMode } = req.body;
 
-    if (!['RANKED', 'CASUAL'].includes(type)) {
+    if (!['RANKED', 'CASUAL', 'CUSTOM', 'BATTLE'].includes(type)) {
       throw new AppError('Invalid match type', 400);
     }
 
+    if (!language) {
+      throw new AppError('Language is required', 400);
+    }
+
+    // Validate custom settings if provided
+    if (type === 'CUSTOM' && customSettings) {
+      if (![30, 45, 60].includes(customSettings.questionDuration)) {
+        throw new AppError('Question duration must be 30, 45, or 60 seconds', 400);
+      }
+      if (!['EASY', 'MEDIUM', 'HARD'].includes(customSettings.difficulty)) {
+        throw new AppError('Invalid difficulty level', 400);
+      }
+    }
+
     // Join the matchmaking lobby
-    await matchmakingService.joinLobby(req.userId!, type);
+    await matchmakingService.joinLobby(req.userId!, type as MatchType, language as Language, {
+      customSettings,
+      isBattleMode: isBattleMode || type === 'BATTLE',
+    });
 
     // Try to find an opponent
-    const opponentId = await matchmakingService.findMatch(req.userId!, type);
+    const opponentId = await matchmakingService.findMatch(req.userId!, type as MatchType);
 
     if (opponentId) {
       // Create match with the found opponent
       const matchId = await matchmakingService.createMatch(
         req.userId!,
         opponentId,
-        type
+        type as MatchType
       );
 
       // Fetch the created match
@@ -174,7 +194,7 @@ export const checkMatchStatus = async (
 };
 
 /**
- * Submit match result with ELO calculation
+ * Submit match result with ELO calculation and winner determination
  */
 export const submitMatchResult = async (
   req: AuthRequest,
@@ -212,26 +232,22 @@ export const submitMatchResult = async (
       throw new AppError('Result already submitted', 409);
     }
 
-    // Calculate score
-    let score = 0;
-    const questionIds = (match.questions as any[]).map((q) => q.id);
-    const questions = await prisma.question.findMany({
-      where: { id: { in: questionIds } },
-    });
-
-    questions.forEach((question) => {
-      if (answers[question.id] === question.correctAnswer) {
-        score += 10;
-      }
-    });
+    // Process answers and calculate score
+    const processedResult = await gameService.processAnswers(
+      matchId,
+      req.userId!,
+      answers
+    );
 
     // Create result
     const result = await prisma.matchResult.create({
       data: {
         matchId,
         userId: req.userId!,
-        score,
-        answers,
+        score: processedResult.score,
+        correctAnswers: processedResult.correctAnswers,
+        totalTimeMs: processedResult.totalTimeMs,
+        answers: processedResult.processedAnswers,
       },
     });
 
@@ -242,6 +258,16 @@ export const submitMatchResult = async (
     });
 
     if (allResults.length >= match.participants.length) {
+      // Determine winner
+      const winnerData = gameService.determineWinner(
+        allResults.map((r) => ({
+          userId: r.userId,
+          answers: r.answers as any,
+          correctAnswers: r.correctAnswers,
+          totalTimeMs: r.totalTimeMs,
+        }))
+      );
+
       // Mark match as completed
       await prisma.match.update({
         where: { id: matchId },
@@ -251,18 +277,29 @@ export const submitMatchResult = async (
         },
       });
 
-      // Calculate ELO changes for ranked matches
-      if (match.type === 'RANKED') {
-        const players = allResults.map((r) => ({
+      // Calculate ELO changes for ranked and battle mode matches
+      if (match.type === 'RANKED' || match.type === 'BATTLE') {
+        // Get language-specific ELO ratings
+        const playerStats = await Promise.all(
+          match.participants.map((p) =>
+            gameService.getOrCreateLanguageStats(p.id, match.language)
+          )
+        );
+
+        const players = allResults.map((r, index) => ({
           id: r.userId,
-          rating: r.user.eloRating,
+          rating: playerStats.find((s) => s.userId === r.userId)?.eloRating || 1000,
           score: r.score,
         }));
 
         const eloResults = calculateMultiPlayerRatings(players);
 
-        // Update ELO ratings, divisions, and match results
-        const divisionChanges: Array<{ userId: string; oldDivision: string; newDivision: string }> = [];
+        // Update language stats and match results with ELO changes
+        const divisionChanges: Array<{
+          userId: string;
+          oldDivision: string;
+          newDivision: string;
+        }> = [];
 
         for (const eloResult of eloResults) {
           // Update match result with ELO change
@@ -276,30 +313,65 @@ export const submitMatchResult = async (
             data: { eloChange: eloResult.change },
           });
 
-          // Update user ELO and division
-          const updateResult = await updateUserElo(eloResult.id, eloResult.change);
+          // Determine win/loss/draw
+          let matchResult: 'win' | 'loss' | 'draw';
+          if (winnerData.isDraw) {
+            matchResult = 'draw';
+          } else if (winnerData.winnerId === eloResult.id) {
+            matchResult = 'win';
+          } else {
+            matchResult = 'loss';
+          }
+
+          // Update language-specific stats
+          const updateResult = await gameService.updateLanguageStats(
+            eloResult.id,
+            match.language,
+            eloResult.change,
+            matchResult
+          );
 
           // Track division changes for notifications
           if (updateResult.divisionChanged) {
-            const user = await prisma.user.findUnique({
-              where: { id: eloResult.id },
-              select: { division: true },
+            divisionChanges.push({
+              userId: eloResult.id,
+              oldDivision: updateResult.oldDivision,
+              newDivision: updateResult.newDivision,
             });
-            if (user) {
-              divisionChanges.push({
-                userId: eloResult.id,
-                oldDivision: user.division,
-                newDivision: updateResult.newDivision,
-              });
-            }
           }
         }
+
+        // Emit match completed event to both players
+        socketService.emitToUsers(
+          match.participants.map((p) => p.id),
+          'match:completed',
+          {
+            matchId,
+            winnerId: winnerData.winnerId,
+            isDraw: winnerData.isDraw,
+            results: winnerData.results,
+            eloChanges: eloResults,
+            divisionChanges,
+          }
+        );
+      } else {
+        // Casual/Custom matches - no ELO changes
+        socketService.emitToUsers(
+          match.participants.map((p) => p.id),
+          'match:completed',
+          {
+            matchId,
+            winnerId: winnerData.winnerId,
+            isDraw: winnerData.isDraw,
+            results: winnerData.results,
+          }
+        );
       }
     }
 
     res.json({
       status: 'success',
-      data: { result, score },
+      data: { result, score: processedResult.score },
     });
   } catch (error) {
     next(error);

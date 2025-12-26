@@ -71,4 +71,18 @@ export const matchService = {
   },
 };
 
+export const flashcardService = {
+  getFlashcards: async (count = 10, difficulty?: number, type?: string) => {
+    const params = new URLSearchParams({ count: count.toString() });
+    if (difficulty) params.append('difficulty', difficulty.toString());
+    if (type) params.append('type', type);
+    const response = await api.get(`/flashcards?${params.toString()}`);
+    return response.data;
+  },
+  getCategories: async () => {
+    const response = await api.get('/flashcards/categories');
+    return response.data;
+  },
+};
+
 export default api;

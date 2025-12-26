@@ -18,6 +18,23 @@ enum Division {
   GRANDMASTER
 }
 
+enum Language {
+  PORTUGUESE
+  SPANISH
+  ENGLISH
+  ITALIAN
+  FRENCH
+  GERMAN
+  JAPANESE
+  KOREAN
+}
+
+enum QuestionDifficulty {
+  EASY
+  MEDIUM
+  HARD
+}
+
 model User {
   id        String   @id @default(uuid())
   email     String   @unique
@@ -27,7 +44,7 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  // Stats
+  // Stats (deprecated - use languageStats instead)
   eloRating Int      @default(1000)
   division  Division @default(BRONZE)
   totalPoints Int    @default(0)
@@ -39,10 +56,32 @@ model User {
   dailyQuizzes DailyQuizCompletion[]
   matches      Match[]
   matchResults MatchResult[]
+  languageStats LanguageStats[]
 
   @@index([eloRating])
   @@index([division])
   @@index([username])
+}
+
+model LanguageStats {
+  id        String   @id @default(uuid())
+  userId    String
+  language  Language
+  eloRating Int      @default(1000)
+  division  Division @default(BRONZE)
+  totalMatches Int   @default(0)
+  wins      Int      @default(0)
+  losses    Int      @default(0)
+  draws     Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, language])
+  @@index([userId])
+  @@index([language])
+  @@index([eloRating])
 }
 
 model DailyQuiz {
@@ -75,6 +114,8 @@ model DailyQuizCompletion {
 enum MatchType {
   RANKED
   CASUAL
+  CUSTOM
+  BATTLE
 }
 
 enum MatchStatus {
@@ -88,16 +129,26 @@ model Match {
   id        String      @id @default(uuid())
   type      MatchType
   status    MatchStatus @default(WAITING)
+  language  Language    @default(ENGLISH)
   questions Json
   startedAt DateTime?
   endedAt   DateTime?
   createdAt DateTime    @default(now())
+
+  // Custom lobby settings
+  questionDuration Int?  // in seconds: 30, 45, or 60
+  difficulty QuestionDifficulty?  // EASY, MEDIUM, HARD
+  powerUpsEnabled Boolean @default(false)
+
+  // Battle mode settings (5 questions, 45s each)
+  isBattleMode Boolean @default(false)
 
   participants User[]
   results      MatchResult[]
 
   @@index([status])
   @@index([type])
+  @@index([language])
 }
 
 model MatchResult {
@@ -105,7 +156,9 @@ model MatchResult {
   matchId   String
   userId    String
   score     Int
-  answers   Json
+  correctAnswers Int @default(0)
+  totalTimeMs Int  @default(0)  // Total time taken in milliseconds
+  answers   Json  // { questionId: { answer: string, timeMs: number, correct: boolean } }
   eloChange Int?
   createdAt DateTime @default(now())
 
@@ -119,13 +172,13 @@ model MatchResult {
 
 model Question {
   id           String   @id @default(uuid())
-  type         String
-  difficulty   Int
+  type         String  // "grammar" or "comprehension"
+  difficulty   QuestionDifficulty @default(MEDIUM)
   question     String
   correctAnswer String
-  options      Json
+  options      Json  // Array of 4 options
   explanation  String?
-  language     String   @default("en")
+  language     Language @default(ENGLISH)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 

@@ -1,12 +1,22 @@
 import prisma from '../utils/db';
 import { getMatchmakingRange, calculateMatchmakingScore } from '../utils/elo';
 import { socketService } from './socketService';
+import { gameService } from './gameService';
+import { Language, QuestionDifficulty, MatchType } from '@prisma/client';
 
 interface LobbyPlayer {
   userId: string;
   eloRating: number;
-  matchType: 'RANKED' | 'CASUAL';
+  matchType: MatchType;
+  language: Language;
   joinedAt: Date;
+  // Custom lobby settings
+  customSettings?: {
+    questionDuration: number; // 30, 45, or 60
+    difficulty: QuestionDifficulty;
+    powerUpsEnabled: boolean;
+  };
+  isBattleMode?: boolean;
 }
 
 /**
@@ -21,16 +31,24 @@ class MatchmakingService {
   /**
    * Add a player to the matchmaking lobby
    */
-  async joinLobby(userId: string, matchType: 'RANKED' | 'CASUAL'): Promise<void> {
-    // Get player's current ELO
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      select: { eloRating: true },
-    });
-
-    if (!user) {
-      throw new Error('User not found');
+  async joinLobby(
+    userId: string,
+    matchType: MatchType,
+    language: Language,
+    options?: {
+      customSettings?: {
+        questionDuration: number;
+        difficulty: QuestionDifficulty;
+        powerUpsEnabled: boolean;
+      };
+      isBattleMode?: boolean;
     }
+  ): Promise<void> {
+    // Get player's current ELO for this language
+    const languageStats = await gameService.getOrCreateLanguageStats(
+      userId,
+      language
+    );
 
     // Remove player from lobby if already in one
     this.leaveLobby(userId);
@@ -38,9 +56,12 @@ class MatchmakingService {
     // Add to lobby
     this.lobbies.set(userId, {
       userId,
-      eloRating: user.eloRating,
+      eloRating: languageStats.eloRating,
       matchType,
+      language,
       joinedAt: new Date(),
+      customSettings: options?.customSettings,
+      isBattleMode: options?.isBattleMode,
     });
 
     // Clean up old lobbies
@@ -49,6 +70,7 @@ class MatchmakingService {
     // Emit event to user
     socketService.emitToUser(userId, 'matchmaking:joined', {
       matchType,
+      language,
       lobbyStatus: this.getLobbyStatus(),
     });
 
@@ -84,7 +106,7 @@ class MatchmakingService {
    */
   async findMatch(
     userId: string,
-    matchType: 'RANKED' | 'CASUAL'
+    matchType: MatchType
   ): Promise<string | null> {
     const player = this.lobbies.get(userId);
     if (!player) {
@@ -108,6 +130,19 @@ class MatchmakingService {
       // Must be same match type
       if (candidate.matchType !== matchType) continue;
 
+      // Must be same language
+      if (candidate.language !== player.language) continue;
+
+      // For battle mode, must both be battle mode
+      if (player.isBattleMode !== candidate.isBattleMode) continue;
+
+      // For custom lobbies, settings must match
+      if (matchType === MatchType.CUSTOM) {
+        if (!this.customSettingsMatch(player.customSettings, candidate.customSettings)) {
+          continue;
+        }
+      }
+
       // Check if within ELO range
       if (candidate.eloRating < range.min || candidate.eloRating > range.max) {
         continue;
@@ -116,8 +151,9 @@ class MatchmakingService {
       // Calculate compatibility score
       const score = calculateMatchmakingScore(player.eloRating, candidate.eloRating);
 
-      // For ranked, enforce maximum ELO difference
-      if (matchType === 'RANKED' && score > this.MAX_ELO_DIFFERENCE * searchRangeMultiplier) {
+      // For ranked/battle mode, enforce maximum ELO difference
+      if ((matchType === MatchType.RANKED || matchType === MatchType.BATTLE) &&
+          score > this.MAX_ELO_DIFFERENCE * searchRangeMultiplier) {
         continue;
       }
 
@@ -137,12 +173,28 @@ class MatchmakingService {
   }
 
   /**
+   * Check if custom settings match between two players
+   */
+  private customSettingsMatch(
+    settings1?: LobbyPlayer['customSettings'],
+    settings2?: LobbyPlayer['customSettings']
+  ): boolean {
+    if (!settings1 || !settings2) return false;
+
+    return (
+      settings1.questionDuration === settings2.questionDuration &&
+      settings1.difficulty === settings2.difficulty &&
+      settings1.powerUpsEnabled === settings2.powerUpsEnabled
+    );
+  }
+
+  /**
    * Create a match between two players
    */
   async createMatch(
     player1Id: string,
     player2Id: string,
-    matchType: 'RANKED' | 'CASUAL'
+    matchType: MatchType
   ): Promise<string> {
     // Remove both players from lobby (without emitting leave events)
     const player1 = this.lobbies.get(player1Id);
@@ -150,20 +202,51 @@ class MatchmakingService {
     this.lobbies.delete(player1Id);
     this.lobbies.delete(player2Id);
 
-    // Get random questions
-    const questions = await this.getRandomQuestions(10);
+    if (!player1 || !player2) {
+      throw new Error('Players not found in lobby');
+    }
+
+    // Determine match configuration
+    const isBattleMode = player1.isBattleMode || false;
+    const language = player1.language;
+
+    // Use average ELO for question selection in ranked/battle mode
+    const averageElo = Math.floor((player1.eloRating + player2.eloRating) / 2);
+
+    // Select questions based on match type
+    const questions = await gameService.selectQuestions({
+      language,
+      difficulty: player1.customSettings?.difficulty,
+      eloRating: averageElo,
+      count: isBattleMode ? 5 : (player1.customSettings ? 10 : 10),
+      isBattleMode,
+    });
+
+    // Determine question duration
+    let questionDuration: number | null = null;
+    if (isBattleMode) {
+      questionDuration = 45; // Battle mode: always 45 seconds
+    } else if (player1.customSettings) {
+      questionDuration = player1.customSettings.questionDuration;
+    }
 
     // Create match in database
     const match = await prisma.match.create({
       data: {
         type: matchType,
         status: 'IN_PROGRESS',
+        language,
         startedAt: new Date(),
+        isBattleMode,
+        questionDuration,
+        difficulty: player1.customSettings?.difficulty,
+        powerUpsEnabled: player1.customSettings?.powerUpsEnabled || false,
         questions: questions.map((q) => ({
           id: q.id,
           question: q.question,
           options: q.options,
           type: q.type,
+          difficulty: q.difficulty,
         })),
         participants: {
           connect: [{ id: player1Id }, { id: player2Id }],
@@ -182,13 +265,25 @@ class MatchmakingService {
       },
     });
 
+    // Get language-specific stats for participants
+    const player1Stats = await gameService.getOrCreateLanguageStats(player1Id, language);
+    const player2Stats = await gameService.getOrCreateLanguageStats(player2Id, language);
+
     // Emit match found event to both players
     const matchData = {
       matchId: match.id,
       matchType: match.type,
       status: match.status,
+      language: match.language,
+      isBattleMode: match.isBattleMode,
+      questionDuration: match.questionDuration,
+      difficulty: match.difficulty,
+      powerUpsEnabled: match.powerUpsEnabled,
       questions: match.questions,
-      participants: match.participants,
+      participants: match.participants.map((p) => ({
+        ...p,
+        languageElo: p.id === player1Id ? player1Stats.eloRating : player2Stats.eloRating,
+      })),
       startedAt: match.startedAt,
     };
 
@@ -204,35 +299,6 @@ class MatchmakingService {
     return match.id;
   }
 
-  /**
-   * Get random questions for a match
-   */
-  private async getRandomQuestions(count: number) {
-    // Get total question count
-    const totalQuestions = await prisma.question.count();
-
-    if (totalQuestions === 0) {
-      throw new Error('No questions available');
-    }
-
-    // Generate random offsets
-    const randomOffsets = new Set<number>();
-    while (randomOffsets.size < Math.min(count, totalQuestions)) {
-      randomOffsets.add(Math.floor(Math.random() * totalQuestions));
-    }
-
-    // Fetch questions at random positions
-    const questions = await Promise.all(
-      Array.from(randomOffsets).map((offset) =>
-        prisma.question.findMany({
-          take: 1,
-          skip: offset,
-        })
-      )
-    );
-
-    return questions.flat();
-  }
 
   /**
    * Remove players who have been waiting too long

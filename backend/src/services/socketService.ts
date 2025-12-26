@@ -71,15 +71,37 @@ class SocketService {
     });
 
     // Matchmaking events
-    socket.on('matchmaking:join', (data: { type: 'RANKED' | 'CASUAL' }) => {
-      console.log(`🎮 User ${userId} joined ${data.type} matchmaking`);
+    socket.on('matchmaking:join', (data: { type: string; language: string }) => {
+      console.log(`🎮 User ${userId} joined ${data.type} matchmaking for ${data.language}`);
       socket.join(`matchmaking:${data.type.toLowerCase()}`);
+      socket.join(`matchmaking:${data.type.toLowerCase()}:${data.language.toLowerCase()}`);
     });
 
     socket.on('matchmaking:leave', () => {
       console.log(`🎮 User ${userId} left matchmaking`);
       socket.leave('matchmaking:ranked');
       socket.leave('matchmaking:casual');
+      socket.leave('matchmaking:battle');
+      socket.leave('matchmaking:custom');
+    });
+
+    // Game events
+    socket.on('game:answer_submitted', (data: { matchId: string; questionId: string }) => {
+      console.log(`📝 User ${userId} submitted answer for question ${data.questionId} in match ${data.matchId}`);
+      // Notify opponent that player submitted an answer
+      socket.to(`match:${data.matchId}`).emit('game:opponent_answered', {
+        questionId: data.questionId,
+      });
+    });
+
+    socket.on('game:join_match', (data: { matchId: string }) => {
+      console.log(`🎮 User ${userId} joined match ${data.matchId}`);
+      socket.join(`match:${data.matchId}`);
+    });
+
+    socket.on('game:leave_match', (data: { matchId: string }) => {
+      console.log(`🎮 User ${userId} left match ${data.matchId}`);
+      socket.leave(`match:${data.matchId}`);
     });
 
     // Ping/pong for connection health
