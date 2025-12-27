@@ -95,31 +95,43 @@ const HomeScreen = () => {
 
       {/* Menu Options */}
       <View style={styles.menuSection}>
-        <Text style={styles.sectionTitle}>Play</Text>
+        <Text style={styles.sectionTitle}>Battle Modes</Text>
 
         <MenuCard
-          icon="📝"
-          title="Daily Quiz"
-          subtitle="Complete today's challenge"
-          color="#4A90E2"
-          onPress={() => navigation.navigate('DailyQuiz' as never)}
-          badge="NEW"
-        />
-
-        <MenuCard
-          icon="🎖️"
-          title="Ranked Match"
-          subtitle="Compete for ELO rating"
+          icon="⚔️"
+          title="Ranked Battle"
+          subtitle="5 questions • 45s each • Earn ELO"
           color="#FF3B30"
-          onPress={() => navigation.navigate('Matchmaking' as never, { type: 'RANKED' } as never)}
+          onPress={() => navigation.navigate('BattleMode' as never, { mode: 'RANKED' } as never)}
         />
 
         <MenuCard
           icon="🎮"
-          title="Casual Match"
-          subtitle="Practice without pressure"
+          title="Casual Battle"
+          subtitle="5 questions • 45s each • Practice"
           color="#34C759"
-          onPress={() => navigation.navigate('Matchmaking' as never, { type: 'CASUAL' } as never)}
+          onPress={() => navigation.navigate('BattleMode' as never, { mode: 'CASUAL' } as never)}
+        />
+      </View>
+
+      <View style={styles.menuSection}>
+        <Text style={styles.sectionTitle}>Challenges</Text>
+
+        <MenuCard
+          icon="📝"
+          title="Daily Challenge"
+          subtitle="Complete today's quiz"
+          color="#4A90E2"
+          onPress={() => navigation.navigate('DailyQuiz' as never)}
+          badge="TODAY"
+        />
+
+        <MenuCard
+          icon="🏆"
+          title="Achievements"
+          subtitle="View your badges & milestones"
+          color="#FFD700"
+          onPress={() => navigation.navigate('Achievements' as never)}
         />
       </View>
 
@@ -136,22 +148,30 @@ const HomeScreen = () => {
       </View>
 
       <View style={styles.menuSection}>
-        <Text style={styles.sectionTitle}>Progress</Text>
-
-        <MenuCard
-          icon="🏅"
-          title="Leaderboard"
-          subtitle="See top players"
-          color="#5856D6"
-          onPress={() => navigation.navigate('Leaderboard' as never)}
-        />
+        <Text style={styles.sectionTitle}>Your Stats</Text>
 
         <MenuCard
           icon="👤"
           title="Profile"
-          subtitle="View your statistics"
+          subtitle="View your statistics & history"
           color="#8E8E93"
           onPress={() => navigation.navigate('Profile' as never)}
+        />
+
+        <MenuCard
+          icon="🏅"
+          title="Leaderboard"
+          subtitle="Rankings by language"
+          color="#5856D6"
+          onPress={() => navigation.navigate('LanguageStats' as never)}
+        />
+
+        <MenuCard
+          icon="⚙️"
+          title="Settings"
+          subtitle="Account & preferences"
+          color="#666"
+          onPress={() => navigation.navigate('Settings' as never)}
         />
       </View>
 

@@ -57,16 +57,42 @@ export const quizService = {
 };
 
 export const matchService = {
-  findMatch: async (type: 'RANKED' | 'CASUAL') => {
-    const response = await api.post('/match/find', { type });
+  findMatch: async (
+    type: 'RANKED' | 'CASUAL' | 'BATTLE' | 'CUSTOM',
+    language: string,
+    options?: {
+      isBattleMode?: boolean;
+      customSettings?: {
+        questionDuration: number;
+        difficulty: string;
+        powerUpsEnabled: boolean;
+      };
+    }
+  ) => {
+    const response = await api.post('/match/find', {
+      type,
+      language,
+      ...options,
+    });
     return response.data;
   },
   leaveLobby: async () => {
     const response = await api.post('/match/leave');
     return response.data;
   },
-  submitMatchResult: async (matchId: string, answers: Record<string, string>) => {
+  submitMatchResult: async (
+    matchId: string,
+    answers: Record<string, { answer: string; timeMs: number }>
+  ) => {
     const response = await api.post('/match/submit', { matchId, answers });
+    return response.data;
+  },
+  getMatch: async (matchId: string) => {
+    const response = await api.get(`/match/${matchId}`);
+    return response.data;
+  },
+  checkStatus: async (type: string) => {
+    const response = await api.get(`/match/status?type=${type}`);
     return response.data;
   },
 };
@@ -85,4 +111,28 @@ export const flashcardService = {
   },
 };
 
+export const languageStatsService = {
+  getAllStats: async () => {
+    const response = await api.get('/language-stats');
+    return response.data;
+  },
+  getStatsForLanguage: async (language: string) => {
+    const response = await api.get(`/language-stats/${language}`);
+    return response.data;
+  },
+  getLeaderboard: async (language: string, limit = 100, offset = 0) => {
+    const response = await api.get(
+      `/language-stats/${language}/leaderboard?limit=${limit}&offset=${offset}`
+    );
+    return response.data;
+  },
+  getMatchHistory: async (language: string, limit = 20, offset = 0) => {
+    const response = await api.get(
+      `/language-stats/${language}/history?limit=${limit}&offset=${offset}`
+    );
+    return response.data;
+  },
+};
+
+export { api };
 export default api;
