@@ -17,7 +17,23 @@ class SocketService {
   initialize(httpServer: HttpServer): Server {
     this.io = new Server(httpServer, {
       cors: {
-        origin: process.env.CORS_ORIGIN || '*',
+        origin: (origin, callback) => {
+          // Allow requests with no origin (mobile apps)
+          if (!origin) return callback(null, true);
+
+          // Allow localhost on any port
+          if (origin.match(/^http:\/\/localhost(:\d+)?$/)) {
+            return callback(null, true);
+          }
+
+          // Allow local network IPs (192.168.0.*)
+          if (origin.match(/^http:\/\/192\.168\.0\.\d+(:\d+)?$/)) {
+            return callback(null, true);
+          }
+
+          // Allow all in development
+          callback(null, true);
+        },
         methods: ['GET', 'POST'],
         credentials: true,
       },

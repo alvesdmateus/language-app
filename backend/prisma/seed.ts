@@ -301,11 +301,22 @@ async function main() {
 
   // Create questions
   console.log('Creating questions...');
+  const difficultyMap: { [key: number]: string } = {
+    1: 'EASY',
+    2: 'MEDIUM',
+    3: 'HARD',
+  };
+
   for (const question of questions) {
     await prisma.question.create({
       data: {
-        ...question,
+        type: question.type,
+        difficulty: difficultyMap[question.difficulty],
+        question: question.question,
+        correctAnswer: question.correctAnswer,
         options: question.options,
+        explanation: question.explanation,
+        language: question.language,
       },
     });
   }

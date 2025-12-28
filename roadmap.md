@@ -32,7 +32,6 @@ freeze(frost ice icon): freezes your timer(cooldown 60 sec)
 burn(fire icon): speeds up your opp timer(cooldown 60 sec)
 
 timer: is a burning rope with animation
-
 onboard mode
 
 if user first battle:

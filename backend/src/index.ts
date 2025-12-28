@@ -25,10 +25,34 @@ socketService.initialize(httpServer);
 // Middleware
 app.use(helmet());
 app.use(compression());
-app.use(cors({
-  origin: process.env.CORS_ORIGIN || '*',
+
+// CORS configuration - allow localhost and local network
+const corsOptions = {
+  origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
+    // Allow requests with no origin (mobile apps, Postman, etc.)
+    if (!origin) return callback(null, true);
+
+    // Allow localhost on any port
+    if (origin.match(/^http:\/\/localhost(:\d+)?$/)) {
+      return callback(null, true);
+    }
+
+    // Allow local network IPs (192.168.0.*)
+    if (origin.match(/^http:\/\/192\.168\.0\.\d+(:\d+)?$/)) {
+      return callback(null, true);
+    }
+
+    // Allow specific CORS_ORIGIN from env if set
+    if (process.env.CORS_ORIGIN === '*' || origin === process.env.CORS_ORIGIN) {
+      return callback(null, true);
+    }
+
+    callback(null, true); // Allow all in development
+  },
   credentials: true
-}));
+};
+
+app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 

@@ -4,13 +4,13 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  ScrollView,
   ActivityIndicator,
   Alert,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { Language } from '../types';
 import { api } from '../services/api';
+import LanguageSelector from '../components/LanguageSelector';
 
 const BattleModeScreen = () => {
   const navigation = useNavigation();
@@ -20,17 +20,6 @@ const BattleModeScreen = () => {
   const [loading, setLoading] = useState(true);
   const [selectedLanguage, setSelectedLanguage] = useState<Language | null>(null);
   const [searching, setSearching] = useState(false);
-
-  const LANGUAGE_INFO = {
-    PORTUGUESE: { name: 'Portuguese', flag: '🇧🇷', color: '#009739' },
-    SPANISH: { name: 'Spanish', flag: '🇪🇸', color: '#C60B1E' },
-    ENGLISH: { name: 'English', flag: '🇺🇸', color: '#3C3B6E' },
-    ITALIAN: { name: 'Italian', flag: '🇮🇹', color: '#009246' },
-    FRENCH: { name: 'French', flag: '🇫🇷', color: '#0055A4' },
-    GERMAN: { name: 'German', flag: '🇩🇪', color: '#000000' },
-    JAPANESE: { name: 'Japanese', flag: '🇯🇵', color: '#BC002D' },
-    KOREAN: { name: 'Korean', flag: '🇰🇷', color: '#003478' },
-  };
 
   useEffect(() => {
     loadLanguageStats();
@@ -57,6 +46,17 @@ const BattleModeScreen = () => {
       losses: 0,
       draws: 0,
     };
+  };
+
+  const getLanguageStatsRecord = () => {
+    const statsRecord: Record<Language, any> = {} as Record<Language, any>;
+    const languages: Language[] = ['PORTUGUESE', 'SPANISH', 'ENGLISH', 'ITALIAN', 'FRENCH', 'GERMAN', 'JAPANESE', 'KOREAN'];
+
+    languages.forEach((lang) => {
+      statsRecord[lang] = getStatsForLanguage(lang);
+    });
+
+    return statsRecord;
   };
 
   const handleLanguageSelect = async (language: Language) => {
@@ -94,58 +94,6 @@ const BattleModeScreen = () => {
     }
   };
 
-  const LanguageCard = ({ language }: { language: Language }) => {
-    const info = LANGUAGE_INFO[language];
-    const stats = getStatsForLanguage(language);
-    const winRate =
-      stats.totalMatches > 0
-        ? ((stats.wins / stats.totalMatches) * 100).toFixed(1)
-        : '0.0';
-    const isSearching = searching && selectedLanguage === language;
-
-    return (
-      <TouchableOpacity
-        style={[
-          styles.languageCard,
-          { borderLeftColor: info.color },
-          isSearching && styles.languageCardSearching,
-        ]}
-        onPress={() => handleLanguageSelect(language)}
-        disabled={searching}
-        activeOpacity={0.7}
-      >
-        <View style={styles.languageHeader}>
-          <Text style={styles.languageFlag}>{info.flag}</Text>
-          <View style={styles.languageInfo}>
-            <Text style={styles.languageName}>{info.name}</Text>
-            <Text style={styles.languageSubtitle}>
-              {stats.totalMatches} matches played
-            </Text>
-          </View>
-          {isSearching && (
-            <ActivityIndicator size="small" color={info.color} />
-          )}
-        </View>
-
-        <View style={styles.statsRow}>
-          <View style={styles.statItem}>
-            <Text style={styles.statLabel}>ELO</Text>
-            <Text style={[styles.statValue, { color: info.color }]}>
-              {stats.eloRating}
-            </Text>
-          </View>
-          <View style={styles.statItem}>
-            <Text style={styles.statLabel}>Division</Text>
-            <Text style={styles.statValue}>{stats.division}</Text>
-          </View>
-          <View style={styles.statItem}>
-            <Text style={styles.statLabel}>Win Rate</Text>
-            <Text style={styles.statValue}>{winRate}%</Text>
-          </View>
-        </View>
-      </TouchableOpacity>
-    );
-  };
 
   if (loading) {
     return (
@@ -207,12 +155,16 @@ const BattleModeScreen = () => {
       </View>
 
       {/* Language Selection */}
-      <ScrollView style={styles.languageList}>
+      <View style={styles.languageSelector}>
         <Text style={styles.sectionTitle}>Select Language</Text>
-        {Object.keys(LANGUAGE_INFO).map((lang) => (
-          <LanguageCard key={lang} language={lang as Language} />
-        ))}
-      </ScrollView>
+        <LanguageSelector
+          selectedLanguage={selectedLanguage}
+          onSelectLanguage={handleLanguageSelect}
+          disabled={searching}
+          languageStats={getLanguageStatsRecord()}
+          showStats={true}
+        />
+      </View>
     </View>
   );
 };
@@ -296,72 +248,16 @@ const styles = StyleSheet.create({
     color: '#666',
     flex: 1,
   },
-  languageList: {
+  languageSelector: {
     flex: 1,
     paddingHorizontal: 20,
+    paddingTop: 12,
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: 'bold',
     color: '#333',
     marginBottom: 12,
-  },
-  languageCard: {
-    backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    borderLeftWidth: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  languageCardSearching: {
-    opacity: 0.7,
-  },
-  languageHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  languageFlag: {
-    fontSize: 36,
-    marginRight: 12,
-  },
-  languageInfo: {
-    flex: 1,
-  },
-  languageName: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  languageSubtitle: {
-    fontSize: 13,
-    color: '#666',
-    marginTop: 2,
-  },
-  statsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#f0f0f0',
-  },
-  statItem: {
-    alignItems: 'center',
-  },
-  statLabel: {
-    fontSize: 12,
-    color: '#999',
-    marginBottom: 4,
-  },
-  statValue: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#333',
   },
 });
 

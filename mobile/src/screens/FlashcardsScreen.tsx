@@ -26,10 +26,9 @@ interface Flashcard {
   imageUrl?: string;
 }
 
-type Language = 'SPANISH' | 'PORTUGUESE' | 'FRENCH';
+type Language = 'SPANISH' | 'PORTUGUESE' | 'FRENCH' | 'GERMAN' | 'ITALIAN' | 'JAPANESE' | 'KOREAN';
 
-const { width } = Dimensions.get('window');
-const CARD_WIDTH = width - 40;
+const { width, height } = Dimensions.get('window');
 
 const FlashcardsScreen = () => {
   const navigation = useNavigation();
@@ -137,27 +136,39 @@ const FlashcardsScreen = () => {
   });
 
   const frontOpacity = flipAnimation.interpolate({
-    inputRange: [0, 90, 90, 180],
+    inputRange: [0, 89, 91, 180],
     outputRange: [1, 1, 0, 0],
   });
 
   const backOpacity = flipAnimation.interpolate({
-    inputRange: [0, 90, 90, 180],
+    inputRange: [0, 89, 91, 180],
     outputRange: [0, 0, 1, 1],
   });
 
   const getLanguageFlag = (lang: Language) => {
-    if (lang === 'SPANISH') return '🇪🇸';
-    if (lang === 'PORTUGUESE') return '🇧🇷';
-    if (lang === 'FRENCH') return '🇫🇷';
-    return '🌍';
+    const flags = {
+      SPANISH: '🇪🇸',
+      PORTUGUESE: '🇧🇷',
+      FRENCH: '🇫🇷',
+      GERMAN: '🇩🇪',
+      ITALIAN: '🇮🇹',
+      JAPANESE: '🇯🇵',
+      KOREAN: '🇰🇷',
+    };
+    return flags[lang] || '🌍';
   };
 
   const getLanguageName = (lang: Language) => {
-    if (lang === 'SPANISH') return 'Spanish';
-    if (lang === 'PORTUGUESE') return 'Portuguese';
-    if (lang === 'FRENCH') return 'French';
-    return lang;
+    const names = {
+      SPANISH: 'Spanish',
+      PORTUGUESE: 'Portuguese',
+      FRENCH: 'French',
+      GERMAN: 'German',
+      ITALIAN: 'Italian',
+      JAPANESE: 'Japanese',
+      KOREAN: 'Korean',
+    };
+    return names[lang] || lang;
   };
 
   if (loading) {
@@ -245,7 +256,6 @@ const FlashcardsScreen = () => {
           <Text style={styles.headerTitle}>
             {getLanguageFlag(selectedLanguage)} {getLanguageName(selectedLanguage)}
           </Text>
-          <Text style={styles.headerSubtitle}>Flashcards</Text>
         </View>
         <TouchableOpacity onPress={() => setShowSettings(true)}>
           <Text style={styles.settingsIcon}>⚙️</Text>
@@ -255,7 +265,7 @@ const FlashcardsScreen = () => {
       {/* Progress */}
       <View style={styles.progressContainer}>
         <Text style={styles.progressText}>
-          Card {currentIndex + 1} of {flashcards.length}
+          {currentIndex + 1} / {flashcards.length}
         </Text>
         <View style={styles.progressBar}>
           <View
@@ -269,11 +279,11 @@ const FlashcardsScreen = () => {
 
       {/* Score */}
       <View style={styles.scoreContainer}>
-        <View style={[styles.scoreBox, { backgroundColor: '#E8F5E9' }]}>
+        <View style={styles.scoreBox}>
           <Text style={[styles.scoreValue, { color: '#34C759' }]}>{knownCount}</Text>
           <Text style={styles.scoreLabel}>✓ Known</Text>
         </View>
-        <View style={[styles.scoreBox, { backgroundColor: '#FFEBEE' }]}>
+        <View style={styles.scoreBox}>
           <Text style={[styles.scoreValue, { color: '#FF3B30' }]}>{unknownCount}</Text>
           <Text style={styles.scoreLabel}>✗ Learning</Text>
         </View>
@@ -281,74 +291,72 @@ const FlashcardsScreen = () => {
 
       {/* Flashcard */}
       <View style={styles.cardContainer}>
-        <TouchableOpacity activeOpacity={0.9} onPress={flipCard} style={styles.cardTouchable}>
-          <Animated.View
-            style={[
-              styles.card,
-              styles.cardFront,
-              {
-                transform: [{ rotateY: frontInterpolate }],
-                opacity: frontOpacity,
-              },
-            ]}
-          >
-            <View style={styles.cardHeader}>
-              <View style={[styles.difficultyBadge, getDifficultyColor(currentCard.difficulty)]}>
-                <Text style={styles.difficultyText}>{currentCard.difficulty}</Text>
-              </View>
-              <View style={[styles.sourceBadge, getSourceColor(currentCard.source)]}>
-                <Text style={styles.sourceText}>{getSourceLabel(currentCard.source)}</Text>
-              </View>
-            </View>
-            <View style={styles.cardContent}>
-              <Text style={styles.categoryLabel}>{formatCategory(currentCard.category)}</Text>
-              <Text style={styles.questionText}>{currentCard.frontText}</Text>
-              {currentCard.contextSentence && (
-                <View style={styles.contextContainer}>
-                  <Text style={styles.contextLabel}>Context:</Text>
-                  <Text style={styles.contextText}>"{currentCard.contextSentence}"</Text>
+        <TouchableOpacity activeOpacity={0.9} onPress={flipCard}>
+          <View style={styles.cardWrapper}>
+            <Animated.View
+              style={[
+                styles.card,
+                {
+                  transform: [{ rotateY: frontInterpolate }],
+                  opacity: frontOpacity,
+                },
+              ]}
+              pointerEvents={isFlipped ? 'none' : 'auto'}
+            >
+              <View style={styles.cardBadges}>
+                <View style={[styles.badge, getDifficultyColor(currentCard.difficulty)]}>
+                  <Text style={styles.badgeText}>{currentCard.difficulty}</Text>
                 </View>
-              )}
-            </View>
-            <View style={styles.tapHintContainer}>
-              <Text style={styles.tapHint}>👆 Tap to reveal translation</Text>
-            </View>
-          </Animated.View>
-
-          <Animated.View
-            style={[
-              styles.card,
-              styles.cardBack,
-              {
-                transform: [{ rotateY: backInterpolate }],
-                opacity: backOpacity,
-              },
-            ]}
-          >
-            <View style={styles.cardContent}>
-              <Text style={styles.answerLabel}>Translation</Text>
-              <Text style={styles.answerText}>{currentCard.backText}</Text>
-
-              <View style={styles.divider} />
-
-              <Text style={styles.originalLabel}>English</Text>
-              <Text style={styles.originalText}>{currentCard.frontText}</Text>
-
-              {currentCard.sourceTitle && (
-                <View style={styles.sourceInfoContainer}>
-                  <Text style={styles.sourceInfoLabel}>📰 Source:</Text>
-                  <Text style={styles.sourceInfoText} numberOfLines={2}>
-                    {currentCard.sourceTitle}
-                  </Text>
+                <View style={[styles.badge, getSourceColor(currentCard.source)]}>
+                  <Text style={styles.badgeText}>{getSourceLabel(currentCard.source)}</Text>
                 </View>
-              )}
-            </View>
-            <View style={styles.tapHintContainer}>
-              <Text style={[styles.tapHint, { color: 'rgba(255,255,255,0.9)' }]}>
-                Do you know this word?
-              </Text>
-            </View>
-          </Animated.View>
+              </View>
+
+              <View style={styles.cardContent}>
+                <Text style={styles.categoryLabel}>{formatCategory(currentCard.category)}</Text>
+                <Text style={styles.wordText}>{currentCard.frontText}</Text>
+                {currentCard.contextSentence && (
+                  <View style={styles.contextBox}>
+                    <Text style={styles.contextText}>"{currentCard.contextSentence}"</Text>
+                  </View>
+                )}
+              </View>
+
+              <Text style={styles.tapHint}>👆 Tap to reveal</Text>
+            </Animated.View>
+
+            <Animated.View
+              style={[
+                styles.card,
+                styles.cardBack,
+                {
+                  transform: [{ rotateY: backInterpolate }],
+                  opacity: backOpacity,
+                },
+              ]}
+              pointerEvents={isFlipped ? 'auto' : 'none'}
+            >
+              <View style={styles.cardContent}>
+                <Text style={styles.translationLabel}>Translation</Text>
+                <Text style={styles.translationText}>{currentCard.backText}</Text>
+
+                <View style={styles.divider} />
+
+                <Text style={styles.originalLabel}>English</Text>
+                <Text style={styles.originalText}>{currentCard.frontText}</Text>
+
+                {currentCard.sourceTitle && (
+                  <View style={styles.sourceInfo}>
+                    <Text style={styles.sourceInfoText} numberOfLines={2}>
+                      📰 {currentCard.sourceTitle}
+                    </Text>
+                  </View>
+                )}
+              </View>
+
+              <Text style={styles.tapHintBack}>Do you know this word?</Text>
+            </Animated.View>
+          </View>
         </TouchableOpacity>
       </View>
 
@@ -356,12 +364,12 @@ const FlashcardsScreen = () => {
       {isFlipped && (
         <View style={styles.actionButtons}>
           <TouchableOpacity style={[styles.actionButton, styles.unknownButton]} onPress={handleUnknown}>
-            <Text style={styles.actionButtonText}>✗</Text>
+            <Text style={styles.actionButtonIcon}>✗</Text>
             <Text style={styles.actionButtonLabel}>Don't Know</Text>
           </TouchableOpacity>
 
           <TouchableOpacity style={[styles.actionButton, styles.knownButton]} onPress={handleKnown}>
-            <Text style={styles.actionButtonText}>✓</Text>
+            <Text style={styles.actionButtonIcon}>✓</Text>
             <Text style={styles.actionButtonLabel}>Know It</Text>
           </TouchableOpacity>
         </View>
@@ -377,17 +385,17 @@ const FlashcardsScreen = () => {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Flashcard Settings</Text>
+              <Text style={styles.modalTitle}>Settings</Text>
               <TouchableOpacity onPress={() => setShowSettings(false)}>
                 <Text style={styles.modalClose}>✕</Text>
               </TouchableOpacity>
             </View>
 
-            <ScrollView style={styles.modalScroll}>
+            <ScrollView style={styles.modalScroll} showsVerticalScrollIndicator={false}>
               {/* Language Selection */}
               <Text style={styles.sectionTitle}>Language</Text>
               <View style={styles.optionsGrid}>
-                {(['SPANISH', 'PORTUGUESE', 'FRENCH'] as Language[]).map((lang) => (
+                {(['SPANISH', 'PORTUGUESE', 'FRENCH', 'GERMAN', 'ITALIAN', 'JAPANESE', 'KOREAN'] as Language[]).map((lang) => (
                   <TouchableOpacity
                     key={lang}
                     style={[
@@ -427,7 +435,7 @@ const FlashcardsScreen = () => {
                         cardCount === count && styles.optionTextActive,
                       ]}
                     >
-                      {count} cards
+                      {count}
                     </Text>
                   </TouchableOpacity>
                 ))}
@@ -489,7 +497,7 @@ const FlashcardsScreen = () => {
                       selectedCategory === '' && styles.optionTextActive,
                     ]}
                   >
-                    All Categories
+                    All
                   </Text>
                 </TouchableOpacity>
                 {['MOVIES', 'SPORTS', 'TECHNOLOGY', 'MUSIC', 'FOOD', 'GAMING'].map((cat) => (
@@ -521,7 +529,7 @@ const FlashcardsScreen = () => {
                 loadFlashcards();
               }}
             >
-              <Text style={styles.applyButtonText}>Apply Settings</Text>
+              <Text style={styles.applyButtonText}>Apply</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -544,10 +552,10 @@ const getSourceColor = (source: string) => {
 };
 
 const getSourceLabel = (source: string) => {
-  if (source === 'CURATED') return '✨ Curated';
-  if (source === 'NEWS_API') return '📰 News';
-  if (source === 'TRENDING') return '🔥 Trending';
-  return 'Custom';
+  if (source === 'CURATED') return '✨';
+  if (source === 'NEWS_API') return '📰';
+  if (source === 'TRENDING') return '🔥';
+  return '•';
 };
 
 const formatCategory = (category: string) => {
@@ -557,27 +565,28 @@ const formatCategory = (category: string) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#f8f9fa',
   },
   centerContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#f8f9fa',
     padding: 20,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 20,
+    paddingHorizontal: 20,
     paddingTop: 60,
+    paddingBottom: 16,
     backgroundColor: 'white',
     borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
+    borderBottomColor: '#e8e8e8',
   },
   backIcon: {
-    fontSize: 28,
+    fontSize: 26,
     color: '#4A90E2',
   },
   headerCenter: {
@@ -585,23 +594,20 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  headerSubtitle: {
-    fontSize: 12,
-    color: '#999',
-    marginTop: 2,
+    fontWeight: '700',
+    color: '#1a1a1a',
   },
   settingsIcon: {
-    fontSize: 24,
+    fontSize: 22,
   },
   settingsButton: {
     marginTop: 20,
-    backgroundColor: '#f0f0f0',
+    backgroundColor: '#fff',
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#e8e8e8',
   },
   settingsButtonText: {
     fontSize: 16,
@@ -609,225 +615,208 @@ const styles = StyleSheet.create({
     color: '#333',
   },
   progressContainer: {
-    padding: 20,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
     backgroundColor: 'white',
   },
   progressText: {
-    fontSize: 14,
+    fontSize: 13,
     color: '#666',
     marginBottom: 8,
     textAlign: 'center',
+    fontWeight: '600',
   },
   progressBar: {
-    height: 8,
-    backgroundColor: '#e0e0e0',
-    borderRadius: 4,
+    height: 6,
+    backgroundColor: '#e8e8e8',
+    borderRadius: 3,
     overflow: 'hidden',
   },
   progressFill: {
     height: '100%',
     backgroundColor: '#4A90E2',
-    borderRadius: 4,
+    borderRadius: 3,
   },
   scoreContainer: {
     flexDirection: 'row',
-    padding: 20,
-    gap: 12,
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 12,
+    gap: 10,
   },
   scoreBox: {
     flex: 1,
     backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 16,
+    borderRadius: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 8,
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#e8e8e8',
   },
   scoreValue: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#333',
+    fontSize: 24,
+    fontWeight: '700',
   },
   scoreLabel: {
-    fontSize: 12,
+    fontSize: 11,
     color: '#666',
-    marginTop: 4,
+    marginTop: 2,
+    fontWeight: '600',
   },
   cardContainer: {
     flex: 1,
     justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
   },
-  cardTouchable: {
-    width: CARD_WIDTH,
-    height: 440,
+  cardWrapper: {
+    width: '100%',
+    aspectRatio: 0.7,
+    maxHeight: 480,
   },
   card: {
     position: 'absolute',
     width: '100%',
     height: '100%',
     backgroundColor: 'white',
-    borderRadius: 20,
-    padding: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 5,
-    backfaceVisibility: 'hidden',
-  },
-  cardFront: {
+    borderRadius: 16,
+    padding: 20,
     justifyContent: 'space-between',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    elevation: 4,
+    backfaceVisibility: 'hidden',
+    borderWidth: 1,
+    borderColor: '#e8e8e8',
   },
   cardBack: {
-    justifyContent: 'space-between',
     backgroundColor: '#4A90E2',
+    borderColor: '#4A90E2',
   },
-  cardHeader: {
+  cardBadges: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
   },
-  difficultyBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
+  badge: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
   },
-  difficultyText: {
+  badgeText: {
     color: 'white',
-    fontSize: 11,
-    fontWeight: 'bold',
-  },
-  sourceBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
-  },
-  sourceText: {
-    color: 'white',
-    fontSize: 11,
-    fontWeight: 'bold',
-  },
-  categoryLabel: {
-    fontSize: 13,
-    color: '#999',
-    textAlign: 'center',
-    marginBottom: 16,
-    textTransform: 'uppercase',
-    letterSpacing: 1.5,
-    fontWeight: '600',
-  },
-  contextContainer: {
-    marginTop: 24,
-    padding: 16,
-    backgroundColor: '#f8f8f8',
-    borderRadius: 12,
-    borderLeftWidth: 4,
-    borderLeftColor: '#4A90E2',
-  },
-  contextLabel: {
-    fontSize: 11,
-    color: '#999',
-    marginBottom: 8,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    fontWeight: '600',
-  },
-  contextText: {
-    fontSize: 14,
-    color: '#666',
-    fontStyle: 'italic',
-    lineHeight: 20,
-  },
-  sourceInfoContainer: {
-    marginTop: 16,
-    paddingTop: 16,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.3)',
-  },
-  sourceInfoLabel: {
-    fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.8)',
-    marginBottom: 6,
-    fontWeight: '600',
-  },
-  sourceInfoText: {
-    fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.95)',
-    fontStyle: 'italic',
+    fontSize: 10,
+    fontWeight: '700',
   },
   cardContent: {
     flex: 1,
     justifyContent: 'center',
   },
-  questionText: {
-    fontSize: 32,
-    fontWeight: '700',
-    color: '#333',
+  categoryLabel: {
+    fontSize: 12,
+    color: '#999',
     textAlign: 'center',
-    lineHeight: 42,
-  },
-  answerLabel: {
-    fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.8)',
     marginBottom: 12,
+    textTransform: 'uppercase',
+    letterSpacing: 1.5,
+    fontWeight: '600',
+  },
+  wordText: {
+    fontSize: 28,
+    fontWeight: '700',
+    color: '#1a1a1a',
     textAlign: 'center',
+    marginBottom: 16,
+  },
+  contextBox: {
+    marginTop: 16,
+    padding: 14,
+    backgroundColor: '#f8f9fa',
+    borderRadius: 10,
+    borderLeftWidth: 3,
+    borderLeftColor: '#4A90E2',
+  },
+  contextText: {
+    fontSize: 13,
+    color: '#555',
+    fontStyle: 'italic',
+    lineHeight: 19,
+  },
+  translationLabel: {
+    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.8)',
+    textAlign: 'center',
+    marginBottom: 10,
     textTransform: 'uppercase',
     letterSpacing: 1,
     fontWeight: '600',
   },
-  answerText: {
-    fontSize: 36,
-    fontWeight: 'bold',
+  translationText: {
+    fontSize: 32,
+    fontWeight: '700',
     color: 'white',
     textAlign: 'center',
-    marginBottom: 24,
-    lineHeight: 44,
+    marginBottom: 20,
   },
   divider: {
     height: 1,
     backgroundColor: 'rgba(255, 255, 255, 0.3)',
-    marginVertical: 20,
+    marginVertical: 16,
   },
   originalLabel: {
-    fontSize: 12,
+    fontSize: 11,
     color: 'rgba(255, 255, 255, 0.7)',
-    marginBottom: 8,
     textAlign: 'center',
+    marginBottom: 8,
     textTransform: 'uppercase',
     letterSpacing: 0.8,
   },
   originalText: {
-    fontSize: 18,
+    fontSize: 16,
+    color: 'rgba(255, 255, 255, 0.95)',
+    textAlign: 'center',
+    fontStyle: 'italic',
+  },
+  sourceInfo: {
+    marginTop: 14,
+    paddingTop: 14,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.3)',
+  },
+  sourceInfoText: {
+    fontSize: 11,
     color: 'rgba(255, 255, 255, 0.9)',
     textAlign: 'center',
     fontStyle: 'italic',
   },
-  tapHintContainer: {
-    alignItems: 'center',
-    paddingTop: 16,
-  },
   tapHint: {
-    fontSize: 14,
+    fontSize: 13,
     color: '#999',
+    textAlign: 'center',
+    fontWeight: '500',
+  },
+  tapHintBack: {
+    fontSize: 13,
+    color: 'rgba(255, 255, 255, 0.9)',
     textAlign: 'center',
     fontWeight: '500',
   },
   actionButtons: {
     flexDirection: 'row',
-    padding: 20,
-    paddingBottom: 30,
-    gap: 12,
+    paddingHorizontal: 20,
+    paddingBottom: 24,
+    gap: 10,
   },
   actionButton: {
     flex: 1,
-    borderRadius: 16,
-    padding: 20,
+    borderRadius: 12,
+    paddingVertical: 14,
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 3,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 6,
   },
   unknownButton: {
     backgroundColor: '#FF3B30',
@@ -835,10 +824,9 @@ const styles = StyleSheet.create({
   knownButton: {
     backgroundColor: '#34C759',
   },
-  actionButtonText: {
-    fontSize: 32,
+  actionButtonIcon: {
+    fontSize: 18,
     color: 'white',
-    marginBottom: 4,
   },
   actionButtonLabel: {
     fontSize: 14,
@@ -906,11 +894,8 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 20,
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    borderWidth: 1,
+    borderColor: '#e8e8e8',
   },
   statValue: {
     fontSize: 32,
@@ -929,11 +914,8 @@ const styles = StyleSheet.create({
     padding: 32,
     alignItems: 'center',
     marginBottom: 32,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 5,
+    borderWidth: 1,
+    borderColor: '#e8e8e8',
   },
   percentageText: {
     fontSize: 56,
@@ -949,13 +931,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#4A90E2',
     paddingHorizontal: 40,
     paddingVertical: 16,
-    borderRadius: 16,
+    borderRadius: 12,
     marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 6,
-    elevation: 4,
   },
   resetButtonText: {
     color: 'white',
@@ -982,7 +959,7 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     paddingTop: 20,
-    maxHeight: '85%',
+    maxHeight: '80%',
   },
   modalHeader: {
     flexDirection: 'row',
@@ -991,43 +968,42 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingBottom: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
+    borderBottomColor: '#e8e8e8',
   },
   modalTitle: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: '#333',
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#1a1a1a',
   },
   modalClose: {
-    fontSize: 28,
+    fontSize: 26,
     color: '#999',
     fontWeight: '300',
   },
   modalScroll: {
     paddingHorizontal: 24,
-    paddingTop: 24,
+    paddingTop: 20,
   },
   sectionTitle: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '700',
-    color: '#333',
+    color: '#1a1a1a',
     marginBottom: 12,
     marginTop: 8,
   },
   optionsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 10,
-    marginBottom: 24,
+    gap: 8,
+    marginBottom: 20,
   },
   optionButton: {
-    backgroundColor: '#f5f5f5',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: '#f5f5f5',
-    minWidth: 100,
+    backgroundColor: '#f8f9fa',
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 10,
+    borderWidth: 1.5,
+    borderColor: '#e8e8e8',
     alignItems: 'center',
   },
   optionButtonActive: {
@@ -1035,11 +1011,11 @@ const styles = StyleSheet.create({
     borderColor: '#4A90E2',
   },
   optionFlag: {
-    fontSize: 24,
-    marginBottom: 4,
+    fontSize: 20,
+    marginBottom: 3,
   },
   optionText: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
     color: '#666',
   },
@@ -1048,20 +1024,16 @@ const styles = StyleSheet.create({
   },
   applyButton: {
     backgroundColor: '#4A90E2',
-    margin: 24,
-    padding: 18,
-    borderRadius: 16,
+    marginHorizontal: 24,
+    marginVertical: 20,
+    paddingVertical: 16,
+    borderRadius: 12,
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 6,
-    elevation: 4,
   },
   applyButtonText: {
     color: 'white',
-    fontSize: 18,
-    fontWeight: 'bold',
+    fontSize: 16,
+    fontWeight: '700',
   },
 });
 

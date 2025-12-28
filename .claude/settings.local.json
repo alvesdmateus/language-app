@@ -22,7 +22,8 @@
       "Bash(npm uninstall:*)",
       "Bash(curl:*)",
       "Bash(ipconfig:*)",
-      "Bash(npx ts-node:*)"
+      "Bash(npx ts-node:*)",
+      "Bash(npm run prisma:seed:*)"
     ]
   }
 }

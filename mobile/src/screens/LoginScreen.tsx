@@ -26,6 +26,17 @@ const LoginScreen = () => {
     }
   };
 
+  const handleDemoLogin = async () => {
+    try {
+      setLoading(true);
+      await login('alice', 'password123');
+    } catch (error: any) {
+      Alert.alert('Login Failed', error?.response?.data?.message || 'Demo account login failed.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <KeyboardAvoidingView
       style={styles.container}
@@ -86,10 +97,7 @@ const LoginScreen = () => {
           <Text style={styles.footerText}>Quick Login (Demo):</Text>
           <TouchableOpacity
             style={styles.demoButton}
-            onPress={() => {
-              setUsername('alice');
-              setPassword('password123');
-            }}
+            onPress={handleDemoLogin}
             disabled={loading}
           >
             <Text style={styles.demoButtonText}>Use Demo Account</Text>
