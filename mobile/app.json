@@ -4,27 +4,41 @@
     "slug": "language-app",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "splash": {
-      "image": "./assets/splash.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
-    "assetBundlePatterns": ["**/*"],
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.languageapp.mobile"
     },
     "android": {
+      "package": "com.languageapp.mobile",
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.languageapp.mobile"
+      "softwareKeyboardLayoutMode": "pan",
+      "navigationBar": {
+        "visible": "immersive",
+        "barStyle": "light-content",
+        "backgroundColor": "#ffffff"
+      },
+      "statusBar": {
+        "hidden": true,
+        "barStyle": "dark-content",
+        "backgroundColor": "#ffffff"
+      }
     },
-    "web": {
-      "favicon": "./assets/favicon.png"
-    }
+    "web": {},
+    "extra": {
+      "eas": {
+        "projectId": "4b430c00-ea82-4220-91be-97593c5bac6b"
+      }
+    },
+    "owner": "alvesdmateus"
   }
 }

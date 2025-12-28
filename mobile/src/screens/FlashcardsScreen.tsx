@@ -1,17 +1,32 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Animated, Dimensions } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  ActivityIndicator,
+  Animated,
+  Dimensions,
+  ScrollView,
+  Modal,
+} from 'react-native';
 import { flashcardService } from '../services/api';
 import { useNavigation } from '@react-navigation/native';
 
 interface Flashcard {
   id: string;
-  question: string;
-  correctAnswer: string;
-  options: string[];
-  type: string;
-  difficulty: number;
-  explanation?: string;
+  frontText: string;
+  backText: string;
+  contextSentence?: string;
+  category: string;
+  source: 'CURATED' | 'NEWS_API' | 'TRENDING' | 'USER_GENERATED';
+  sourceTitle?: string;
+  sourceUrl?: string;
+  difficulty: 'EASY' | 'MEDIUM' | 'HARD';
+  imageUrl?: string;
 }
+
+type Language = 'SPANISH' | 'PORTUGUESE' | 'FRENCH';
 
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = width - 40;
@@ -25,17 +40,36 @@ const FlashcardsScreen = () => {
   const [knownCount, setKnownCount] = useState(0);
   const [unknownCount, setUnknownCount] = useState(0);
   const [sessionComplete, setSessionComplete] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+
+  // Filters
+  const [selectedLanguage, setSelectedLanguage] = useState<Language>('SPANISH');
+  const [selectedCategory, setSelectedCategory] = useState<string>('');
+  const [selectedDifficulty, setSelectedDifficulty] = useState<string>('');
+  const [cardCount, setCardCount] = useState(10);
+
   const flipAnimation = new Animated.Value(0);
 
   useEffect(() => {
     loadFlashcards();
-  }, []);
+  }, [selectedLanguage, selectedCategory, selectedDifficulty, cardCount]);
 
   const loadFlashcards = async () => {
     try {
       setLoading(true);
-      const response = await flashcardService.getFlashcards(10);
+      const response = await flashcardService.getFlashcards(
+        cardCount,
+        selectedLanguage,
+        selectedCategory || undefined,
+        selectedDifficulty || undefined
+      );
       setFlashcards(response.data.flashcards);
+      setCurrentIndex(0);
+      setKnownCount(0);
+      setUnknownCount(0);
+      setSessionComplete(false);
+      setIsFlipped(false);
+      flipAnimation.setValue(0);
     } catch (error) {
       console.error('Failed to load flashcards:', error);
     } finally {
@@ -112,6 +146,20 @@ const FlashcardsScreen = () => {
     outputRange: [0, 0, 1, 1],
   });
 
+  const getLanguageFlag = (lang: Language) => {
+    if (lang === 'SPANISH') return '🇪🇸';
+    if (lang === 'PORTUGUESE') return '🇧🇷';
+    if (lang === 'FRENCH') return '🇫🇷';
+    return '🌍';
+  };
+
+  const getLanguageName = (lang: Language) => {
+    if (lang === 'SPANISH') return 'Spanish';
+    if (lang === 'PORTUGUESE') return 'Portuguese';
+    if (lang === 'FRENCH') return 'French';
+    return lang;
+  };
+
   if (loading) {
     return (
       <View style={styles.centerContainer}>
@@ -126,7 +174,15 @@ const FlashcardsScreen = () => {
       <View style={styles.centerContainer}>
         <Text style={styles.emptyIcon}>📚</Text>
         <Text style={styles.emptyTitle}>No Flashcards Available</Text>
-        <Text style={styles.emptyText}>Check back later for study materials</Text>
+        <Text style={styles.emptyText}>
+          Try changing your filters or check back later
+        </Text>
+        <TouchableOpacity
+          style={styles.settingsButton}
+          onPress={() => setShowSettings(true)}
+        >
+          <Text style={styles.settingsButtonText}>⚙️ Change Settings</Text>
+        </TouchableOpacity>
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
           <Text style={styles.backButtonText}>Go Back</Text>
         </TouchableOpacity>
@@ -185,8 +241,15 @@ const FlashcardsScreen = () => {
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Text style={styles.backIcon}>←</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Flashcards</Text>
-        <View style={styles.placeholder} />
+        <View style={styles.headerCenter}>
+          <Text style={styles.headerTitle}>
+            {getLanguageFlag(selectedLanguage)} {getLanguageName(selectedLanguage)}
+          </Text>
+          <Text style={styles.headerSubtitle}>Flashcards</Text>
+        </View>
+        <TouchableOpacity onPress={() => setShowSettings(true)}>
+          <Text style={styles.settingsIcon}>⚙️</Text>
+        </TouchableOpacity>
       </View>
 
       {/* Progress */}
@@ -206,12 +269,12 @@ const FlashcardsScreen = () => {
 
       {/* Score */}
       <View style={styles.scoreContainer}>
-        <View style={styles.scoreBox}>
-          <Text style={styles.scoreValue}>{knownCount}</Text>
+        <View style={[styles.scoreBox, { backgroundColor: '#E8F5E9' }]}>
+          <Text style={[styles.scoreValue, { color: '#34C759' }]}>{knownCount}</Text>
           <Text style={styles.scoreLabel}>✓ Known</Text>
         </View>
-        <View style={styles.scoreBox}>
-          <Text style={styles.scoreValue}>{unknownCount}</Text>
+        <View style={[styles.scoreBox, { backgroundColor: '#FFEBEE' }]}>
+          <Text style={[styles.scoreValue, { color: '#FF3B30' }]}>{unknownCount}</Text>
           <Text style={styles.scoreLabel}>✗ Learning</Text>
         </View>
       </View>
@@ -231,16 +294,25 @@ const FlashcardsScreen = () => {
           >
             <View style={styles.cardHeader}>
               <View style={[styles.difficultyBadge, getDifficultyColor(currentCard.difficulty)]}>
-                <Text style={styles.difficultyText}>
-                  {getDifficultyLabel(currentCard.difficulty)}
-                </Text>
+                <Text style={styles.difficultyText}>{currentCard.difficulty}</Text>
               </View>
-              <Text style={styles.cardType}>{currentCard.type}</Text>
+              <View style={[styles.sourceBadge, getSourceColor(currentCard.source)]}>
+                <Text style={styles.sourceText}>{getSourceLabel(currentCard.source)}</Text>
+              </View>
             </View>
             <View style={styles.cardContent}>
-              <Text style={styles.questionText}>{currentCard.question}</Text>
+              <Text style={styles.categoryLabel}>{formatCategory(currentCard.category)}</Text>
+              <Text style={styles.questionText}>{currentCard.frontText}</Text>
+              {currentCard.contextSentence && (
+                <View style={styles.contextContainer}>
+                  <Text style={styles.contextLabel}>Context:</Text>
+                  <Text style={styles.contextText}>"{currentCard.contextSentence}"</Text>
+                </View>
+              )}
             </View>
-            <Text style={styles.tapHint}>Tap to reveal answer</Text>
+            <View style={styles.tapHintContainer}>
+              <Text style={styles.tapHint}>👆 Tap to reveal translation</Text>
+            </View>
           </Animated.View>
 
           <Animated.View
@@ -254,16 +326,28 @@ const FlashcardsScreen = () => {
             ]}
           >
             <View style={styles.cardContent}>
-              <Text style={styles.answerLabel}>Answer:</Text>
-              <Text style={styles.answerText}>{currentCard.correctAnswer}</Text>
-              {currentCard.explanation && (
-                <>
-                  <Text style={styles.explanationLabel}>Explanation:</Text>
-                  <Text style={styles.explanationText}>{currentCard.explanation}</Text>
-                </>
+              <Text style={styles.answerLabel}>Translation</Text>
+              <Text style={styles.answerText}>{currentCard.backText}</Text>
+
+              <View style={styles.divider} />
+
+              <Text style={styles.originalLabel}>English</Text>
+              <Text style={styles.originalText}>{currentCard.frontText}</Text>
+
+              {currentCard.sourceTitle && (
+                <View style={styles.sourceInfoContainer}>
+                  <Text style={styles.sourceInfoLabel}>📰 Source:</Text>
+                  <Text style={styles.sourceInfoText} numberOfLines={2}>
+                    {currentCard.sourceTitle}
+                  </Text>
+                </View>
               )}
             </View>
-            <Text style={styles.tapHint}>Do you know this?</Text>
+            <View style={styles.tapHintContainer}>
+              <Text style={[styles.tapHint, { color: 'rgba(255,255,255,0.9)' }]}>
+                Do you know this word?
+              </Text>
+            </View>
           </Animated.View>
         </TouchableOpacity>
       </View>
@@ -282,20 +366,192 @@ const FlashcardsScreen = () => {
           </TouchableOpacity>
         </View>
       )}
+
+      {/* Settings Modal */}
+      <Modal
+        visible={showSettings}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowSettings(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Flashcard Settings</Text>
+              <TouchableOpacity onPress={() => setShowSettings(false)}>
+                <Text style={styles.modalClose}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={styles.modalScroll}>
+              {/* Language Selection */}
+              <Text style={styles.sectionTitle}>Language</Text>
+              <View style={styles.optionsGrid}>
+                {(['SPANISH', 'PORTUGUESE', 'FRENCH'] as Language[]).map((lang) => (
+                  <TouchableOpacity
+                    key={lang}
+                    style={[
+                      styles.optionButton,
+                      selectedLanguage === lang && styles.optionButtonActive,
+                    ]}
+                    onPress={() => setSelectedLanguage(lang)}
+                  >
+                    <Text style={styles.optionFlag}>{getLanguageFlag(lang)}</Text>
+                    <Text
+                      style={[
+                        styles.optionText,
+                        selectedLanguage === lang && styles.optionTextActive,
+                      ]}
+                    >
+                      {getLanguageName(lang)}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              {/* Card Count */}
+              <Text style={styles.sectionTitle}>Number of Cards</Text>
+              <View style={styles.optionsGrid}>
+                {[5, 10, 15, 20].map((count) => (
+                  <TouchableOpacity
+                    key={count}
+                    style={[
+                      styles.optionButton,
+                      cardCount === count && styles.optionButtonActive,
+                    ]}
+                    onPress={() => setCardCount(count)}
+                  >
+                    <Text
+                      style={[
+                        styles.optionText,
+                        cardCount === count && styles.optionTextActive,
+                      ]}
+                    >
+                      {count} cards
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              {/* Difficulty */}
+              <Text style={styles.sectionTitle}>Difficulty</Text>
+              <View style={styles.optionsGrid}>
+                <TouchableOpacity
+                  style={[
+                    styles.optionButton,
+                    selectedDifficulty === '' && styles.optionButtonActive,
+                  ]}
+                  onPress={() => setSelectedDifficulty('')}
+                >
+                  <Text
+                    style={[
+                      styles.optionText,
+                      selectedDifficulty === '' && styles.optionTextActive,
+                    ]}
+                  >
+                    All
+                  </Text>
+                </TouchableOpacity>
+                {['EASY', 'MEDIUM', 'HARD'].map((diff) => (
+                  <TouchableOpacity
+                    key={diff}
+                    style={[
+                      styles.optionButton,
+                      selectedDifficulty === diff && styles.optionButtonActive,
+                    ]}
+                    onPress={() => setSelectedDifficulty(diff)}
+                  >
+                    <Text
+                      style={[
+                        styles.optionText,
+                        selectedDifficulty === diff && styles.optionTextActive,
+                      ]}
+                    >
+                      {diff}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              {/* Categories */}
+              <Text style={styles.sectionTitle}>Category</Text>
+              <View style={styles.optionsGrid}>
+                <TouchableOpacity
+                  style={[
+                    styles.optionButton,
+                    selectedCategory === '' && styles.optionButtonActive,
+                  ]}
+                  onPress={() => setSelectedCategory('')}
+                >
+                  <Text
+                    style={[
+                      styles.optionText,
+                      selectedCategory === '' && styles.optionTextActive,
+                    ]}
+                  >
+                    All Categories
+                  </Text>
+                </TouchableOpacity>
+                {['MOVIES', 'SPORTS', 'TECHNOLOGY', 'MUSIC', 'FOOD', 'GAMING'].map((cat) => (
+                  <TouchableOpacity
+                    key={cat}
+                    style={[
+                      styles.optionButton,
+                      selectedCategory === cat && styles.optionButtonActive,
+                    ]}
+                    onPress={() => setSelectedCategory(cat)}
+                  >
+                    <Text
+                      style={[
+                        styles.optionText,
+                        selectedCategory === cat && styles.optionTextActive,
+                      ]}
+                    >
+                      {formatCategory(cat)}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </ScrollView>
+
+            <TouchableOpacity
+              style={styles.applyButton}
+              onPress={() => {
+                setShowSettings(false);
+                loadFlashcards();
+              }}
+            >
+              <Text style={styles.applyButtonText}>Apply Settings</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
 
-const getDifficultyLabel = (difficulty: number) => {
-  if (difficulty <= 2) return 'Easy';
-  if (difficulty <= 4) return 'Medium';
-  return 'Hard';
+const getDifficultyColor = (difficulty: string) => {
+  if (difficulty === 'EASY') return { backgroundColor: '#34C759' };
+  if (difficulty === 'MEDIUM') return { backgroundColor: '#FF9500' };
+  return { backgroundColor: '#FF3B30' };
 };
 
-const getDifficultyColor = (difficulty: number) => {
-  if (difficulty <= 2) return { backgroundColor: '#34C759' };
-  if (difficulty <= 4) return { backgroundColor: '#FF9500' };
-  return { backgroundColor: '#FF3B30' };
+const getSourceColor = (source: string) => {
+  if (source === 'CURATED') return { backgroundColor: '#5856D6' };
+  if (source === 'NEWS_API') return { backgroundColor: '#FF2D55' };
+  if (source === 'TRENDING') return { backgroundColor: '#FF9500' };
+  return { backgroundColor: '#8E8E93' };
+};
+
+const getSourceLabel = (source: string) => {
+  if (source === 'CURATED') return '✨ Curated';
+  if (source === 'NEWS_API') return '📰 News';
+  if (source === 'TRENDING') return '🔥 Trending';
+  return 'Custom';
+};
+
+const formatCategory = (category: string) => {
+  return category.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, l => l.toUpperCase());
 };
 
 const styles = StyleSheet.create({
@@ -317,18 +573,40 @@ const styles = StyleSheet.create({
     padding: 20,
     paddingTop: 60,
     backgroundColor: 'white',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
   },
   backIcon: {
     fontSize: 28,
     color: '#4A90E2',
   },
+  headerCenter: {
+    alignItems: 'center',
+  },
   headerTitle: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: 'bold',
     color: '#333',
   },
-  placeholder: {
-    width: 28,
+  headerSubtitle: {
+    fontSize: 12,
+    color: '#999',
+    marginTop: 2,
+  },
+  settingsIcon: {
+    fontSize: 24,
+  },
+  settingsButton: {
+    marginTop: 20,
+    backgroundColor: '#f0f0f0',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 12,
+  },
+  settingsButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
   },
   progressContainer: {
     padding: 20,
@@ -381,7 +659,7 @@ const styles = StyleSheet.create({
   },
   cardTouchable: {
     width: CARD_WIDTH,
-    height: 400,
+    height: 440,
   },
   card: {
     position: 'absolute',
@@ -408,7 +686,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 20,
   },
   difficultyBadge: {
     paddingHorizontal: 12,
@@ -417,58 +694,128 @@ const styles = StyleSheet.create({
   },
   difficultyText: {
     color: 'white',
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: 'bold',
   },
-  cardType: {
-    fontSize: 12,
+  sourceBadge: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+  },
+  sourceText: {
+    color: 'white',
+    fontSize: 11,
+    fontWeight: 'bold',
+  },
+  categoryLabel: {
+    fontSize: 13,
+    color: '#999',
+    textAlign: 'center',
+    marginBottom: 16,
+    textTransform: 'uppercase',
+    letterSpacing: 1.5,
+    fontWeight: '600',
+  },
+  contextContainer: {
+    marginTop: 24,
+    padding: 16,
+    backgroundColor: '#f8f8f8',
+    borderRadius: 12,
+    borderLeftWidth: 4,
+    borderLeftColor: '#4A90E2',
+  },
+  contextLabel: {
+    fontSize: 11,
+    color: '#999',
+    marginBottom: 8,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    fontWeight: '600',
+  },
+  contextText: {
+    fontSize: 14,
     color: '#666',
-    textTransform: 'capitalize',
+    fontStyle: 'italic',
+    lineHeight: 20,
+  },
+  sourceInfoContainer: {
+    marginTop: 16,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.3)',
+  },
+  sourceInfoLabel: {
+    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.8)',
+    marginBottom: 6,
+    fontWeight: '600',
+  },
+  sourceInfoText: {
+    fontSize: 13,
+    color: 'rgba(255, 255, 255, 0.95)',
+    fontStyle: 'italic',
   },
   cardContent: {
     flex: 1,
     justifyContent: 'center',
   },
   questionText: {
-    fontSize: 24,
-    fontWeight: '600',
+    fontSize: 32,
+    fontWeight: '700',
     color: '#333',
     textAlign: 'center',
-    lineHeight: 34,
+    lineHeight: 42,
   },
   answerLabel: {
-    fontSize: 14,
+    fontSize: 13,
     color: 'rgba(255, 255, 255, 0.8)',
-    marginBottom: 8,
+    marginBottom: 12,
     textAlign: 'center',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    fontWeight: '600',
   },
   answerText: {
-    fontSize: 28,
+    fontSize: 36,
     fontWeight: 'bold',
     color: 'white',
     textAlign: 'center',
-    marginBottom: 20,
+    marginBottom: 24,
+    lineHeight: 44,
   },
-  explanationLabel: {
-    fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.8)',
+  divider: {
+    height: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    marginVertical: 20,
+  },
+  originalLabel: {
+    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.7)',
     marginBottom: 8,
-    marginTop: 12,
+    textAlign: 'center',
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
   },
-  explanationText: {
-    fontSize: 16,
-    color: 'white',
-    lineHeight: 24,
+  originalText: {
+    fontSize: 18,
+    color: 'rgba(255, 255, 255, 0.9)',
+    textAlign: 'center',
+    fontStyle: 'italic',
+  },
+  tapHintContainer: {
+    alignItems: 'center',
+    paddingTop: 16,
   },
   tapHint: {
     fontSize: 14,
     color: '#999',
     textAlign: 'center',
-    marginTop: 16,
+    fontWeight: '500',
   },
   actionButtons: {
     flexDirection: 'row',
     padding: 20,
+    paddingBottom: 30,
     gap: 12,
   },
   actionButton: {
@@ -478,7 +825,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.2,
     shadowRadius: 4,
     elevation: 3,
   },
@@ -517,9 +864,10 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#666',
     textAlign: 'center',
+    paddingHorizontal: 40,
   },
   backButton: {
-    marginTop: 24,
+    marginTop: 16,
     backgroundColor: '#4A90E2',
     paddingHorizontal: 32,
     paddingVertical: 12,
@@ -622,6 +970,98 @@ const styles = StyleSheet.create({
     color: '#4A90E2',
     fontSize: 16,
     fontWeight: '600',
+  },
+  // Modal styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: 'white',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingTop: 20,
+    maxHeight: '85%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
+  },
+  modalTitle: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  modalClose: {
+    fontSize: 28,
+    color: '#999',
+    fontWeight: '300',
+  },
+  modalScroll: {
+    paddingHorizontal: 24,
+    paddingTop: 24,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#333',
+    marginBottom: 12,
+    marginTop: 8,
+  },
+  optionsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+    marginBottom: 24,
+  },
+  optionButton: {
+    backgroundColor: '#f5f5f5',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: '#f5f5f5',
+    minWidth: 100,
+    alignItems: 'center',
+  },
+  optionButtonActive: {
+    backgroundColor: '#E3F2FD',
+    borderColor: '#4A90E2',
+  },
+  optionFlag: {
+    fontSize: 24,
+    marginBottom: 4,
+  },
+  optionText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#666',
+  },
+  optionTextActive: {
+    color: '#4A90E2',
+  },
+  applyButton: {
+    backgroundColor: '#4A90E2',
+    margin: 24,
+    padding: 18,
+    borderRadius: 16,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 4,
+  },
+  applyButtonText: {
+    color: 'white',
+    fontSize: 18,
+    fontWeight: 'bold',
   },
 });
 

@@ -1,15 +1,15 @@
 import React from 'react';
-import { createStackNavigator } from '@react-navigation/stack';
+import { TouchableOpacity, Text, View, ActivityIndicator } from 'react-native';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useAuth } from '../context/AuthContext';
 import LoginScreen from '../screens/LoginScreen';
 import RegisterScreen from '../screens/RegisterScreen';
-import HomeScreen from '../screens/HomeScreen';
 import DailyQuizScreen from '../screens/DailyQuizScreen';
 import MatchmakingScreen from '../screens/MatchmakingScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import LeaderboardScreen from '../screens/LeaderboardScreen';
 import FlashcardsScreen from '../screens/FlashcardsScreen';
-import BattleModeScreen from '../screens/BattleModeScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 import AchievementsScreen from '../screens/AchievementsScreen';
 import LanguageStatsScreen from '../screens/LanguageStatsScreen';
@@ -17,13 +17,121 @@ import GameScreen from '../screens/GameScreen';
 import MatchResultsScreen from '../screens/MatchResultsScreen';
 import { RootStackParamList } from '../types';
 
-const Stack = createStackNavigator<RootStackParamList>();
+// Tab Screens
+import BattleModeTab from '../screens/tabs/BattleModeTab';
+import ChallengesTab from '../screens/tabs/ChallengesTab';
+import LearnTab from '../screens/tabs/LearnTab';
+import ProfileTab from '../screens/tabs/ProfileTab';
+
+const Stack = createNativeStackNavigator<RootStackParamList>();
+const Tab = createBottomTabNavigator();
+
+const MainTabs = ({ navigation }: any) => {
+  return (
+    <Tab.Navigator
+      initialRouteName="BattleTab"
+      screenOptions={{
+        tabBarActiveTintColor: '#FF3B30',
+        tabBarInactiveTintColor: '#8E8E93',
+        tabBarLabelStyle: {
+          fontSize: 11,
+          fontWeight: '600',
+        },
+        tabBarStyle: {
+          backgroundColor: 'white',
+          borderTopWidth: 1,
+          borderTopColor: '#e0e0e0',
+          height: 70,
+          paddingBottom: 10,
+          paddingTop: 8,
+        },
+        tabBarItemStyle: {
+          paddingVertical: 4,
+        },
+        headerShown: true,
+      }}
+    >
+      <Tab.Screen
+        name="BattleTab"
+        component={BattleModeTab}
+        options={{
+          title: 'Battle',
+          tabBarIcon: ({ color }) => <Text style={{ fontSize: 24 }}>⚔️</Text>,
+          headerTitle: 'Battle',
+          headerRight: () => (
+            <TouchableOpacity
+              onPress={() => navigation.navigate('Settings')}
+              style={{ marginRight: 16 }}
+            >
+              <Text style={{ fontSize: 24 }}>⚙️</Text>
+            </TouchableOpacity>
+          ),
+        }}
+      />
+      <Tab.Screen
+        name="ChallengesTab"
+        component={ChallengesTab}
+        options={{
+          title: 'Challenges',
+          tabBarIcon: ({ color }) => <Text style={{ fontSize: 24 }}>🏆</Text>,
+          headerTitle: 'Challenges',
+          headerRight: () => (
+            <TouchableOpacity
+              onPress={() => navigation.navigate('Settings')}
+              style={{ marginRight: 16 }}
+            >
+              <Text style={{ fontSize: 24 }}>⚙️</Text>
+            </TouchableOpacity>
+          ),
+        }}
+      />
+      <Tab.Screen
+        name="LearnTab"
+        component={LearnTab}
+        options={{
+          title: 'Learn',
+          tabBarIcon: ({ color }) => <Text style={{ fontSize: 24 }}>📚</Text>,
+          headerTitle: 'Learn',
+          headerRight: () => (
+            <TouchableOpacity
+              onPress={() => navigation.navigate('Settings')}
+              style={{ marginRight: 16 }}
+            >
+              <Text style={{ fontSize: 24 }}>⚙️</Text>
+            </TouchableOpacity>
+          ),
+        }}
+      />
+      <Tab.Screen
+        name="ProfileTab"
+        component={ProfileTab}
+        options={{
+          title: 'Profile',
+          tabBarIcon: ({ color }) => <Text style={{ fontSize: 24 }}>👤</Text>,
+          headerTitle: 'Profile',
+          headerRight: () => (
+            <TouchableOpacity
+              onPress={() => navigation.navigate('Settings')}
+              style={{ marginRight: 16 }}
+            >
+              <Text style={{ fontSize: 24 }}>⚙️</Text>
+            </TouchableOpacity>
+          ),
+        }}
+      />
+    </Tab.Navigator>
+  );
+};
 
 const RootNavigator = () => {
   const { user, loading } = useAuth();
 
   if (loading) {
-    return null;
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <ActivityIndicator size="large" color="#FF3B30" />
+      </View>
+    );
   }
 
   return (
@@ -35,8 +143,7 @@ const RootNavigator = () => {
         </>
       ) : (
         <>
-          <Stack.Screen name="Home" component={HomeScreen} />
-          <Stack.Screen name="BattleMode" component={BattleModeScreen} />
+          <Stack.Screen name="Home" component={MainTabs} />
           <Stack.Screen name="DailyQuiz" component={DailyQuizScreen} />
           <Stack.Screen name="Matchmaking" component={MatchmakingScreen} />
           <Stack.Screen name="GameScreen" component={GameScreen} />

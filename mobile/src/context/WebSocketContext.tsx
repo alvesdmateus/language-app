@@ -3,7 +3,7 @@ import { io, Socket } from 'socket.io-client';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from './AuthContext';
 
-const API_URL = 'http://localhost:3000';
+const API_URL = 'http://192.168.0.126:3000';
 
 interface WebSocketContextType {
   socket: Socket | null;

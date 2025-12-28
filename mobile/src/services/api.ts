@@ -1,7 +1,7 @@
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const API_URL = 'http://localhost:3000/api';
+const API_URL = 'http://192.168.0.126:3000/api';
 
 const api = axios.create({
   baseURL: API_URL,
@@ -98,15 +98,25 @@ export const matchService = {
 };
 
 export const flashcardService = {
-  getFlashcards: async (count = 10, difficulty?: number, type?: string) => {
-    const params = new URLSearchParams({ count: count.toString() });
-    if (difficulty) params.append('difficulty', difficulty.toString());
-    if (type) params.append('type', type);
+  getFlashcards: async (
+    count = 10,
+    language = 'SPANISH',
+    category?: string,
+    difficulty?: string,
+    source?: string
+  ) => {
+    const params = new URLSearchParams({
+      count: count.toString(),
+      language: language
+    });
+    if (category) params.append('category', category);
+    if (difficulty) params.append('difficulty', difficulty);
+    if (source) params.append('source', source);
     const response = await api.get(`/flashcards?${params.toString()}`);
     return response.data;
   },
-  getCategories: async () => {
-    const response = await api.get('/flashcards/categories');
+  getCategories: async (language = 'SPANISH') => {
+    const response = await api.get(`/flashcards/categories?language=${language}`);
     return response.data;
   },
 };

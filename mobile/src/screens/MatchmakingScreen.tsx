@@ -1,13 +1,24 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
+import { useRoute, useNavigation } from '@react-navigation/native';
 import { matchService } from '../services/api';
 import { useWebSocket } from '../context/WebSocketContext';
 
 const MatchmakingScreen = () => {
+  const route = useRoute();
+  const navigation = useNavigation();
+  const { mode: routeMode, language } = (route.params as any) || {};
   const [searching, setSearching] = useState(false);
-  const [matchType, setMatchType] = useState<'RANKED' | 'CASUAL' | null>(null);
+  const [matchType, setMatchType] = useState<'RANKED' | 'CASUAL' | 'BATTLE' | null>(routeMode || null);
   const [lobbyStatus, setLobbyStatus] = useState<any>(null);
   const { socket, connected, joinMatchmaking, leaveMatchmaking } = useWebSocket();
+
+  // Auto-start search if mode was passed from Battle tab
+  useEffect(() => {
+    if (routeMode && connected && !searching) {
+      findMatch(routeMode, language);
+    }
+  }, [routeMode, connected]);
 
   useEffect(() => {
     if (!socket) return;
@@ -65,23 +76,23 @@ const MatchmakingScreen = () => {
     };
   }, [searching]);
 
-  const findMatch = async (type: 'RANKED' | 'CASUAL') => {
+  const findMatch = async (type: 'RANKED' | 'CASUAL' | 'BATTLE', lang?: string) => {
     try {
       setSearching(true);
       setMatchType(type);
 
       // Join via WebSocket
-      joinMatchmaking(type);
+      joinMatchmaking(type === 'BATTLE' ? 'RANKED' : type);
 
-      // Also call API to register in lobby
-      const response = await matchService.findMatch(type);
+      // Also call API to register in lobby (no longer needed since Battle tab already called it)
+      // const response = await matchService.findMatch(type);
 
-      // If match is immediately found
-      if (response.data.matched) {
-        setSearching(false);
-        setMatchType(null);
-        Alert.alert('Match Found!', 'Starting match...');
-      }
+      // // If match is immediately found
+      // if (response.data.matched) {
+      //   setSearching(false);
+      //   setMatchType(null);
+      //   Alert.alert('Match Found!', 'Starting match...');
+      // }
     } catch (error) {
       Alert.alert('Error', 'Failed to join matchmaking');
       setSearching(false);
@@ -96,8 +107,17 @@ const MatchmakingScreen = () => {
       setSearching(false);
       setMatchType(null);
       setLobbyStatus(null);
+
+      // Navigate back to previous screen
+      if (navigation.canGoBack()) {
+        navigation.goBack();
+      }
     } catch (error) {
       console.error('Failed to leave matchmaking:', error);
+      // Still navigate back even if there's an error
+      if (navigation.canGoBack()) {
+        navigation.goBack();
+      }
     }
   };
 
@@ -111,7 +131,7 @@ const MatchmakingScreen = () => {
         </View>
       )}
 
-      {!searching ? (
+      {!searching && !routeMode ? (
         <>
           <Text style={styles.subtitle}>Choose your game mode</Text>
 
@@ -133,7 +153,7 @@ const MatchmakingScreen = () => {
             <Text style={styles.buttonSubtitle}>Practice without pressure</Text>
           </TouchableOpacity>
         </>
-      ) : (
+      ) : searching || routeMode ? (
         <View style={styles.searchingContainer}>
           <ActivityIndicator size="large" color="#007AFF" />
           <Text style={styles.searchingText}>
@@ -156,7 +176,7 @@ const MatchmakingScreen = () => {
             <Text style={styles.cancelButtonText}>Cancel Search</Text>
           </TouchableOpacity>
         </View>
-      )}
+      ) : null}
     </View>
   );
 };
