@@ -71,10 +71,12 @@ class SocketService {
     });
 
     // Matchmaking events
-    socket.on('matchmaking:join', (data: { type: string; language: string }) => {
-      console.log(`🎮 User ${userId} joined ${data.type} matchmaking for ${data.language}`);
+    socket.on('matchmaking:join', (data: { type: string; language?: string }) => {
+      console.log(`🎮 User ${userId} joined ${data.type} matchmaking for ${data.language || 'any language'}`);
       socket.join(`matchmaking:${data.type.toLowerCase()}`);
-      socket.join(`matchmaking:${data.type.toLowerCase()}:${data.language.toLowerCase()}`);
+      if (data.language) {
+        socket.join(`matchmaking:${data.type.toLowerCase()}:${data.language.toLowerCase()}`);
+      }
     });
 
     socket.on('matchmaking:leave', () => {

@@ -2,6 +2,8 @@ import { Response, NextFunction } from 'express';
 import { AuthRequest } from '../middleware/auth';
 import prisma from '../utils/db';
 import { AppError } from '../middleware/errorHandler';
+import { cronService } from '../services/cronService';
+import { Language } from '@prisma/client';
 
 export const getFlashcards = async (
   req: AuthRequest,
@@ -9,40 +11,67 @@ export const getFlashcards = async (
   next: NextFunction
 ) => {
   try {
-    const { count = '10', difficulty, type } = req.query;
+    const {
+      count = '20',
+      category,
+      language = 'SPANISH',
+      source,
+    } = req.query;
 
-    const where: any = {};
+    const where: any = {
+      isActive: true,
+      language: language as Language,
+    };
 
-    if (difficulty) {
-      where.difficulty = parseInt(difficulty as string);
+    if (category) {
+      where.category = category as string;
     }
 
-    if (type) {
-      where.type = type as string;
+    if (source) {
+      where.source = source as string;
     }
 
-    // Get random questions for flashcard review
-    const questions = await prisma.question.findMany({
+    // Get flashcards from database
+    const flashcards = await prisma.flashcard.findMany({
       where,
       take: parseInt(count as string),
-      orderBy: { createdAt: 'desc' }
     });
 
-    // Shuffle the questions for variety
-    const shuffled = questions.sort(() => Math.random() - 0.5);
+    // Shuffle for variety
+    const shuffled = flashcards.sort(() => Math.random() - 0.5);
+
+    // Mix of 70% curated and 30% dynamic content
+    const curated = shuffled.filter(f => f.source === 'CURATED');
+    const dynamic = shuffled.filter(f => f.source !== 'CURATED');
+
+    const curatedCount = Math.ceil(parseInt(count as string) * 0.7);
+    const dynamicCount = parseInt(count as string) - curatedCount;
+
+    const mixed = [
+      ...curated.slice(0, curatedCount),
+      ...dynamic.slice(0, dynamicCount),
+    ].sort(() => Math.random() - 0.5);
 
     res.json({
       status: 'success',
       data: {
-        flashcards: shuffled.map(q => ({
-          id: q.id,
-          question: q.question,
-          correctAnswer: q.correctAnswer,
-          options: q.options,
-          type: q.type,
-          difficulty: q.difficulty,
-          explanation: q.explanation
-        }))
+        flashcards: mixed.map(card => ({
+          id: card.id,
+          frontText: card.frontText,
+          backText: card.backText,
+          contextSentence: card.contextSentence,
+          category: card.category,
+          source: card.source,
+          sourceTitle: card.sourceTitle,
+          sourceUrl: card.sourceUrl,
+          difficulty: card.difficulty,
+          imageUrl: card.imageUrl,
+        })),
+        stats: {
+          total: mixed.length,
+          curated: mixed.filter(c => c.source === 'CURATED').length,
+          dynamic: mixed.filter(c => c.source !== 'CURATED').length,
+        }
       }
     });
   } catch (error) {
@@ -56,24 +85,79 @@ export const getFlashcardCategories = async (
   next: NextFunction
 ) => {
   try {
-    // Get available question types and difficulties
-    const questions = await prisma.question.findMany({
+    const { language = 'SPANISH' } = req.query;
+
+    // Get available categories
+    const flashcards = await prisma.flashcard.findMany({
+      where: {
+        isActive: true,
+        language: language as Language,
+      },
       select: {
-        type: true,
-        difficulty: true
+        category: true,
+        source: true,
+        difficulty: true,
       }
     });
 
-    const types = [...new Set(questions.map(q => q.type))];
-    const difficulties = [...new Set(questions.map(q => q.difficulty))].sort();
+    const categories = [...new Set(flashcards.map(f => f.category))];
+    const sources = [...new Set(flashcards.map(f => f.source))];
+    const difficulties = [...new Set(flashcards.map(f => f.difficulty))];
+
+    // Count by category
+    const categoryStats = categories.map(cat => ({
+      category: cat,
+      count: flashcards.filter(f => f.category === cat).length,
+    }));
 
     res.json({
       status: 'success',
       data: {
-        types,
+        categories: categoryStats,
+        sources,
         difficulties,
-        totalQuestions: questions.length
+        totalFlashcards: flashcards.length,
       }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Manual refresh endpoint (admin only)
+export const refreshFlashcards = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { language = 'SPANISH' } = req.body;
+
+    const count = await cronService.manualRefresh(language);
+
+    res.json({
+      status: 'success',
+      message: `Successfully refreshed ${count} flashcards`,
+      data: { count }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Seed curated flashcards (admin only)
+export const seedFlashcards = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const count = await cronService.seedCurated();
+
+    res.json({
+      status: 'success',
+      message: `Successfully seeded ${count} curated flashcards`,
+      data: { count }
     });
   } catch (error) {
     next(error);

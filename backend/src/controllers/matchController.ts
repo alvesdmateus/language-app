@@ -247,7 +247,7 @@ export const submitMatchResult = async (
         score: processedResult.score,
         correctAnswers: processedResult.correctAnswers,
         totalTimeMs: processedResult.totalTimeMs,
-        answers: processedResult.processedAnswers,
+        answers: processedResult.processedAnswers as any,
       },
     });
 

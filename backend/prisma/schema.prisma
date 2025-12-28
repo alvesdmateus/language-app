@@ -186,3 +186,58 @@ model Question {
   @@index([language])
   @@index([type])
 }
+
+enum FlashcardCategory {
+  MOVIES
+  TV_SHOWS
+  MUSIC
+  SPORTS
+  TECHNOLOGY
+  FOOD
+  TRAVEL
+  GAMING
+  NEWS
+  BUSINESS
+  SCIENCE
+  ENTERTAINMENT
+  GENERAL
+}
+
+enum ContentSource {
+  CURATED      // Hand-picked quality content
+  NEWS_API     // From news articles
+  TRENDING     // From trending topics
+  USER_GENERATED
+}
+
+model Flashcard {
+  id              String   @id @default(uuid())
+  language        Language
+  category        FlashcardCategory
+  source          ContentSource @default(CURATED)
+
+  // Card content
+  frontText       String  // Word/phrase to learn
+  backText        String  // Translation/meaning
+  contextSentence String? // Example sentence using the word
+  imageUrl        String? // Optional image for visual learning
+
+  // Metadata
+  sourceUrl       String? // Original article/source URL
+  sourceTitle     String? // Article title or source name
+  difficulty      QuestionDifficulty @default(MEDIUM)
+
+  // Freshness tracking
+  isActive        Boolean  @default(true)
+  expiresAt       DateTime? // When dynamic content should be refreshed
+
+  // Timestamps
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([language])
+  @@index([category])
+  @@index([source])
+  @@index([isActive])
+  @@index([expiresAt])
+}

@@ -75,7 +75,7 @@ class MatchmakingService {
     });
 
     // Emit lobby update to all in this matchmaking type
-    socketService.emitToMatchmaking(matchType, 'matchmaking:lobby_update', {
+    socketService.emitToMatchmaking(matchType as any, 'matchmaking:lobby_update', {
       lobbyStatus: this.getLobbyStatus(),
     });
   }
@@ -94,7 +94,7 @@ class MatchmakingService {
       });
 
       // Emit lobby update to all in this matchmaking type
-      socketService.emitToMatchmaking(player.matchType, 'matchmaking:lobby_update', {
+      socketService.emitToMatchmaking(player.matchType as any, 'matchmaking:lobby_update', {
         lobbyStatus: this.getLobbyStatus(),
       });
     }
@@ -291,7 +291,7 @@ class MatchmakingService {
 
     // Update lobby status for remaining players
     if (player1?.matchType) {
-      socketService.emitToMatchmaking(player1.matchType, 'matchmaking:lobby_update', {
+      socketService.emitToMatchmaking(player1.matchType as any, 'matchmaking:lobby_update', {
         lobbyStatus: this.getLobbyStatus(),
       });
     }
