@@ -43,6 +43,10 @@ export const userService = {
     const response = await api.get(`/users/leaderboard?limit=${limit}`);
     return response.data;
   },
+  getLanguageStats: async () => {
+    const response = await api.get('/language-stats');
+    return response.data;
+  },
 };
 
 export const quizService = {

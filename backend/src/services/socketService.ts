@@ -2,6 +2,7 @@ import { Server as HttpServer } from 'http';
 import { Server, Socket } from 'socket.io';
 import jwt from 'jsonwebtoken';
 import prisma from '../utils/db';
+import { matchmakingService } from './matchmakingService';
 
 interface AuthenticatedSocket extends Socket {
   userId?: string;
@@ -80,10 +81,20 @@ class SocketService {
     // Join user's personal room
     socket.join(`user:${userId}`);
 
+    // Check if user was in an active match and handle reconnect
+    const existingMatch = matchmakingService.getPlayerMatch(userId);
+    if (existingMatch) {
+      console.log(`🔄 User ${userId} reconnecting to match ${existingMatch}`);
+      matchmakingService.handlePlayerReconnect(userId);
+    }
+
     // Handle disconnection
     socket.on('disconnect', () => {
       console.log(`🔌 User disconnected: ${userId} (${socket.id})`);
       this.userSockets.delete(userId);
+
+      // Handle disconnect for active matches
+      matchmakingService.handlePlayerDisconnect(userId);
     });
 
     // Matchmaking events
@@ -125,6 +136,11 @@ class SocketService {
     // Ping/pong for connection health
     socket.on('ping', () => {
       socket.emit('pong');
+    });
+
+    // Heartbeat for match connection tracking
+    socket.on('match:heartbeat', () => {
+      matchmakingService.updatePlayerHeartbeat(userId);
     });
   }
 

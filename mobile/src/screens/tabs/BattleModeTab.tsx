@@ -64,28 +64,40 @@ const BattleModeTab = () => {
     setSearching(true);
 
     try {
+      console.log('Starting matchmaking with:', {
+        type: selectedMode === 'RANKED' ? 'BATTLE' : 'CASUAL',
+        language,
+        isBattleMode: true,
+      });
+
       const response = await api.post('/match/find', {
         type: selectedMode === 'RANKED' ? 'BATTLE' : 'CASUAL',
         language,
         isBattleMode: true,
       });
 
+      console.log('Matchmaking response:', response.data);
+
       if (response.data.data.matched) {
+        console.log('Match found immediately, navigating to GameScreen');
         navigation.navigate('GameScreen' as never, {
           matchId: response.data.data.match.id,
           match: response.data.data.match,
         } as never);
       } else {
+        console.log('No immediate match, navigating to Matchmaking screen');
         navigation.navigate('Matchmaking' as never, {
           language,
           mode: selectedMode === 'RANKED' ? 'BATTLE' : 'CASUAL',
         } as never);
       }
     } catch (error: any) {
-      console.error('Failed to join matchmaking:', error);
+      console.error('Failed to join matchmaking - Full error:', error);
+      console.error('Error response:', error?.response?.data);
+      console.error('Error status:', error?.response?.status);
       Alert.alert(
         'Error',
-        error?.response?.data?.message || 'Failed to start matchmaking'
+        error?.response?.data?.message || 'Failed to start matchmaking. Check console for details.'
       );
     } finally {
       setSearching(false);
@@ -170,6 +182,7 @@ const BattleModeTab = () => {
           disabled={searching}
           languageStats={getLanguageStatsRecord()}
           showStats={true}
+          navigation={navigation}
         />
       </View>
     </View>

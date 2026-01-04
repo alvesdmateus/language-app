@@ -40,3 +40,14 @@ quick tutorial(less than 60 sec to understand the game basics)
 battle against CPU
 
 achievements, rewards and badges based on progress.
+
+flashcards are not working as intended. they should highlight the keyword. when the user is hovering the keyword it should give an explaination of the word. when the user taps the flashcard it should flip over with an animation with the original text and the translated text below.
+
+the highlight is working fine. now we just need to adjust the proportions of flashcard. currently the flashcard have too many blank space lying around for the size of text. and when you tap it it only shows the 2 buttons known it and dont known, and the animation of flipping over doesnt happen. also these buttons can be displayed all the time no need to hide and display on click
+
+you can use a bit of time and make sure both players are synced and ready to play the match before starting it to avoid just 1        
+  player entering the lobby, and maybe implement retrying so if an player disconnects it can rejoin it after the connection stabilizes
+
+
+async battle mode:
+IMPLEMENT.

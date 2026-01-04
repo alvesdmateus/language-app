@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { useAuth } from '../context/AuthContext';
 import { useNavigation } from '@react-navigation/native';
 
@@ -40,9 +40,14 @@ const LoginScreen = () => {
   return (
     <KeyboardAvoidingView
       style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
     >
-      <View style={styles.content}>
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
         <View style={styles.header}>
           <Text style={styles.icon}>🌍</Text>
           <Text style={styles.title}>Language Quest</Text>
@@ -103,7 +108,7 @@ const LoginScreen = () => {
             <Text style={styles.demoButtonText}>Use Demo Account</Text>
           </TouchableOpacity>
         </View>
-      </View>
+      </ScrollView>
     </KeyboardAvoidingView>
   );
 };
@@ -113,14 +118,16 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#4A90E2',
   },
-  content: {
-    flex: 1,
+  scrollContent: {
+    flexGrow: 1,
     justifyContent: 'space-between',
     padding: 20,
+    paddingBottom: 40,
   },
   header: {
     alignItems: 'center',
-    marginTop: 80,
+    marginTop: 60,
+    marginBottom: 40,
   },
   icon: {
     fontSize: 72,
@@ -139,9 +146,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   form: {
-    flex: 1,
-    justifyContent: 'center',
-    maxHeight: 400,
+    marginBottom: 40,
   },
   input: {
     backgroundColor: 'white',
@@ -186,7 +191,6 @@ const styles = StyleSheet.create({
   },
   footer: {
     alignItems: 'center',
-    marginBottom: 40,
   },
   footerText: {
     color: 'rgba(255, 255, 255, 0.8)',

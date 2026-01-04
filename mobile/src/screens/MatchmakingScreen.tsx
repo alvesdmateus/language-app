@@ -11,12 +11,19 @@ const MatchmakingScreen = () => {
   const [searching, setSearching] = useState(false);
   const [matchType, setMatchType] = useState<'RANKED' | 'CASUAL' | 'BATTLE' | null>(routeMode || null);
   const [lobbyStatus, setLobbyStatus] = useState<any>(null);
+  const [matchFound, setMatchFound] = useState(false); // Track if match was found
   const { socket, connected, joinMatchmaking, leaveMatchmaking } = useWebSocket();
 
   // Auto-start search if mode was passed from Battle tab
+  // Note: We don't call findMatch here because the API was already called
+  // from BattleModeTab. We just need to join the WebSocket room and wait for events.
   useEffect(() => {
     if (routeMode && connected && !searching) {
-      findMatch(routeMode, language);
+      console.log('Auto-starting matchmaking for:', routeMode, language);
+      setSearching(true);
+      setMatchType(routeMode);
+      // Join via WebSocket only (API was already called from previous screen)
+      joinMatchmaking(routeMode === 'BATTLE' ? 'RANKED' : routeMode);
     }
   }, [routeMode, connected]);
 
@@ -38,24 +45,40 @@ const MatchmakingScreen = () => {
       console.log('Match found!', data);
       setSearching(false);
       setMatchType(null);
-      Alert.alert(
-        'Match Found!',
-        `Starting ${data.matchType} match against ${data.participants.find((p: any) => p.id !== socket.id)?.displayName || 'opponent'}`,
-        [
-          {
-            text: 'Start Match',
-            onPress: () => {
-              // Navigate to match screen (to be implemented)
-              console.log('Starting match:', data.matchId);
-            },
-          },
-        ]
-      );
+      setMatchFound(true); // Mark that match was found
+
+      // Use setTimeout to ensure navigation happens after current render cycle
+      setTimeout(() => {
+        console.log('Navigating to GameScreen with match:', data.matchId);
+        navigation.navigate('GameScreen' as never, {
+          matchId: data.matchId,
+          match: data,
+        } as never);
+      }, 100);
+    });
+
+    socket.on('match:started', (data) => {
+      console.log('Match started!', data);
+      // Match has been confirmed to start - this event is received while already in GameScreen
+    });
+
+    socket.on('match:cancelled', (data) => {
+      console.log('Match cancelled:', data.reason);
+      setSearching(false);
+      setMatchType(null);
+      setMatchFound(false); // Reset match found state
+      Alert.alert('Match Cancelled', data.reason || 'The match was cancelled');
+
+      // Navigate back if requested
+      if (data.canRequeue && navigation.canGoBack()) {
+        navigation.goBack();
+      }
     });
 
     socket.on('matchmaking:left', () => {
       setSearching(false);
       setMatchType(null);
+      setMatchFound(false); // Reset match found state
       setLobbyStatus(null);
     });
 
@@ -63,37 +86,39 @@ const MatchmakingScreen = () => {
       socket.off('matchmaking:joined');
       socket.off('matchmaking:lobby_update');
       socket.off('matchmaking:match_found');
+      socket.off('match:started');
+      socket.off('match:cancelled');
       socket.off('matchmaking:left');
     };
   }, [socket]);
 
-  // Cleanup on unmount
+  // Cleanup on unmount - only leave matchmaking if we didn't find a match
   useEffect(() => {
     return () => {
-      if (searching) {
+      if (searching && !matchFound) {
         handleCancelSearch();
       }
     };
-  }, [searching]);
+  }, [searching, matchFound]);
 
   const findMatch = async (type: 'RANKED' | 'CASUAL' | 'BATTLE', lang?: string) => {
     try {
       setSearching(true);
       setMatchType(type);
 
+      // Use provided language or default to SPANISH
+      const selectedLanguage = lang || language || 'SPANISH';
+
       // Join via WebSocket
       joinMatchmaking(type === 'BATTLE' ? 'RANKED' : type);
 
-      // Also call API to register in lobby (no longer needed since Battle tab already called it)
-      // const response = await matchService.findMatch(type);
+      // Call API to register in lobby and potentially find immediate match
+      const response = await matchService.findMatch(type, selectedLanguage);
 
-      // // If match is immediately found
-      // if (response.data.matched) {
-      //   setSearching(false);
-      //   setMatchType(null);
-      //   Alert.alert('Match Found!', 'Starting match...');
-      // }
+      // If match is immediately found via API, the socket event will still be emitted
+      // and handled by the socket listener, so no need to handle it here
     } catch (error) {
+      console.error('Failed to join matchmaking:', error);
       Alert.alert('Error', 'Failed to join matchmaking');
       setSearching(false);
       setMatchType(null);
@@ -106,6 +131,7 @@ const MatchmakingScreen = () => {
       await matchService.leaveLobby();
       setSearching(false);
       setMatchType(null);
+      setMatchFound(false); // Reset match found state
       setLobbyStatus(null);
 
       // Navigate back to previous screen

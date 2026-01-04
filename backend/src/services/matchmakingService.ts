@@ -19,14 +19,24 @@ interface LobbyPlayer {
   isBattleMode?: boolean;
 }
 
+interface ActiveMatch {
+  matchId: string;
+  playerIds: string[];
+  createdAt: Date;
+}
+
 /**
  * In-memory lobby system for active matchmaking
  * In production, this should be moved to Redis or similar
  */
 class MatchmakingService {
   private lobbies: Map<string, LobbyPlayer> = new Map();
+  private activeMatches: Map<string, ActiveMatch> = new Map(); // matchId -> match info
+  private playerToMatch: Map<string, string> = new Map(); // userId -> matchId
   private readonly MATCH_TIMEOUT = 60000; // 60 seconds
   private readonly MAX_ELO_DIFFERENCE = 200; // Maximum ELO difference for a match
+  private readonly READY_CHECK_DURATION = 5000; // 5 seconds to verify connection
+  private readonly RECONNECT_TIMEOUT = 30000; // 30 seconds to reconnect
 
   /**
    * Add a player to the matchmaking lobby
@@ -230,17 +240,33 @@ class MatchmakingService {
       questionDuration = player1.customSettings.questionDuration;
     }
 
-    // Create match in database
+    // Initialize player connections
+    const now = new Date().toISOString();
+    const playerConnections = {
+      [player1Id]: {
+        connected: true,
+        lastSeen: now,
+        disconnectedAt: null,
+      },
+      [player2Id]: {
+        connected: true,
+        lastSeen: now,
+        disconnectedAt: null,
+      },
+    };
+
+    // Create match in database with READY_CHECK status
     const match = await prisma.match.create({
       data: {
         type: matchType,
-        status: 'IN_PROGRESS',
+        status: 'READY_CHECK',
         language,
-        startedAt: new Date(),
+        readyCheckStartedAt: new Date(),
         isBattleMode,
         questionDuration,
         difficulty: player1.customSettings?.difficulty,
         powerUpsEnabled: player1.customSettings?.powerUpsEnabled || false,
+        playerConnections,
         questions: questions.map((q) => ({
           id: q.id,
           question: q.question,
@@ -287,7 +313,24 @@ class MatchmakingService {
       startedAt: match.startedAt,
     };
 
+    console.log(`[MATCHMAKING] Emitting match_found event to players:`, {
+      player1Id,
+      player2Id,
+      matchId: match.id,
+      player1Connected: socketService.isUserConnected(player1Id),
+      player2Connected: socketService.isUserConnected(player2Id),
+    });
+
     socketService.emitToUsers([player1Id, player2Id], 'matchmaking:match_found', matchData);
+
+    // Track active match for reconnection
+    this.activeMatches.set(match.id, {
+      matchId: match.id,
+      playerIds: [player1Id, player2Id],
+      createdAt: new Date(),
+    });
+    this.playerToMatch.set(player1Id, match.id);
+    this.playerToMatch.set(player2Id, match.id);
 
     // Update lobby status for remaining players
     if (player1?.matchType) {
@@ -295,6 +338,9 @@ class MatchmakingService {
         lobbyStatus: this.getLobbyStatus(),
       });
     }
+
+    // Start ready check process
+    this.startReadyCheck(match.id, [player1Id, player2Id]);
 
     return match.id;
   }
@@ -343,6 +389,317 @@ class MatchmakingService {
    */
   isInLobby(userId: string): boolean {
     return this.lobbies.has(userId);
+  }
+
+  /**
+   * Start ready check process
+   * Waits 5 seconds to verify both players are still connected
+   */
+  private async startReadyCheck(matchId: string, playerIds: string[]): Promise<void> {
+    // Wait for READY_CHECK_DURATION
+    await new Promise((resolve) => setTimeout(resolve, this.READY_CHECK_DURATION));
+
+    try {
+      // Get current match state
+      const match = await prisma.match.findUnique({
+        where: { id: matchId },
+      });
+
+      if (!match || match.status !== 'READY_CHECK') {
+        // Match was cancelled or already started
+        return;
+      }
+
+      // Check if both players are still connected
+      const connections = match.playerConnections as any;
+      const allConnected = playerIds.every((playerId) => connections[playerId]?.connected);
+
+      if (allConnected) {
+        // Both players ready, start the match
+        await prisma.match.update({
+          where: { id: matchId },
+          data: {
+            status: 'IN_PROGRESS',
+            startedAt: new Date(),
+          },
+        });
+
+        // Emit match started event
+        socketService.emitToUsers(playerIds, 'match:started', {
+          matchId,
+          message: 'Both players connected. Match is starting!',
+        });
+      } else {
+        // One or both players disconnected during ready check
+        await prisma.match.update({
+          where: { id: matchId },
+          data: {
+            status: 'CANCELLED',
+          },
+        });
+
+        // Clean up tracking
+        this.activeMatches.delete(matchId);
+        playerIds.forEach((id) => this.playerToMatch.delete(id));
+
+        // Find which player(s) disconnected
+        const disconnectedPlayers = playerIds.filter(
+          (playerId) => !connections[playerId]?.connected
+        );
+        const connectedPlayers = playerIds.filter(
+          (playerId) => connections[playerId]?.connected
+        );
+
+        // Notify players
+        if (connectedPlayers.length > 0) {
+          socketService.emitToUsers(connectedPlayers, 'match:cancelled', {
+            reason: 'Opponent failed to connect',
+            canRequeue: true,
+          });
+        }
+
+        // Return disconnected players to lobby if they reconnect
+        disconnectedPlayers.forEach((playerId) => {
+          socketService.emitToUser(playerId, 'match:cancelled', {
+            reason: 'Connection lost during ready check',
+            canRequeue: true,
+          });
+        });
+      }
+    } catch (error) {
+      console.error('Error in ready check:', error);
+    }
+  }
+
+  /**
+   * Handle player disconnect during match
+   */
+  async handlePlayerDisconnect(userId: string): Promise<void> {
+    const matchId = this.playerToMatch.get(userId);
+    if (!matchId) return;
+
+    try {
+      const match = await prisma.match.findUnique({
+        where: { id: matchId },
+      });
+
+      if (!match || (match.status !== 'READY_CHECK' && match.status !== 'IN_PROGRESS')) {
+        return;
+      }
+
+      const connections = (match.playerConnections as any) || {};
+      const now = new Date().toISOString();
+
+      // Update connection status
+      connections[userId] = {
+        connected: false,
+        lastSeen: now,
+        disconnectedAt: now,
+      };
+
+      await prisma.match.update({
+        where: { id: matchId },
+        data: {
+          playerConnections: connections,
+        },
+      });
+
+      // Get other player(s)
+      const activeMatch = this.activeMatches.get(matchId);
+      if (activeMatch) {
+        const otherPlayers = activeMatch.playerIds.filter((id) => id !== userId);
+
+        // Notify other players of disconnect
+        socketService.emitToUsers(otherPlayers, 'match:opponent_disconnected', {
+          message: 'Opponent disconnected. They have 30 seconds to reconnect.',
+          disconnectedUserId: userId,
+        });
+      }
+
+      // Start reconnect timeout
+      this.startReconnectTimeout(matchId, userId);
+    } catch (error) {
+      console.error('Error handling player disconnect:', error);
+    }
+  }
+
+  /**
+   * Handle player reconnect
+   */
+  async handlePlayerReconnect(userId: string): Promise<void> {
+    const matchId = this.playerToMatch.get(userId);
+    if (!matchId) return;
+
+    try {
+      const match = await prisma.match.findUnique({
+        where: { id: matchId },
+        include: {
+          participants: true,
+          results: true,
+        },
+      });
+
+      if (!match) return;
+
+      const connections = (match.playerConnections as any) || {};
+      const now = new Date().toISOString();
+
+      // Check if player was disconnected
+      if (connections[userId] && !connections[userId].connected) {
+        // Update connection status
+        connections[userId] = {
+          connected: true,
+          lastSeen: now,
+          disconnectedAt: null,
+        };
+
+        await prisma.match.update({
+          where: { id: matchId },
+          data: {
+            playerConnections: connections,
+          },
+        });
+
+        // Get other player(s)
+        const activeMatch = this.activeMatches.get(matchId);
+        if (activeMatch) {
+          const otherPlayers = activeMatch.playerIds.filter((id) => id !== userId);
+
+          // Notify other players of reconnect
+          socketService.emitToUsers(otherPlayers, 'match:opponent_reconnected', {
+            message: 'Opponent reconnected!',
+            reconnectedUserId: userId,
+          });
+        }
+
+        // Send current match state to reconnected player
+        socketService.emitToUser(userId, 'match:reconnected', {
+          matchId: match.id,
+          match: {
+            id: match.id,
+            type: match.type,
+            status: match.status,
+            language: match.language,
+            questions: match.questions,
+            questionDuration: match.questionDuration,
+            difficulty: match.difficulty,
+            powerUpsEnabled: match.powerUpsEnabled,
+            isBattleMode: match.isBattleMode,
+            startedAt: match.startedAt,
+            participants: match.participants,
+            results: match.results,
+          },
+          message: 'Reconnected successfully! Continue playing.',
+        });
+      }
+    } catch (error) {
+      console.error('Error handling player reconnect:', error);
+    }
+  }
+
+  /**
+   * Start reconnect timeout for a disconnected player
+   */
+  private async startReconnectTimeout(matchId: string, userId: string): Promise<void> {
+    // Wait for RECONNECT_TIMEOUT
+    await new Promise((resolve) => setTimeout(resolve, this.RECONNECT_TIMEOUT));
+
+    try {
+      const match = await prisma.match.findUnique({
+        where: { id: matchId },
+      });
+
+      if (!match || match.status === 'COMPLETED' || match.status === 'CANCELLED') {
+        return;
+      }
+
+      const connections = (match.playerConnections as any) || {};
+
+      // Check if player is still disconnected
+      if (connections[userId] && !connections[userId].connected) {
+        // Player failed to reconnect - forfeit match
+        await prisma.match.update({
+          where: { id: matchId },
+          data: {
+            status: 'CANCELLED',
+          },
+        });
+
+        // Get other player(s)
+        const activeMatch = this.activeMatches.get(matchId);
+        if (activeMatch) {
+          const otherPlayers = activeMatch.playerIds.filter((id) => id !== userId);
+
+          // Notify other players
+          socketService.emitToUsers(otherPlayers, 'match:opponent_forfeited', {
+            message: 'Opponent failed to reconnect. You win by forfeit!',
+            forfeitedUserId: userId,
+          });
+
+          // Notify disconnected player
+          socketService.emitToUser(userId, 'match:forfeited', {
+            message: 'Failed to reconnect in time. Match forfeited.',
+          });
+        }
+
+        // Clean up
+        this.cleanupMatch(matchId);
+      }
+    } catch (error) {
+      console.error('Error in reconnect timeout:', error);
+    }
+  }
+
+  /**
+   * Get the match ID for a player
+   */
+  getPlayerMatch(userId: string): string | undefined {
+    return this.playerToMatch.get(userId);
+  }
+
+  /**
+   * Clean up match tracking when match is completed
+   */
+  cleanupMatch(matchId: string): void {
+    const activeMatch = this.activeMatches.get(matchId);
+    if (activeMatch) {
+      activeMatch.playerIds.forEach((playerId) => {
+        this.playerToMatch.delete(playerId);
+      });
+      this.activeMatches.delete(matchId);
+    }
+  }
+
+  /**
+   * Update player heartbeat to track active connection
+   */
+  async updatePlayerHeartbeat(userId: string): Promise<void> {
+    const matchId = this.playerToMatch.get(userId);
+    if (!matchId) return;
+
+    try {
+      const match = await prisma.match.findUnique({
+        where: { id: matchId },
+      });
+
+      if (!match) return;
+
+      const connections = (match.playerConnections as any) || {};
+      const now = new Date().toISOString();
+
+      if (connections[userId]) {
+        connections[userId].lastSeen = now;
+
+        await prisma.match.update({
+          where: { id: matchId },
+          data: {
+            playerConnections: connections,
+          },
+        });
+      }
+    } catch (error) {
+      console.error('Error updating player heartbeat:', error);
+    }
   }
 }
 

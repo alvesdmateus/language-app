@@ -12,11 +12,24 @@ import {
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { Match, Question, AnswerData } from '../types';
 import { matchService } from '../services/api';
+import { useWebSocket } from '../context/WebSocketContext';
 
 const GameScreen = () => {
   const navigation = useNavigation();
   const route = useRoute();
   const { matchId, match } = route.params as { matchId: string; match: Match };
+  const { socket, sendMatchHeartbeat } = useWebSocket();
+
+  // Validate match data
+  if (!match || !match.questions || match.questions.length === 0) {
+    console.error('Invalid match data:', match);
+    Alert.alert(
+      'Error',
+      'Invalid match data. Returning to home.',
+      [{ text: 'OK', onPress: () => navigation.navigate('Home' as never) }]
+    );
+    return null;
+  }
 
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
@@ -25,8 +38,13 @@ const GameScreen = () => {
   const [questionStartTime, setQuestionStartTime] = useState(Date.now());
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
+  const [matchStatus, setMatchStatus] = useState<string>(match.status || 'READY_CHECK');
+  const [opponentDisconnected, setOpponentDisconnected] = useState(false);
+  const [connectionMessage, setConnectionMessage] = useState<string | null>(null);
+  const [waitingForOpponent, setWaitingForOpponent] = useState(false);
 
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const heartbeatRef = useRef<NodeJS.Timeout | null>(null);
   const progressAnim = useRef(new Animated.Value(0)).current;
   const shakeAnim = useRef(new Animated.Value(0)).current;
 
@@ -35,6 +53,29 @@ const GameScreen = () => {
   const isLastQuestion = currentQuestionIndex === totalQuestions - 1;
   const questionDuration = match.questionDuration || 45;
 
+  console.log('GameScreen rendered with:', {
+    matchId,
+    status: match.status,
+    questionsCount: match.questions.length,
+    currentQuestionIndex,
+  });
+
+  // Join match room on mount
+  useEffect(() => {
+    if (socket && matchId) {
+      console.log('Joining match room:', matchId);
+      socket.emit('game:join_match', { matchId });
+    }
+
+    // Only leave when component actually unmounts
+    return () => {
+      if (socket && matchId) {
+        console.log('Leaving match room:', matchId);
+        socket.emit('game:leave_match', { matchId });
+      }
+    };
+  }, [socket, matchId]);
+
   useEffect(() => {
     startQuestionTimer();
     animateProgress();
@@ -42,6 +83,103 @@ const GameScreen = () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
   }, [currentQuestionIndex]);
+
+  // Socket event listeners for match connection events
+  useEffect(() => {
+    if (!socket) return;
+
+    socket.on('match:started', (data) => {
+      console.log('Match started:', data);
+      setMatchStatus('IN_PROGRESS');
+      setConnectionMessage(null);
+    });
+
+    socket.on('match:opponent_disconnected', (data) => {
+      console.log('Opponent disconnected:', data);
+      setOpponentDisconnected(true);
+      setConnectionMessage(data.message || 'Opponent disconnected. Waiting...');
+      setIsPaused(true);
+    });
+
+    socket.on('match:opponent_reconnected', (data) => {
+      console.log('Opponent reconnected:', data);
+      setOpponentDisconnected(false);
+      setConnectionMessage(null);
+      setIsPaused(false);
+    });
+
+    socket.on('match:reconnected', (data) => {
+      console.log('Reconnected to match:', data);
+      setConnectionMessage('Reconnected! Continuing match...');
+      setTimeout(() => setConnectionMessage(null), 3000);
+      // Could restore match state from data.match if needed
+    });
+
+    socket.on('match:opponent_forfeited', (data) => {
+      console.log('Opponent forfeited:', data);
+      Alert.alert(
+        'Opponent Forfeited',
+        data.message || 'Your opponent failed to reconnect. You win!',
+        [
+          {
+            text: 'OK',
+            onPress: () => navigation.navigate('Home' as never),
+          },
+        ]
+      );
+    });
+
+    socket.on('match:forfeited', (data) => {
+      console.log('Match forfeited:', data);
+      Alert.alert(
+        'Match Forfeited',
+        data.message || 'You failed to reconnect in time.',
+        [
+          {
+            text: 'OK',
+            onPress: () => navigation.navigate('Home' as never),
+          },
+        ]
+      );
+    });
+
+    socket.on('match:completed', (data) => {
+      console.log('Match completed event received:', data);
+      setWaitingForOpponent(false);
+      setIsSubmitting(false);
+
+      // Navigate to results with complete match data
+      navigation.navigate('MatchResults' as never, {
+        matchId,
+        result: data,
+      } as never);
+    });
+
+    return () => {
+      socket.off('match:started');
+      socket.off('match:opponent_disconnected');
+      socket.off('match:opponent_reconnected');
+      socket.off('match:reconnected');
+      socket.off('match:opponent_forfeited');
+      socket.off('match:forfeited');
+      socket.off('match:completed');
+    };
+  }, [socket, navigation, matchId]);
+
+  // Heartbeat mechanism - send heartbeat every 5 seconds
+  useEffect(() => {
+    if (matchStatus === 'IN_PROGRESS' || matchStatus === 'READY_CHECK') {
+      heartbeatRef.current = setInterval(() => {
+        sendMatchHeartbeat();
+      }, 5000);
+    }
+
+    return () => {
+      if (heartbeatRef.current) {
+        clearInterval(heartbeatRef.current);
+      }
+    };
+  }, [matchStatus, sendMatchHeartbeat]);
 
   const startQuestionTimer = () => {
     setQuestionStartTime(Date.now());
@@ -136,15 +274,16 @@ const GameScreen = () => {
     setIsPaused(true);
 
     try {
-      const response = await matchService.submitMatchResult(matchId, finalAnswers);
+      await matchService.submitMatchResult(matchId, finalAnswers);
 
-      // Navigate to results screen
-      navigation.navigate('MatchResults' as never, {
-        matchId,
-        result: response.data,
-      } as never);
+      // Don't navigate immediately - wait for opponent to finish
+      // The match:completed socket event will trigger navigation when both players are done
+      setWaitingForOpponent(true);
+      console.log('Answers submitted, waiting for opponent to finish...');
     } catch (error: any) {
       console.error('Failed to submit match:', error);
+      setIsSubmitting(false);
+      setWaitingForOpponent(false);
       Alert.alert(
         'Submission Error',
         error?.response?.data?.message || 'Failed to submit answers. Please try again.',
@@ -160,8 +299,6 @@ const GameScreen = () => {
           },
         ]
       );
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
@@ -190,18 +327,40 @@ const GameScreen = () => {
     return (timeRemaining / questionDuration) * 100;
   };
 
-  if (isSubmitting) {
+  if (isSubmitting || waitingForOpponent) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#4A90E2" />
-        <Text style={styles.loadingText}>Submitting your answers...</Text>
-        <Text style={styles.loadingSubtext}>Please wait</Text>
+        <Text style={styles.loadingText}>
+          {waitingForOpponent ? 'Waiting for opponent...' : 'Submitting your answers...'}
+        </Text>
+        <Text style={styles.loadingSubtext}>
+          {waitingForOpponent
+            ? 'Your opponent is still answering questions'
+            : 'Please wait'}
+        </Text>
       </View>
     );
   }
 
   return (
     <View style={styles.container}>
+      {/* Connection Status Banner */}
+      {(matchStatus === 'READY_CHECK' || connectionMessage || opponentDisconnected) && (
+        <View
+          style={[
+            styles.connectionBanner,
+            opponentDisconnected ? styles.connectionBannerWarning : styles.connectionBannerInfo,
+          ]}
+        >
+          <Text style={styles.connectionBannerText}>
+            {matchStatus === 'READY_CHECK' && !connectionMessage
+              ? '⏳ Connecting to match...'
+              : connectionMessage || 'Opponent disconnected. Waiting for reconnection...'}
+          </Text>
+        </View>
+      )}
+
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerTop}>
@@ -354,6 +513,24 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f5f5f5',
+  },
+  connectionBanner: {
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  connectionBannerInfo: {
+    backgroundColor: '#4A90E2',
+  },
+  connectionBannerWarning: {
+    backgroundColor: '#FF9500',
+  },
+  connectionBannerText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: '600',
+    textAlign: 'center',
   },
   loadingContainer: {
     flex: 1,

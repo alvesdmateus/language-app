@@ -6,20 +6,54 @@ import {
   TouchableOpacity,
   ScrollView,
   RefreshControl,
+  Modal,
+  Pressable,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../../context/AuthContext';
 import { userService } from '../../services/api';
 import { DivisionBadge } from '../../components/DivisionBadge';
+import { Language } from '../../types';
+
+const LANGUAGE_INFO: Record<Language, { name: string; flag: string }> = {
+  PORTUGUESE: { name: 'Portuguese', flag: '🇧🇷' },
+  SPANISH: { name: 'Spanish', flag: '🇪🇸' },
+  ENGLISH: { name: 'English', flag: '🇺🇸' },
+  ITALIAN: { name: 'Italian', flag: '🇮🇹' },
+  FRENCH: { name: 'French', flag: '🇫🇷' },
+  GERMAN: { name: 'German', flag: '🇩🇪' },
+  JAPANESE: { name: 'Japanese', flag: '🇯🇵' },
+  KOREAN: { name: 'Korean', flag: '🇰🇷' },
+};
 
 const ProfileTab = () => {
   const navigation = useNavigation();
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const [refreshing, setRefreshing] = useState(false);
   const [userStats, setUserStats] = useState<any>(null);
+  const [languageStats, setLanguageStats] = useState<any[]>([]);
+  const [preferredLanguage, setPreferredLanguage] = useState<Language>('SPANISH');
+  const [preferredLanguageElo, setPreferredLanguageElo] = useState<number>(1000);
+  const [languageSelectorVisible, setLanguageSelectorVisible] = useState(false);
+
+  // Load preferred language on mount
+  useEffect(() => {
+    loadPreferredLanguage();
+  }, []);
+
+  // Reload user stats when tab comes into focus
+  useFocusEffect(
+    React.useCallback(() => {
+      loadUserStats();
+      loadLanguageStats();
+      refreshUser(); // Refresh user data from auth context
+    }, [])
+  );
 
   useEffect(() => {
     loadUserStats();
+    loadLanguageStats();
   }, []);
 
   const loadUserStats = async () => {
@@ -31,9 +65,53 @@ const ProfileTab = () => {
     }
   };
 
+  const loadPreferredLanguage = async () => {
+    try {
+      const stored = await AsyncStorage.getItem('preferredLanguage');
+      if (stored) {
+        setPreferredLanguage(stored as Language);
+      }
+    } catch (error) {
+      console.error('Failed to load preferred language:', error);
+    }
+  };
+
+  const savePreferredLanguage = async (language: Language) => {
+    try {
+      await AsyncStorage.setItem('preferredLanguage', language);
+      setPreferredLanguage(language);
+      setLanguageSelectorVisible(false);
+
+      // Update ELO for the new preferred language
+      const stats = languageStats.find((s) => s.language === language);
+      if (stats) {
+        setPreferredLanguageElo(stats.eloRating);
+      }
+    } catch (error) {
+      console.error('Failed to save preferred language:', error);
+    }
+  };
+
+  const loadLanguageStats = async () => {
+    try {
+      const response = await userService.getLanguageStats();
+      const stats = response.data.data.stats || [];
+      setLanguageStats(stats);
+
+      // Set ELO for preferred language
+      const preferredStats = stats.find((s: any) => s.language === preferredLanguage);
+      if (preferredStats) {
+        setPreferredLanguageElo(preferredStats.eloRating);
+      }
+    } catch (error) {
+      console.error('Failed to load language stats:', error);
+    }
+  };
+
   const onRefresh = async () => {
     setRefreshing(true);
     await loadUserStats();
+    await loadLanguageStats();
     setRefreshing(false);
   };
 
@@ -99,12 +177,23 @@ const ProfileTab = () => {
           label="Points"
           color="#FFD700"
         />
-        <StatCard
-          icon="🏆"
-          value={user?.eloRating || 1000}
-          label="ELO"
-          color="#4A90E2"
-        />
+        <TouchableOpacity
+          style={styles.eloStatCard}
+          onPress={() => setLanguageSelectorVisible(true)}
+          activeOpacity={0.7}
+        >
+          <View style={styles.statCard}>
+            <Text style={styles.statIcon}>🏆</Text>
+            <Text style={[styles.statValue, { color: '#4A90E2' }]}>
+              {preferredLanguageElo}
+            </Text>
+            <View style={styles.eloLabelContainer}>
+              <Text style={styles.statLabel}>ELO</Text>
+              <Text style={styles.languageFlag}>{LANGUAGE_INFO[preferredLanguage].flag}</Text>
+            </View>
+            <Text style={styles.changeLanguageHint}>Tap to change</Text>
+          </View>
+        </TouchableOpacity>
       </View>
 
       {userStats?.stats && (
@@ -151,6 +240,66 @@ const ProfileTab = () => {
           onPress={() => navigation.navigate('Leaderboard' as never)}
         />
       </View>
+
+      {/* Language Selector Modal */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={languageSelectorVisible}
+        onRequestClose={() => setLanguageSelectorVisible(false)}
+      >
+        <Pressable
+          style={styles.modalOverlay}
+          onPress={() => setLanguageSelectorVisible(false)}
+        >
+          <Pressable
+            style={styles.modalContent}
+            onPress={(e) => e.stopPropagation()}
+          >
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Select Your Primary Language</Text>
+              <TouchableOpacity
+                onPress={() => setLanguageSelectorVisible(false)}
+                style={styles.closeButton}
+              >
+                <Text style={styles.closeButtonText}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={styles.languageList} showsVerticalScrollIndicator={false}>
+              {Object.keys(LANGUAGE_INFO).map((lang) => {
+                const language = lang as Language;
+                const info = LANGUAGE_INFO[language];
+                const stats = languageStats.find((s) => s.language === language);
+                const isSelected = preferredLanguage === language;
+
+                return (
+                  <TouchableOpacity
+                    key={language}
+                    style={[
+                      styles.languageOption,
+                      isSelected && styles.languageOptionSelected,
+                    ]}
+                    onPress={() => savePreferredLanguage(language)}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={styles.languageFlag2}>{info.flag}</Text>
+                    <View style={styles.languageInfo}>
+                      <Text style={styles.languageName}>{info.name}</Text>
+                      {stats && (
+                        <Text style={styles.languageElo}>
+                          ELO: {stats.eloRating} • {stats.totalMatches} matches
+                        </Text>
+                      )}
+                    </View>
+                    {isSelected && <Text style={styles.checkmark}>✓</Text>}
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </ScrollView>
   );
 };
@@ -199,6 +348,23 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
+  },
+  eloStatCard: {
+    flex: 1,
+  },
+  eloLabelContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 4,
+  },
+  languageFlag: {
+    fontSize: 14,
+  },
+  changeLanguageHint: {
+    fontSize: 9,
+    color: '#999',
+    marginTop: 4,
   },
   statIcon: {
     fontSize: 28,
@@ -294,6 +460,85 @@ const styles = StyleSheet.create({
     fontSize: 28,
     color: '#ccc',
     fontWeight: '300',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: 'white',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    maxHeight: '70%',
+    paddingBottom: 90,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  closeButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#f5f5f5',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  closeButtonText: {
+    fontSize: 18,
+    color: '#666',
+    fontWeight: 'bold',
+  },
+  languageList: {
+    paddingHorizontal: 20,
+    paddingTop: 12,
+  },
+  languageOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'white',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 10,
+    borderWidth: 2,
+    borderColor: '#e0e0e0',
+  },
+  languageOptionSelected: {
+    backgroundColor: '#f0f8ff',
+    borderColor: '#4A90E2',
+  },
+  languageFlag2: {
+    fontSize: 32,
+    marginRight: 12,
+  },
+  languageInfo: {
+    flex: 1,
+  },
+  languageName: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  languageElo: {
+    fontSize: 13,
+    color: '#666',
+    marginTop: 2,
+  },
+  checkmark: {
+    fontSize: 20,
+    color: '#4A90E2',
+    fontWeight: 'bold',
   },
 });
 

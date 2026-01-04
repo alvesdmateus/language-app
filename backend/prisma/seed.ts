@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, QuestionDifficulty, Language } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
@@ -286,6 +286,194 @@ const questions = [
     explanation: 'Spanish proverb meaning something good can come from bad situations.',
     language: 'es',
   },
+
+  // Portuguese Questions
+  {
+    type: 'vocabulary',
+    difficulty: 1,
+    question: 'What is "Hello" in Portuguese?',
+    correctAnswer: 'Olá',
+    options: ['Olá', 'Tchau', 'Obrigado', 'Por favor'],
+    explanation: 'Olá is the Portuguese word for Hello.',
+    language: 'pt',
+  },
+  {
+    type: 'vocabulary',
+    difficulty: 1,
+    question: 'What does "Obrigado" mean?',
+    correctAnswer: 'Thank you',
+    options: ['Thank you', 'Hello', 'Goodbye', 'Please'],
+    explanation: 'Obrigado means thank you in Portuguese.',
+    language: 'pt',
+  },
+  {
+    type: 'vocabulary',
+    difficulty: 2,
+    question: 'What is "Coffee" in Portuguese?',
+    correctAnswer: 'Café',
+    options: ['Café', 'Chá', 'Água', 'Leite'],
+    explanation: 'Café means coffee in Portuguese.',
+    language: 'pt',
+  },
+  {
+    type: 'grammar',
+    difficulty: 2,
+    question: 'Complete: "Eu ___ brasileiro"',
+    correctAnswer: 'sou',
+    options: ['sou', 'és', 'é', 'são'],
+    explanation: 'First person singular uses "sou" (I am).',
+    language: 'pt',
+  },
+  {
+    type: 'vocabulary',
+    difficulty: 3,
+    question: 'What is "Butterfly" in Portuguese?',
+    correctAnswer: 'Borboleta',
+    options: ['Borboleta', 'Abelha', 'Mosca', 'Formiga'],
+    explanation: 'Borboleta means butterfly in Portuguese.',
+    language: 'pt',
+  },
+
+  // Italian Questions
+  {
+    type: 'vocabulary',
+    difficulty: 1,
+    question: 'What is "Hello" in Italian?',
+    correctAnswer: 'Ciao',
+    options: ['Ciao', 'Arrivederci', 'Grazie', 'Prego'],
+    explanation: 'Ciao is the Italian word for Hello/Hi.',
+    language: 'it',
+  },
+  {
+    type: 'vocabulary',
+    difficulty: 1,
+    question: 'What does "Grazie" mean?',
+    correctAnswer: 'Thank you',
+    options: ['Thank you', 'Hello', 'Goodbye', 'Please'],
+    explanation: 'Grazie means thank you in Italian.',
+    language: 'it',
+  },
+  {
+    type: 'vocabulary',
+    difficulty: 2,
+    question: 'What is "Pizza" in Italian?',
+    correctAnswer: 'Pizza',
+    options: ['Pizza', 'Pasta', 'Gelato', 'Pane'],
+    explanation: 'Pizza is the same in Italian!',
+    language: 'it',
+  },
+  {
+    type: 'grammar',
+    difficulty: 2,
+    question: 'Complete: "Io ___ italiano"',
+    correctAnswer: 'sono',
+    options: ['sono', 'sei', 'è', 'siamo'],
+    explanation: 'First person singular uses "sono" (I am).',
+    language: 'it',
+  },
+  {
+    type: 'vocabulary',
+    difficulty: 3,
+    question: 'What is "Beautiful" in Italian?',
+    correctAnswer: 'Bello',
+    options: ['Bello', 'Grande', 'Piccolo', 'Vecchio'],
+    explanation: 'Bello means beautiful in Italian.',
+    language: 'it',
+  },
+
+  // Japanese Questions
+  {
+    type: 'vocabulary',
+    difficulty: 1,
+    question: 'What is "Hello" in Japanese?',
+    correctAnswer: 'こんにちは (Konnichiwa)',
+    options: ['こんにちは (Konnichiwa)', 'さようなら (Sayonara)', 'ありがとう (Arigatou)', 'すみません (Sumimasen)'],
+    explanation: 'こんにちは (Konnichiwa) is the Japanese word for Hello.',
+    language: 'ja',
+  },
+  {
+    type: 'vocabulary',
+    difficulty: 1,
+    question: 'What does "ありがとう" mean?',
+    correctAnswer: 'Thank you',
+    options: ['Thank you', 'Hello', 'Goodbye', 'Sorry'],
+    explanation: 'ありがとう (Arigatou) means thank you in Japanese.',
+    language: 'ja',
+  },
+  {
+    type: 'vocabulary',
+    difficulty: 2,
+    question: 'What is "Water" in Japanese?',
+    correctAnswer: '水 (Mizu)',
+    options: ['水 (Mizu)', 'お茶 (Ocha)', 'コーヒー (Koohii)', 'ミルク (Miruku)'],
+    explanation: '水 (Mizu) means water in Japanese.',
+    language: 'ja',
+  },
+  {
+    type: 'grammar',
+    difficulty: 2,
+    question: 'Which particle is used to mark the object?',
+    correctAnswer: 'を (wo)',
+    options: ['を (wo)', 'は (wa)', 'が (ga)', 'に (ni)'],
+    explanation: 'を (wo) is the object marker particle in Japanese.',
+    language: 'ja',
+  },
+  {
+    type: 'vocabulary',
+    difficulty: 3,
+    question: 'What does "頑張って" mean?',
+    correctAnswer: 'Do your best / Good luck',
+    options: ['Do your best / Good luck', 'Good morning', 'Goodnight', 'Welcome'],
+    explanation: '頑張って (Ganbatte) means do your best or good luck.',
+    language: 'ja',
+  },
+
+  // Korean Questions
+  {
+    type: 'vocabulary',
+    difficulty: 1,
+    question: 'What is "Hello" in Korean?',
+    correctAnswer: '안녕하세요 (Annyeonghaseyo)',
+    options: ['안녕하세요 (Annyeonghaseyo)', '안녕히 가세요 (Annyeonghi gaseyo)', '감사합니다 (Gamsahamnida)', '죄송합니다 (Joesonghamnida)'],
+    explanation: '안녕하세요 (Annyeonghaseyo) is the Korean word for Hello.',
+    language: 'ko',
+  },
+  {
+    type: 'vocabulary',
+    difficulty: 1,
+    question: 'What does "감사합니다" mean?',
+    correctAnswer: 'Thank you',
+    options: ['Thank you', 'Hello', 'Goodbye', 'Sorry'],
+    explanation: '감사합니다 (Gamsahamnida) means thank you in Korean.',
+    language: 'ko',
+  },
+  {
+    type: 'vocabulary',
+    difficulty: 2,
+    question: 'What is "Water" in Korean?',
+    correctAnswer: '물 (Mul)',
+    options: ['물 (Mul)', '차 (Cha)', '커피 (Keopi)', '우유 (Uyu)'],
+    explanation: '물 (Mul) means water in Korean.',
+    language: 'ko',
+  },
+  {
+    type: 'grammar',
+    difficulty: 2,
+    question: 'Which particle marks the topic?',
+    correctAnswer: '은/는 (eun/neun)',
+    options: ['은/는 (eun/neun)', '이/가 (i/ga)', '을/를 (eul/reul)', '에 (e)'],
+    explanation: '은/는 (eun/neun) is the topic marker particle in Korean.',
+    language: 'ko',
+  },
+  {
+    type: 'vocabulary',
+    difficulty: 3,
+    question: 'What does "화이팅" mean?',
+    correctAnswer: 'Fighting / You can do it!',
+    options: ['Fighting / You can do it!', 'Good morning', 'Goodnight', 'Welcome'],
+    explanation: '화이팅 (Hwaiting) is a Korean cheer meaning you can do it!',
+    language: 'ko',
+  },
 ];
 
 async function main() {
@@ -301,10 +489,21 @@ async function main() {
 
   // Create questions
   console.log('Creating questions...');
-  const difficultyMap: { [key: number]: string } = {
-    1: 'EASY',
-    2: 'MEDIUM',
-    3: 'HARD',
+  const difficultyMap: { [key: number]: QuestionDifficulty } = {
+    1: QuestionDifficulty.EASY,
+    2: QuestionDifficulty.MEDIUM,
+    3: QuestionDifficulty.HARD,
+  };
+
+  const languageMap: { [key: string]: Language } = {
+    'es': Language.SPANISH,
+    'en': Language.ENGLISH,
+    'fr': Language.FRENCH,
+    'de': Language.GERMAN,
+    'pt': Language.PORTUGUESE,
+    'it': Language.ITALIAN,
+    'ja': Language.JAPANESE,
+    'ko': Language.KOREAN,
   };
 
   for (const question of questions) {
@@ -316,7 +515,7 @@ async function main() {
         correctAnswer: question.correctAnswer,
         options: question.options,
         explanation: question.explanation,
-        language: question.language,
+        language: languageMap[question.language],
       },
     });
   }

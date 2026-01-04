@@ -10,6 +10,7 @@ interface WebSocketContextType {
   connected: boolean;
   joinMatchmaking: (type: 'RANKED' | 'CASUAL') => void;
   leaveMatchmaking: () => void;
+  sendMatchHeartbeat: () => void;
 }
 
 const WebSocketContext = createContext<WebSocketContextType | undefined>(undefined);
@@ -88,6 +89,12 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     }
   };
 
+  const sendMatchHeartbeat = () => {
+    if (socketRef.current?.connected) {
+      socketRef.current.emit('match:heartbeat');
+    }
+  };
+
   return (
     <WebSocketContext.Provider
       value={{
@@ -95,6 +102,7 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         connected,
         joinMatchmaking,
         leaveMatchmaking,
+        sendMatchHeartbeat,
       }}
     >
       {children}

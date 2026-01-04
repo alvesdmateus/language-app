@@ -21,6 +21,12 @@ export const findMatch = async (
   try {
     const { type, language, customSettings, isBattleMode } = req.body;
 
+    console.log(`[MATCHMAKING] User ${req.userId} requesting match:`, {
+      type,
+      language,
+      isBattleMode,
+    });
+
     if (!['RANKED', 'CASUAL', 'CUSTOM', 'BATTLE'].includes(type)) {
       throw new AppError('Invalid match type', 400);
     }
@@ -45,16 +51,22 @@ export const findMatch = async (
       isBattleMode: isBattleMode || type === 'BATTLE',
     });
 
+    console.log(`[MATCHMAKING] User ${req.userId} joined lobby, searching for opponent...`);
+
     // Try to find an opponent
     const opponentId = await matchmakingService.findMatch(req.userId!, type as MatchType);
 
     if (opponentId) {
+      console.log(`[MATCHMAKING] Match found! User ${req.userId} vs ${opponentId}`);
+
       // Create match with the found opponent
       const matchId = await matchmakingService.createMatch(
         req.userId!,
         opponentId,
         type as MatchType
       );
+
+      console.log(`[MATCHMAKING] Match created with ID: ${matchId}`);
 
       // Fetch the created match
       const match = await prisma.match.findUnique({
@@ -79,6 +91,8 @@ export const findMatch = async (
         },
       });
     } else {
+      console.log(`[MATCHMAKING] No opponent found for user ${req.userId}, waiting in lobby`);
+
       // No opponent found yet, player is in lobby waiting
       res.json({
         status: 'success',
@@ -90,6 +104,7 @@ export const findMatch = async (
       });
     }
   } catch (error) {
+    console.error(`[MATCHMAKING] Error for user ${req.userId}:`, error);
     next(error);
   }
 };
@@ -277,6 +292,9 @@ export const submitMatchResult = async (
         },
       });
 
+      // Clean up match tracking
+      matchmakingService.cleanupMatch(matchId);
+
       // Calculate ELO changes for ranked and battle mode matches
       if (match.type === 'RANKED' || match.type === 'BATTLE') {
         // Get language-specific ELO ratings
@@ -286,11 +304,24 @@ export const submitMatchResult = async (
           )
         );
 
-        const players = allResults.map((r, index) => ({
-          id: r.userId,
-          rating: playerStats.find((s) => s.userId === r.userId)?.eloRating || 1000,
-          score: r.score,
-        }));
+        // Use actual game outcome (winner/loser/draw) for ELO calculation
+        // Assign effective scores: winner=100, loser=0, draw=50 for both
+        const players = allResults.map((r) => {
+          let effectiveScore: number;
+          if (winnerData.isDraw) {
+            effectiveScore = 50; // Draw
+          } else if (r.userId === winnerData.winnerId) {
+            effectiveScore = 100; // Winner
+          } else {
+            effectiveScore = 0; // Loser
+          }
+
+          return {
+            id: r.userId,
+            rating: playerStats.find((s) => s.userId === r.userId)?.eloRating || 1000,
+            score: effectiveScore,
+          };
+        });
 
         const eloResults = calculateMultiPlayerRatings(players);
 

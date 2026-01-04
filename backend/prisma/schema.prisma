@@ -120,6 +120,7 @@ enum MatchType {
 
 enum MatchStatus {
   WAITING
+  READY_CHECK    // Waiting for connection verification
   IN_PROGRESS
   COMPLETED
   CANCELLED
@@ -142,6 +143,10 @@ model Match {
 
   // Battle mode settings (5 questions, 45s each)
   isBattleMode Boolean @default(false)
+
+  // Connection and sync tracking
+  playerConnections Json?  // { userId: { connected: boolean, lastSeen: ISO string, disconnectedAt: ISO string } }
+  readyCheckStartedAt DateTime?  // When ready check began
 
   participants User[]
   results      MatchResult[]

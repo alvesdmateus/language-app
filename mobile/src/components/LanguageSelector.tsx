@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -29,6 +29,7 @@ interface LanguageSelectorProps {
     draws: number;
   }>;
   showStats?: boolean;
+  navigation?: any; // Navigation object to hide/show tab bar
 }
 
 const LANGUAGE_INFO: Record<Language, LanguageInfo> = {
@@ -48,8 +49,33 @@ const LanguageSelector: React.FC<LanguageSelectorProps> = ({
   disabled = false,
   languageStats,
   showStats = false,
+  navigation,
 }) => {
   const [modalVisible, setModalVisible] = useState(false);
+
+  // Hide/show tab bar when modal opens/closes
+  useEffect(() => {
+    if (navigation) {
+      if (modalVisible) {
+        // Hide tab bar when modal is open
+        navigation.setOptions({
+          tabBarStyle: { display: 'none' },
+        });
+      } else {
+        // Show tab bar when modal is closed
+        navigation.setOptions({
+          tabBarStyle: {
+            backgroundColor: 'white',
+            borderTopWidth: 1,
+            borderTopColor: '#e0e0e0',
+            height: 70,
+            paddingBottom: 10,
+            paddingTop: 8,
+          },
+        });
+      }
+    }
+  }, [modalVisible, navigation]);
 
   const handleLanguageSelect = (language: Language) => {
     onSelectLanguage(language);
@@ -244,7 +270,7 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     maxHeight: '80%',
-    paddingBottom: 20,
+    paddingBottom: 90, // Extra padding to clear tab navigation bar
   },
   modalHeader: {
     flexDirection: 'row',

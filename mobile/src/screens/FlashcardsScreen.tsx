@@ -40,6 +40,7 @@ const FlashcardsScreen = () => {
   const [unknownCount, setUnknownCount] = useState(0);
   const [sessionComplete, setSessionComplete] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [showExplanation, setShowExplanation] = useState(false);
 
   // Filters
   const [selectedLanguage, setSelectedLanguage] = useState<Language>('SPANISH');
@@ -169,6 +170,36 @@ const FlashcardsScreen = () => {
       KOREAN: 'Korean',
     };
     return names[lang] || lang;
+  };
+
+  const renderHighlightedText = (text: string, keyword: string) => {
+    if (!text || !keyword) return <Text style={styles.contextText}>"{text}"</Text>;
+
+    // Find the keyword in the text (case-insensitive)
+    const lowerText = text.toLowerCase();
+    const lowerKeyword = keyword.toLowerCase();
+    const startIndex = lowerText.indexOf(lowerKeyword);
+
+    if (startIndex === -1) {
+      return <Text style={styles.contextText}>"{text}"</Text>;
+    }
+
+    const beforeKeyword = text.substring(0, startIndex);
+    const keywordText = text.substring(startIndex, startIndex + keyword.length);
+    const afterKeyword = text.substring(startIndex + keyword.length);
+
+    return (
+      <Text style={styles.contextText}>
+        "{beforeKeyword}
+        <TouchableOpacity
+          onPress={() => setShowExplanation(true)}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.highlightedKeyword}>{keywordText}</Text>
+        </TouchableOpacity>
+        {afterKeyword}"
+      </Text>
+    );
   };
 
   if (loading) {
@@ -303,26 +334,17 @@ const FlashcardsScreen = () => {
               ]}
               pointerEvents={isFlipped ? 'none' : 'auto'}
             >
-              <View style={styles.cardBadges}>
-                <View style={[styles.badge, getDifficultyColor(currentCard.difficulty)]}>
-                  <Text style={styles.badgeText}>{currentCard.difficulty}</Text>
-                </View>
-                <View style={[styles.badge, getSourceColor(currentCard.source)]}>
-                  <Text style={styles.badgeText}>{getSourceLabel(currentCard.source)}</Text>
-                </View>
-              </View>
-
               <View style={styles.cardContent}>
                 <Text style={styles.categoryLabel}>{formatCategory(currentCard.category)}</Text>
-                <Text style={styles.wordText}>{currentCard.frontText}</Text>
-                {currentCard.contextSentence && (
+                {currentCard.contextSentence ? (
                   <View style={styles.contextBox}>
-                    <Text style={styles.contextText}>"{currentCard.contextSentence}"</Text>
+                    {renderHighlightedText(currentCard.contextSentence, currentCard.frontText)}
                   </View>
+                ) : (
+                  <Text style={styles.wordText}>{currentCard.frontText}</Text>
                 )}
+                <Text style={styles.tapHint}>👆 Tap to see translation</Text>
               </View>
-
-              <Text style={styles.tapHint}>👆 Tap to reveal</Text>
             </Animated.View>
 
             <Animated.View
@@ -337,43 +359,64 @@ const FlashcardsScreen = () => {
               pointerEvents={isFlipped ? 'auto' : 'none'}
             >
               <View style={styles.cardContent}>
-                <Text style={styles.translationLabel}>Translation</Text>
-                <Text style={styles.translationText}>{currentCard.backText}</Text>
+                <Text style={styles.translationLabel}>{getLanguageName(selectedLanguage)}</Text>
+                <Text style={styles.translationText}>{currentCard.frontText}</Text>
 
                 <View style={styles.divider} />
 
-                <Text style={styles.originalLabel}>English</Text>
-                <Text style={styles.originalText}>{currentCard.frontText}</Text>
-
-                {currentCard.sourceTitle && (
-                  <View style={styles.sourceInfo}>
-                    <Text style={styles.sourceInfoText} numberOfLines={2}>
-                      📰 {currentCard.sourceTitle}
-                    </Text>
-                  </View>
-                )}
+                <Text style={styles.originalLabel}>English Translation</Text>
+                <Text style={styles.originalText}>{currentCard.backText}</Text>
               </View>
-
-              <Text style={styles.tapHintBack}>Do you know this word?</Text>
             </Animated.View>
           </View>
         </TouchableOpacity>
       </View>
 
       {/* Action Buttons */}
-      {isFlipped && (
-        <View style={styles.actionButtons}>
-          <TouchableOpacity style={[styles.actionButton, styles.unknownButton]} onPress={handleUnknown}>
-            <Text style={styles.actionButtonIcon}>✗</Text>
-            <Text style={styles.actionButtonLabel}>Don't Know</Text>
-          </TouchableOpacity>
+      <View style={styles.actionButtons}>
+        <TouchableOpacity style={[styles.actionButton, styles.unknownButton]} onPress={handleUnknown}>
+          <Text style={styles.actionButtonIcon}>✗</Text>
+          <Text style={styles.actionButtonLabel}>Don't Know</Text>
+        </TouchableOpacity>
 
-          <TouchableOpacity style={[styles.actionButton, styles.knownButton]} onPress={handleKnown}>
-            <Text style={styles.actionButtonIcon}>✓</Text>
-            <Text style={styles.actionButtonLabel}>Know It</Text>
-          </TouchableOpacity>
-        </View>
-      )}
+        <TouchableOpacity style={[styles.actionButton, styles.knownButton]} onPress={handleKnown}>
+          <Text style={styles.actionButtonIcon}>✓</Text>
+          <Text style={styles.actionButtonLabel}>Know It</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Explanation Modal */}
+      <Modal
+        visible={showExplanation}
+        animationType="fade"
+        transparent={true}
+        onRequestClose={() => setShowExplanation(false)}
+      >
+        <TouchableOpacity
+          style={styles.explanationOverlay}
+          activeOpacity={1}
+          onPress={() => setShowExplanation(false)}
+        >
+          <View style={styles.explanationBox}>
+            <View style={styles.explanationHeader}>
+              <Text style={styles.explanationKeyword}>{currentCard.frontText}</Text>
+              <TouchableOpacity onPress={() => setShowExplanation(false)}>
+                <Text style={styles.explanationClose}>✕</Text>
+              </TouchableOpacity>
+            </View>
+            <Text style={styles.explanationMeaning}>
+              <Text style={styles.explanationLabel}>Meaning: </Text>
+              {currentCard.backText}
+            </Text>
+            {currentCard.contextSentence && (
+              <View style={styles.explanationContext}>
+                <Text style={styles.explanationLabel}>Used in context:</Text>
+                <Text style={styles.explanationContextText}>"{currentCard.contextSentence}"</Text>
+              </View>
+            )}
+          </View>
+        </TouchableOpacity>
+      </Modal>
 
       {/* Settings Modal */}
       <Modal
@@ -672,8 +715,8 @@ const styles = StyleSheet.create({
   },
   cardWrapper: {
     width: '100%',
-    aspectRatio: 0.7,
-    maxHeight: 480,
+    aspectRatio: 1.2,
+    maxHeight: 400,
   },
   card: {
     position: 'absolute',
@@ -681,8 +724,8 @@ const styles = StyleSheet.create({
     height: '100%',
     backgroundColor: 'white',
     borderRadius: 16,
-    padding: 20,
-    justifyContent: 'space-between',
+    padding: 24,
+    justifyContent: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.15,
@@ -715,69 +758,74 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   categoryLabel: {
-    fontSize: 12,
+    fontSize: 11,
     color: '#999',
     textAlign: 'center',
-    marginBottom: 12,
+    marginBottom: 16,
     textTransform: 'uppercase',
-    letterSpacing: 1.5,
+    letterSpacing: 1.2,
     fontWeight: '600',
   },
   wordText: {
-    fontSize: 28,
+    fontSize: 32,
     fontWeight: '700',
     color: '#1a1a1a',
     textAlign: 'center',
-    marginBottom: 16,
   },
   contextBox: {
-    marginTop: 16,
-    padding: 14,
+    padding: 16,
     backgroundColor: '#f8f9fa',
     borderRadius: 10,
     borderLeftWidth: 3,
     borderLeftColor: '#4A90E2',
   },
   contextText: {
-    fontSize: 13,
-    color: '#555',
-    fontStyle: 'italic',
-    lineHeight: 19,
+    fontSize: 18,
+    color: '#333',
+    lineHeight: 28,
+  },
+  highlightedKeyword: {
+    fontWeight: 'bold',
+    color: '#4A90E2',
+    backgroundColor: '#E3F2FD',
+    paddingHorizontal: 4,
+    paddingVertical: 2,
+    borderRadius: 4,
   },
   translationLabel: {
-    fontSize: 12,
+    fontSize: 11,
     color: 'rgba(255, 255, 255, 0.8)',
     textAlign: 'center',
-    marginBottom: 10,
+    marginBottom: 12,
     textTransform: 'uppercase',
-    letterSpacing: 1,
+    letterSpacing: 1.2,
     fontWeight: '600',
   },
   translationText: {
-    fontSize: 32,
+    fontSize: 36,
     fontWeight: '700',
     color: 'white',
     textAlign: 'center',
-    marginBottom: 20,
+    marginBottom: 24,
   },
   divider: {
     height: 1,
     backgroundColor: 'rgba(255, 255, 255, 0.3)',
-    marginVertical: 16,
+    marginVertical: 20,
   },
   originalLabel: {
     fontSize: 11,
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: 'rgba(255, 255, 255, 0.8)',
     textAlign: 'center',
-    marginBottom: 8,
+    marginBottom: 12,
     textTransform: 'uppercase',
-    letterSpacing: 0.8,
+    letterSpacing: 1.2,
+    fontWeight: '600',
   },
   originalText: {
-    fontSize: 16,
+    fontSize: 20,
     color: 'rgba(255, 255, 255, 0.95)',
     textAlign: 'center',
-    fontStyle: 'italic',
   },
   sourceInfo: {
     marginTop: 14,
@@ -792,16 +840,11 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
   },
   tapHint: {
-    fontSize: 13,
+    fontSize: 12,
     color: '#999',
     textAlign: 'center',
     fontWeight: '500',
-  },
-  tapHintBack: {
-    fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.9)',
-    textAlign: 'center',
-    fontWeight: '500',
+    marginTop: 20,
   },
   actionButtons: {
     flexDirection: 'row',
@@ -1034,6 +1077,71 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 16,
     fontWeight: '700',
+  },
+  // Explanation Modal styles
+  explanationOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  explanationBox: {
+    backgroundColor: 'white',
+    borderRadius: 16,
+    padding: 20,
+    width: '100%',
+    maxWidth: 400,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  explanationHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  explanationKeyword: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#4A90E2',
+    flex: 1,
+  },
+  explanationClose: {
+    fontSize: 24,
+    color: '#999',
+    fontWeight: '300',
+    paddingLeft: 10,
+  },
+  explanationLabel: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#666',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  explanationMeaning: {
+    fontSize: 18,
+    color: '#333',
+    marginBottom: 16,
+    lineHeight: 26,
+  },
+  explanationContext: {
+    backgroundColor: '#f8f9fa',
+    padding: 14,
+    borderRadius: 10,
+    borderLeftWidth: 3,
+    borderLeftColor: '#4A90E2',
+  },
+  explanationContextText: {
+    fontSize: 15,
+    color: '#555',
+    fontStyle: 'italic',
+    marginTop: 8,
+    lineHeight: 22,
   },
 });
 

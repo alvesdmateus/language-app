@@ -43,11 +43,32 @@ const MatchResultsScreen = () => {
   const isLoser = result.winnerId && result.winnerId !== user?.id;
   const isDraw = result.isDraw;
 
-  const userResult = result.results.find((r) => r.userId === user?.id);
-  const opponentResult = result.results.find((r) => r.userId !== user?.id);
+  const userResult = result.results?.find((r) => r.userId === user?.id);
+  const opponentResult = result.results?.find((r) => r.userId !== user?.id);
 
   const userEloChange = result.eloChanges?.find((e) => e.id === user?.id);
   const userDivisionChange = result.divisionChanges?.find((d) => d.userId === user?.id);
+
+  // Safety check - if results are incomplete, show error
+  if (!result.results || result.results.length === 0) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.centerContainer}>
+          <Text style={styles.errorIcon}>⚠️</Text>
+          <Text style={styles.errorTitle}>Match Incomplete</Text>
+          <Text style={styles.errorText}>
+            The match results are not available yet. This may happen if not all players finished the match.
+          </Text>
+          <TouchableOpacity
+            style={styles.homeButton}
+            onPress={() => navigation.navigate('Home' as never)}
+          >
+            <Text style={styles.homeButtonText}>🏠 Go Home</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
 
   const getResultStatus = () => {
     if (isDraw) return { text: 'Draw!', emoji: '🤝', color: '#FF9500' };
@@ -225,7 +246,8 @@ const MatchResultsScreen = () => {
         <TouchableOpacity
           style={styles.playAgainButton}
           onPress={() => {
-            navigation.navigate('BattleMode' as never, { mode: 'RANKED' } as never);
+            // Navigate to Home, which brings user to the Battle tab
+            navigation.navigate('Home' as never);
           }}
         >
           <Text style={styles.playAgainText}>⚔️ Play Again</Text>
@@ -245,6 +267,30 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f5f5f5',
+  },
+  centerContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 40,
+  },
+  errorIcon: {
+    fontSize: 64,
+    marginBottom: 16,
+  },
+  errorTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#FF3B30',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  errorText: {
+    fontSize: 16,
+    color: '#666',
+    textAlign: 'center',
+    lineHeight: 24,
+    marginBottom: 24,
   },
   scrollContent: {
     padding: 20,
