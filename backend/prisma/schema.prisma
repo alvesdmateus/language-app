@@ -144,6 +144,12 @@ model Match {
   // Battle mode settings (5 questions, 45s each)
   isBattleMode Boolean @default(false)
 
+  // Async mode settings
+  isAsync Boolean @default(false)
+  currentTurnUserId String?  // Which player's turn it is (null if both can play)
+  turnDeadlineAt DateTime?  // When current turn expires
+  turnDurationHours Int @default(24)  // Hours allowed per turn (default 24h = 1 day)
+
   // Connection and sync tracking
   playerConnections Json?  // { userId: { connected: boolean, lastSeen: ISO string, disconnectedAt: ISO string } }
   readyCheckStartedAt DateTime?  // When ready check began

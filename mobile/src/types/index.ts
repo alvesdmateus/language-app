@@ -114,6 +114,12 @@ export interface Match {
 
   // Battle mode
   isBattleMode: boolean;
+
+  // Async mode settings
+  isAsync: boolean;
+  currentTurnUserId?: string;  // Which player's turn it is
+  turnDeadlineAt?: string;  // When current turn expires
+  turnDurationHours: number;  // Hours allowed per turn (default 24h = 1 day)
 }
 
 export interface MatchResult {
