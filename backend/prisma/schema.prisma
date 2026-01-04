@@ -1,0 +1,248 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Division {
+  UNRANKED
+  BRONZE
+  SILVER
+  GOLD
+  PLATINUM
+  DIAMOND
+  MASTER
+  GRANDMASTER
+}
+
+enum Language {
+  PORTUGUESE
+  SPANISH
+  ENGLISH
+  ITALIAN
+  FRENCH
+  GERMAN
+  JAPANESE
+  KOREAN
+}
+
+enum QuestionDifficulty {
+  EASY
+  MEDIUM
+  HARD
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  username  String   @unique
+  password  String
+  displayName String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Stats (deprecated - use languageStats instead)
+  eloRating Int      @default(1000)
+  division  Division @default(BRONZE)
+  totalPoints Int    @default(0)
+  currentStreak Int  @default(0)
+  longestStreak Int  @default(0)
+  lastActiveDate DateTime?
+
+  // Relations
+  dailyQuizzes DailyQuizCompletion[]
+  matches      Match[]
+  matchResults MatchResult[]
+  languageStats LanguageStats[]
+
+  @@index([eloRating])
+  @@index([division])
+  @@index([username])
+}
+
+model LanguageStats {
+  id        String   @id @default(uuid())
+  userId    String
+  language  Language
+  eloRating Int      @default(1000)
+  division  Division @default(BRONZE)
+  totalMatches Int   @default(0)
+  wins      Int      @default(0)
+  losses    Int      @default(0)
+  draws     Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, language])
+  @@index([userId])
+  @@index([language])
+  @@index([eloRating])
+}
+
+model DailyQuiz {
+  id        String   @id @default(uuid())
+  date      DateTime @unique
+  questions Json
+  createdAt DateTime @default(now())
+
+  completions DailyQuizCompletion[]
+
+  @@index([date])
+}
+
+model DailyQuizCompletion {
+  id          String   @id @default(uuid())
+  userId      String
+  quizId      String
+  score       Int
+  answers     Json
+  completedAt DateTime @default(now())
+
+  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  quiz        DailyQuiz  @relation(fields: [quizId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, quizId])
+  @@index([userId])
+  @@index([quizId])
+}
+
+enum MatchType {
+  RANKED
+  CASUAL
+  CUSTOM
+  BATTLE
+}
+
+enum MatchStatus {
+  WAITING
+  READY_CHECK    // Waiting for connection verification
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+model Match {
+  id        String      @id @default(uuid())
+  type      MatchType
+  status    MatchStatus @default(WAITING)
+  language  Language    @default(ENGLISH)
+  questions Json
+  startedAt DateTime?
+  endedAt   DateTime?
+  createdAt DateTime    @default(now())
+
+  // Custom lobby settings
+  questionDuration Int?  // in seconds: 30, 45, or 60
+  difficulty QuestionDifficulty?  // EASY, MEDIUM, HARD
+  powerUpsEnabled Boolean @default(false)
+
+  // Battle mode settings (5 questions, 45s each)
+  isBattleMode Boolean @default(false)
+
+  // Connection and sync tracking
+  playerConnections Json?  // { userId: { connected: boolean, lastSeen: ISO string, disconnectedAt: ISO string } }
+  readyCheckStartedAt DateTime?  // When ready check began
+
+  participants User[]
+  results      MatchResult[]
+
+  @@index([status])
+  @@index([type])
+  @@index([language])
+}
+
+model MatchResult {
+  id        String   @id @default(uuid())
+  matchId   String
+  userId    String
+  score     Int
+  correctAnswers Int @default(0)
+  totalTimeMs Int  @default(0)  // Total time taken in milliseconds
+  answers   Json  // { questionId: { answer: string, timeMs: number, correct: boolean } }
+  eloChange Int?
+  createdAt DateTime @default(now())
+
+  match     Match    @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([matchId, userId])
+  @@index([matchId])
+  @@index([userId])
+}
+
+model Question {
+  id           String   @id @default(uuid())
+  type         String  // "grammar" or "comprehension"
+  difficulty   QuestionDifficulty @default(MEDIUM)
+  question     String
+  correctAnswer String
+  options      Json  // Array of 4 options
+  explanation  String?
+  language     Language @default(ENGLISH)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([difficulty])
+  @@index([language])
+  @@index([type])
+}
+
+enum FlashcardCategory {
+  MOVIES
+  TV_SHOWS
+  MUSIC
+  SPORTS
+  TECHNOLOGY
+  FOOD
+  TRAVEL
+  GAMING
+  NEWS
+  BUSINESS
+  SCIENCE
+  ENTERTAINMENT
+  GENERAL
+}
+
+enum ContentSource {
+  CURATED      // Hand-picked quality content
+  NEWS_API     // From news articles
+  TRENDING     // From trending topics
+  USER_GENERATED
+}
+
+model Flashcard {
+  id              String   @id @default(uuid())
+  language        Language
+  category        FlashcardCategory
+  source          ContentSource @default(CURATED)
+
+  // Card content
+  frontText       String  // Word/phrase to learn
+  backText        String  // Translation/meaning
+  contextSentence String? // Example sentence using the word
+  imageUrl        String? // Optional image for visual learning
+
+  // Metadata
+  sourceUrl       String? // Original article/source URL
+  sourceTitle     String? // Article title or source name
+  difficulty      QuestionDifficulty @default(MEDIUM)
+
+  // Freshness tracking
+  isActive        Boolean  @default(true)
+  expiresAt       DateTime? // When dynamic content should be refreshed
+
+  // Timestamps
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([language])
+  @@index([category])
+  @@index([source])
+  @@index([isActive])
+  @@index([expiresAt])
+}
