@@ -42,6 +42,9 @@ const GameScreen = () => {
   const [opponentDisconnected, setOpponentDisconnected] = useState(false);
   const [connectionMessage, setConnectionMessage] = useState<string | null>(null);
   const [waitingForOpponent, setWaitingForOpponent] = useState(false);
+  const [deadlineRemaining, setDeadlineRemaining] = useState<number | null>(null);
+
+  const isAsync = match.isAsync || false;
 
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const heartbeatRef = useRef<NodeJS.Timeout | null>(null);
@@ -76,13 +79,32 @@ const GameScreen = () => {
     };
   }, [socket, matchId]);
 
+  // Calculate deadline remaining for async matches
   useEffect(() => {
-    startQuestionTimer();
+    if (isAsync && match.turnDeadlineAt) {
+      const calculateDeadline = () => {
+        const deadline = new Date(match.turnDeadlineAt!).getTime();
+        const now = Date.now();
+        const remaining = Math.max(0, Math.floor((deadline - now) / 1000));
+        setDeadlineRemaining(remaining);
+      };
+
+      calculateDeadline();
+      const interval = setInterval(calculateDeadline, 1000);
+      return () => clearInterval(interval);
+    }
+  }, [isAsync, match.turnDeadlineAt]);
+
+  useEffect(() => {
+    // Only start question timer for synchronous matches
+    if (!isAsync) {
+      startQuestionTimer();
+    }
     animateProgress();
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [currentQuestionIndex]);
+  }, [currentQuestionIndex, isAsync]);
 
   // Socket event listeners for match connection events
   useEffect(() => {
@@ -405,24 +427,40 @@ const GameScreen = () => {
         </View>
 
         {/* Timer */}
-        <View style={styles.timerContainer}>
-          <View style={styles.timerCircle}>
-            <Text style={[styles.timerText, { color: getTimerColor() }]}>
-              {timeRemaining}s
-            </Text>
+        {isAsync ? (
+          // Async mode: Show deadline timer
+          <View style={styles.timerContainer}>
+            <View style={styles.asyncTimerContainer}>
+              <Text style={styles.asyncTimerLabel}>⏳ Time Remaining:</Text>
+              <Text style={styles.asyncTimerText}>
+                {deadlineRemaining !== null
+                  ? `${Math.floor(deadlineRemaining / 3600)}h ${Math.floor((deadlineRemaining % 3600) / 60)}m`
+                  : 'Loading...'}
+              </Text>
+            </View>
+            <Text style={styles.asyncHint}>Take your time! Answer all questions before the deadline.</Text>
           </View>
-          <View style={styles.timerBarContainer}>
-            <View
-              style={[
-                styles.timerBar,
-                {
-                  width: `${getTimerProgress()}%`,
-                  backgroundColor: getTimerColor(),
-                },
-              ]}
-            />
+        ) : (
+          // Sync mode: Show per-question timer
+          <View style={styles.timerContainer}>
+            <View style={styles.timerCircle}>
+              <Text style={[styles.timerText, { color: getTimerColor() }]}>
+                {timeRemaining}s
+              </Text>
+            </View>
+            <View style={styles.timerBarContainer}>
+              <View
+                style={[
+                  styles.timerBar,
+                  {
+                    width: `${getTimerProgress()}%`,
+                    backgroundColor: getTimerColor(),
+                  },
+                ]}
+              />
+            </View>
           </View>
-        </View>
+        )}
       </View>
 
       {/* Question */}
@@ -632,6 +670,28 @@ const styles = StyleSheet.create({
   timerBar: {
     height: '100%',
     borderRadius: 6,
+  },
+  asyncTimerContainer: {
+    flexDirection: 'column',
+    alignItems: 'center',
+    flex: 1,
+  },
+  asyncTimerLabel: {
+    fontSize: 13,
+    color: '#666',
+    marginBottom: 4,
+    fontWeight: '600',
+  },
+  asyncTimerText: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#4A90E2',
+  },
+  asyncHint: {
+    fontSize: 11,
+    color: '#999',
+    marginTop: 4,
+    textAlign: 'center',
   },
   content: {
     flex: 1,
