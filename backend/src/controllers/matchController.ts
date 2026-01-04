@@ -19,12 +19,13 @@ export const findMatch = async (
   next: NextFunction
 ) => {
   try {
-    const { type, language, customSettings, isBattleMode } = req.body;
+    const { type, language, customSettings, isBattleMode, isAsync } = req.body;
 
     console.log(`[MATCHMAKING] User ${req.userId} requesting match:`, {
       type,
       language,
       isBattleMode,
+      isAsync,
     });
 
     if (!['RANKED', 'CASUAL', 'CUSTOM', 'BATTLE'].includes(type)) {
@@ -49,6 +50,7 @@ export const findMatch = async (
     await matchmakingService.joinLobby(req.userId!, type as MatchType, language as Language, {
       customSettings,
       isBattleMode: isBattleMode || type === 'BATTLE',
+      isAsync: isAsync || false,
     });
 
     console.log(`[MATCHMAKING] User ${req.userId} joined lobby, searching for opponent...`);

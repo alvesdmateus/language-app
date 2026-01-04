@@ -17,6 +17,7 @@ interface LobbyPlayer {
     powerUpsEnabled: boolean;
   };
   isBattleMode?: boolean;
+  isAsync?: boolean;  // Async battle mode
 }
 
 interface ActiveMatch {
@@ -52,6 +53,7 @@ class MatchmakingService {
         powerUpsEnabled: boolean;
       };
       isBattleMode?: boolean;
+      isAsync?: boolean;
     }
   ): Promise<void> {
     // Get player's current ELO for this language
@@ -72,6 +74,7 @@ class MatchmakingService {
       joinedAt: new Date(),
       customSettings: options?.customSettings,
       isBattleMode: options?.isBattleMode,
+      isAsync: options?.isAsync,
     });
 
     // Clean up old lobbies
@@ -146,6 +149,9 @@ class MatchmakingService {
       // For battle mode, must both be battle mode
       if (player.isBattleMode !== candidate.isBattleMode) continue;
 
+      // For async mode, must both be async or both sync
+      if (player.isAsync !== candidate.isAsync) continue;
+
       // For custom lobbies, settings must match
       if (matchType === MatchType.CUSTOM) {
         if (!this.customSettingsMatch(player.customSettings, candidate.customSettings)) {
@@ -218,6 +224,7 @@ class MatchmakingService {
 
     // Determine match configuration
     const isBattleMode = player1.isBattleMode || false;
+    const isAsync = player1.isAsync || false;
     const language = player1.language;
 
     // Use average ELO for question selection in ranked/battle mode
@@ -255,14 +262,24 @@ class MatchmakingService {
       },
     };
 
-    // Create match in database with READY_CHECK status
+    // For async matches, start immediately and set turn deadline
+    // For sync matches, use ready check
+    const matchStatus = isAsync ? 'IN_PROGRESS' : 'READY_CHECK';
+    const turnDeadlineAt = isAsync ? new Date(Date.now() + 24 * 60 * 60 * 1000) : null; // 24 hours from now
+
+    // Create match in database
     const match = await prisma.match.create({
       data: {
         type: matchType,
-        status: 'READY_CHECK',
+        status: matchStatus,
         language,
-        readyCheckStartedAt: new Date(),
+        readyCheckStartedAt: isAsync ? null : new Date(),
+        startedAt: isAsync ? new Date() : null,
         isBattleMode,
+        isAsync,
+        currentTurnUserId: isAsync ? player1Id : null,  // Player 1 starts in async mode
+        turnDeadlineAt,
+        turnDurationHours: 24,
         questionDuration,
         difficulty: player1.customSettings?.difficulty,
         powerUpsEnabled: player1.customSettings?.powerUpsEnabled || false,
@@ -302,6 +319,10 @@ class MatchmakingService {
       status: match.status,
       language: match.language,
       isBattleMode: match.isBattleMode,
+      isAsync: match.isAsync,
+      currentTurnUserId: match.currentTurnUserId,
+      turnDeadlineAt: match.turnDeadlineAt,
+      turnDurationHours: match.turnDurationHours,
       questionDuration: match.questionDuration,
       difficulty: match.difficulty,
       powerUpsEnabled: match.powerUpsEnabled,
@@ -339,8 +360,10 @@ class MatchmakingService {
       });
     }
 
-    // Start ready check process
-    this.startReadyCheck(match.id, [player1Id, player2Id]);
+    // Start ready check process (only for synchronous matches)
+    if (!isAsync) {
+      this.startReadyCheck(match.id, [player1Id, player2Id]);
+    }
 
     return match.id;
   }
