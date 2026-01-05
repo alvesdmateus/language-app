@@ -172,6 +172,7 @@ export type RootStackParamList = {
   CustomLobby: { language: Language };
   GameScreen: { matchId: string; match: Match };
   MatchResults: { matchId: string; result: MatchCompletedEvent };
+  MatchHistory: undefined;
   Profile: undefined;
   Leaderboard: { language: Language };
   LanguageStats: undefined;

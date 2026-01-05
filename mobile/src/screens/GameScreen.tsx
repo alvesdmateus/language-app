@@ -10,6 +10,7 @@ import {
   Animated,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Match, Question, AnswerData } from '../types';
 import { matchService } from '../services/api';
 import { useWebSocket } from '../context/WebSocketContext';
@@ -61,7 +62,82 @@ const GameScreen = () => {
     status: match.status,
     questionsCount: match.questions.length,
     currentQuestionIndex,
+    isAsync,
   });
+
+  // AsyncStorage keys for match state
+  const getMatchStateKey = (matchId: string) => `match_state_${matchId}`;
+
+  // Save match state to AsyncStorage (for async matches)
+  const saveMatchState = async (
+    answers: Record<string, AnswerData>,
+    questionIndex: number
+  ) => {
+    if (!isAsync) return; // Only save for async matches
+
+    try {
+      const stateKey = getMatchStateKey(matchId);
+      const state = {
+        matchId,
+        answers,
+        currentQuestionIndex: questionIndex,
+        lastUpdated: new Date().toISOString(),
+      };
+      await AsyncStorage.setItem(stateKey, JSON.stringify(state));
+      console.log('Match state saved:', { questionIndex, answersCount: Object.keys(answers).length });
+    } catch (error) {
+      console.error('Failed to save match state:', error);
+    }
+  };
+
+  // Load match state from AsyncStorage (for async matches)
+  const loadMatchState = async () => {
+    if (!isAsync) return null;
+
+    try {
+      const stateKey = getMatchStateKey(matchId);
+      const savedState = await AsyncStorage.getItem(stateKey);
+
+      if (savedState) {
+        const state = JSON.parse(savedState);
+        console.log('Loaded saved match state:', {
+          questionIndex: state.currentQuestionIndex,
+          answersCount: Object.keys(state.answers).length,
+        });
+        return state;
+      }
+    } catch (error) {
+      console.error('Failed to load match state:', error);
+    }
+    return null;
+  };
+
+  // Clear match state from AsyncStorage
+  const clearMatchState = async () => {
+    if (!isAsync) return;
+
+    try {
+      const stateKey = getMatchStateKey(matchId);
+      await AsyncStorage.removeItem(stateKey);
+      console.log('Match state cleared');
+    } catch (error) {
+      console.error('Failed to clear match state:', error);
+    }
+  };
+
+  // Load saved state on mount (async matches only)
+  useEffect(() => {
+    const restoreSavedState = async () => {
+      const savedState = await loadMatchState();
+      if (savedState) {
+        setAnswers(savedState.answers);
+        setCurrentQuestionIndex(savedState.currentQuestionIndex);
+        console.log('Restored match progress from saved state');
+      }
+    };
+
+    restoreSavedState();
+  }, [matchId, isAsync]);
 
   // Join match room on mount
   useEffect(() => {
@@ -266,8 +342,8 @@ const GameScreen = () => {
     setSelectedAnswer(answer);
   };
 
-  const handleNextQuestion = () => {
-    if (!selectedAnswer && timeRemaining > 0) {
+  const handleNextQuestion = async () => {
+    if (!selectedAnswer && timeRemaining > 0 && !isAsync) {
       Alert.alert('No Answer', 'Please select an answer before continuing.');
       return;
     }
@@ -284,11 +360,24 @@ const GameScreen = () => {
     };
     setAnswers(newAnswers);
 
+    // Save state for async matches
+    if (isAsync) {
+      const nextIndex = isLastQuestion ? currentQuestionIndex : currentQuestionIndex + 1;
+      await saveMatchState(newAnswers, nextIndex);
+    }
+
     if (isLastQuestion) {
       submitMatch(newAnswers);
     } else {
       setCurrentQuestionIndex((prev) => prev + 1);
     }
+  };
+
+  // Navigate to specific question (async mode only)
+  const goToQuestion = (index: number) => {
+    if (!isAsync) return;
+    setCurrentQuestionIndex(index);
+    setSelectedAnswer(answers[match.questions[index].id]?.answer || null);
   };
 
   const submitMatch = async (finalAnswers: Record<string, AnswerData>) => {
@@ -297,6 +386,11 @@ const GameScreen = () => {
 
     try {
       await matchService.submitMatchResult(matchId, finalAnswers);
+
+      // Clear saved state for async matches
+      if (isAsync) {
+        await clearMatchState();
+      }
 
       // Don't navigate immediately - wait for opponent to finish
       // The match:completed socket event will trigger navigation when both players are done
@@ -324,19 +418,35 @@ const GameScreen = () => {
     }
   };
 
-  const handleQuit = () => {
-    Alert.alert(
-      'Quit Match?',
-      'Are you sure you want to quit? This will count as a loss.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Quit',
-          style: 'destructive',
-          onPress: () => navigation.navigate('Home' as never),
-        },
-      ]
-    );
+  const handleQuit = async () => {
+    if (isAsync) {
+      // For async matches, save progress and allow exit
+      await saveMatchState(answers, currentQuestionIndex);
+      Alert.alert(
+        'Progress Saved',
+        'Your progress has been saved. You can resume this match later.',
+        [
+          {
+            text: 'OK',
+            onPress: () => navigation.navigate('Home' as never),
+          },
+        ]
+      );
+    } else {
+      // For sync matches, warn about quitting
+      Alert.alert(
+        'Quit Match?',
+        'Are you sure you want to quit? This will count as a loss.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Quit',
+            style: 'destructive',
+            onPress: () => navigation.navigate('Home' as never),
+          },
+        ]
+      );
+    }
   };
 
   const getTimerColor = () => {
@@ -462,6 +572,45 @@ const GameScreen = () => {
           </View>
         )}
       </View>
+
+      {/* Question Navigation (Async Mode Only) */}
+      {isAsync && (
+        <View style={styles.questionNavContainer}>
+          <Text style={styles.questionNavTitle}>Questions:</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            <View style={styles.questionNavButtons}>
+              {match.questions.map((q, index) => {
+                const isAnswered = !!answers[q.id];
+                const isCurrent = index === currentQuestionIndex;
+                return (
+                  <TouchableOpacity
+                    key={q.id}
+                    style={[
+                      styles.questionNavButton,
+                      isAnswered && styles.questionNavButtonAnswered,
+                      isCurrent && styles.questionNavButtonCurrent,
+                    ]}
+                    onPress={() => goToQuestion(index)}
+                  >
+                    <Text
+                      style={[
+                        styles.questionNavButtonText,
+                        isAnswered && styles.questionNavButtonTextAnswered,
+                        isCurrent && styles.questionNavButtonTextCurrent,
+                      ]}
+                    >
+                      {index + 1}
+                    </Text>
+                    {isAnswered && !isCurrent && (
+                      <Text style={styles.questionNavCheckmark}>✓</Text>
+                    )}
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </ScrollView>
+        </View>
+      )}
 
       {/* Question */}
       <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
@@ -818,6 +967,66 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 18,
     fontWeight: 'bold',
+  },
+  questionNavContainer: {
+    backgroundColor: 'white',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
+  },
+  questionNavTitle: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#666',
+    marginBottom: 8,
+  },
+  questionNavButtons: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  questionNavButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 8,
+    backgroundColor: '#f5f5f5',
+    borderWidth: 2,
+    borderColor: '#e0e0e0',
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'relative',
+  },
+  questionNavButtonAnswered: {
+    backgroundColor: '#E8F5E9',
+    borderColor: '#34C759',
+  },
+  questionNavButtonCurrent: {
+    backgroundColor: '#4A90E2',
+    borderColor: '#4A90E2',
+  },
+  questionNavButtonText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#666',
+  },
+  questionNavButtonTextAnswered: {
+    color: '#34C759',
+  },
+  questionNavButtonTextCurrent: {
+    color: 'white',
+  },
+  questionNavCheckmark: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    fontSize: 16,
+    color: '#34C759',
+    backgroundColor: 'white',
+    borderRadius: 10,
+    width: 20,
+    height: 20,
+    textAlign: 'center',
+    lineHeight: 20,
   },
 });
 

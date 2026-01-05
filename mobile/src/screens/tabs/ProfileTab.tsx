@@ -56,6 +56,16 @@ const ProfileTab = () => {
     loadLanguageStats();
   }, []);
 
+  // Update ELO when language stats or preferred language changes
+  useEffect(() => {
+    if (languageStats.length > 0) {
+      const stats = languageStats.find((s) => s.language === preferredLanguage);
+      if (stats) {
+        setPreferredLanguageElo(stats.eloRating);
+      }
+    }
+  }, [languageStats, preferredLanguage]);
+
   const loadUserStats = async () => {
     try {
       const response = await userService.getProfile();
@@ -95,16 +105,11 @@ const ProfileTab = () => {
   const loadLanguageStats = async () => {
     try {
       const response = await userService.getLanguageStats();
-      const stats = response.data.data.stats || [];
+      const stats = response.data?.stats || [];
       setLanguageStats(stats);
-
-      // Set ELO for preferred language
-      const preferredStats = stats.find((s: any) => s.language === preferredLanguage);
-      if (preferredStats) {
-        setPreferredLanguageElo(preferredStats.eloRating);
-      }
     } catch (error) {
       console.error('Failed to load language stats:', error);
+      setLanguageStats([]);
     }
   };
 
@@ -185,7 +190,7 @@ const ProfileTab = () => {
           <View style={styles.statCard}>
             <Text style={styles.statIcon}>🏆</Text>
             <Text style={[styles.statValue, { color: '#4A90E2' }]}>
-              {preferredLanguageElo}
+              {preferredLanguageElo || 1000}
             </Text>
             <View style={styles.eloLabelContainer}>
               <Text style={styles.statLabel}>ELO</Text>
@@ -224,6 +229,13 @@ const ProfileTab = () => {
           subtitle="View detailed statistics and history"
           color="#8E8E93"
           onPress={() => navigation.navigate('Profile' as never)}
+        />
+        <MenuCard
+          icon="📜"
+          title="Match History"
+          subtitle="Review your past battles"
+          color="#FF9500"
+          onPress={() => navigation.navigate('MatchHistory' as never)}
         />
         <MenuCard
           icon="🏅"

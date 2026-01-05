@@ -465,3 +465,82 @@ export const getMatch = async (
     next(error);
   }
 };
+
+/**
+ * Get all matches for the current user
+ */
+export const getUserMatches = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const userId = req.userId!;
+    const { status } = req.query; // Optional filter: 'IN_PROGRESS', 'COMPLETED', etc.
+
+    const where: any = {
+      participants: {
+        some: {
+          id: userId,
+        },
+      },
+    };
+
+    if (status) {
+      where.status = status;
+    }
+
+    const matches = await prisma.match.findMany({
+      where,
+      include: {
+        participants: {
+          select: {
+            id: true,
+            username: true,
+            displayName: true,
+            eloRating: true,
+          },
+        },
+        results: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                username: true,
+                displayName: true,
+              },
+            },
+          },
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+
+    // Separate active and completed matches
+    const activeMatches = matches.filter(
+      (m) => m.status === 'IN_PROGRESS' || m.status === 'READY_CHECK'
+    );
+    const completedMatches = matches.filter((m) => m.status === 'COMPLETED');
+
+    // For async matches, check if user has submitted answers
+    const activeAsyncMatches = activeMatches.filter((m) => {
+      if (!m.isAsync) return true;
+      // Check if user has already submitted
+      const userResult = m.results.find((r) => r.userId === userId);
+      return !userResult; // Only include if user hasn't submitted yet
+    });
+
+    res.json({
+      status: 'success',
+      data: {
+        activeMatches: activeAsyncMatches,
+        completedMatches,
+        allMatches: matches,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};

@@ -28,8 +28,13 @@ if another tie: draw.
 and furthermore listening(to implement in the future.)
 
 power-ups:
-freeze(frost ice icon): freezes your timer(cooldown 60 sec)
-burn(fire icon): speeds up your opp timer(cooldown 60 sec)
+freeze(frost ice icon)
+burn(fire icon)
+now lets dig into the synchronous battle mode, we are going to implement power-ups to be more interactive in synchronous battle. users can equip one 
+power-up before entering a synchronous match. the power ups are freeze(freeze your timer for the current question so you have more time to think and 
+subtracts 5 seconds from your overall time(considered for draws purpose), and burn which speeds up your opponent timer for current question. if a user uses      
+freeze and the opponent uses burn it should burn the frozen timer and start ticking normal again if a player is burning and freezes the timer, it should stop    
+ the burn effect. each power-up have their own cooldown
 
 timer: is a burning rope with animation
 onboard mode
@@ -45,9 +50,7 @@ flashcards are not working as intended. they should highlight the keyword. when 
 
 the highlight is working fine. now we just need to adjust the proportions of flashcard. currently the flashcard have too many blank space lying around for the size of text. and when you tap it it only shows the 2 buttons known it and dont known, and the animation of flipping over doesnt happen. also these buttons can be displayed all the time no need to hide and display on click
 
-you can use a bit of time and make sure both players are synced and ready to play the match before starting it to avoid just 1        
-  player entering the lobby, and maybe implement retrying so if an player disconnects it can rejoin it after the connection stabilizes
+more questions, generate questions daily using api, don't repeat questions often use the same subject text but change the question being made, be creative about questions.
 
 
-async battle mode:
-IMPLEMENT.
+onboard: quick tutorial -50sec, choose favourite language.

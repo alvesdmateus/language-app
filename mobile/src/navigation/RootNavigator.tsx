@@ -15,6 +15,7 @@ import AchievementsScreen from '../screens/AchievementsScreen';
 import LanguageStatsScreen from '../screens/LanguageStatsScreen';
 import GameScreen from '../screens/GameScreen';
 import MatchResultsScreen from '../screens/MatchResultsScreen';
+import MatchHistoryScreen from '../screens/MatchHistoryScreen';
 import { RootStackParamList } from '../types';
 
 // Tab Screens
@@ -148,6 +149,7 @@ const RootNavigator = () => {
           <Stack.Screen name="Matchmaking" component={MatchmakingScreen} />
           <Stack.Screen name="GameScreen" component={GameScreen} />
           <Stack.Screen name="MatchResults" component={MatchResultsScreen} />
+          <Stack.Screen name="MatchHistory" component={MatchHistoryScreen} />
           <Stack.Screen name="Flashcards" component={FlashcardsScreen} />
           <Stack.Screen name="Profile" component={ProfileScreen} />
           <Stack.Screen name="Leaderboard" component={LeaderboardScreen} />

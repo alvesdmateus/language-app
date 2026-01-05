@@ -99,6 +99,11 @@ export const matchService = {
     const response = await api.get(`/match/status?type=${type}`);
     return response.data;
   },
+  getUserMatches: async (status?: 'IN_PROGRESS' | 'COMPLETED') => {
+    const params = status ? `?status=${status}` : '';
+    const response = await api.get(`/match/user/matches${params}`);
+    return response.data;
+  },
 };
 
 export const flashcardService = {

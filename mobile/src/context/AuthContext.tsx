@@ -1,6 +1,6 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { authService } from '../services/api';
+import { authService, userService } from '../services/api';
 import { User } from '../types';
 
 interface AuthContextType {
@@ -73,7 +73,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       if (!token) return;
 
-      const response = await authService.getProfile();
+      const response = await userService.getProfile();
       const updatedUser = response.data.user;
 
       await AsyncStorage.setItem('user', JSON.stringify(updatedUser));
