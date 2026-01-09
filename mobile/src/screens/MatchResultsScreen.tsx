@@ -14,10 +14,11 @@ import { useAuth } from '../context/AuthContext';
 const MatchResultsScreen = () => {
   const navigation = useNavigation();
   const route = useRoute();
-  const { user } = useAuth();
-  const { matchId, result } = route.params as {
+  const { user, completeOnboarding } = useAuth();
+  const { matchId, result, isCPUMatch } = route.params as {
     matchId: string;
     result: MatchCompletedEvent;
+    isCPUMatch?: boolean;
   };
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -38,6 +39,23 @@ const MatchResultsScreen = () => {
       }),
     ]).start();
   }, []);
+
+  // Complete onboarding if this was a CPU match (first battle)
+  useEffect(() => {
+    if (isCPUMatch && user && !user.onboardingCompleted) {
+      const handleOnboardingCompletion = async () => {
+        try {
+          // Wait a moment to let user see results
+          await new Promise((resolve) => setTimeout(resolve, 2000));
+          await completeOnboarding();
+        } catch (error) {
+          console.error('Failed to complete onboarding:', error);
+        }
+      };
+
+      handleOnboardingCompletion();
+    }
+  }, [isCPUMatch, user?.onboardingCompleted]);
 
   const isWinner = result.winnerId === user?.id;
   const isLoser = result.winnerId && result.winnerId !== user?.id;

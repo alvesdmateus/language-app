@@ -33,6 +33,28 @@ export enum MatchType {
   BATTLE = 'BATTLE',
 }
 
+export enum PowerUpType {
+  NONE = 'NONE',
+  FREEZE = 'FREEZE',
+  BURN = 'BURN',
+}
+
+export interface PowerUpState {
+  equipped: PowerUpType;
+  lastUsed: string | null;
+  cooldownEndsAt: string | null;
+  activeEffects: ActiveEffect[];
+}
+
+export interface ActiveEffect {
+  type: 'FREEZE' | 'BURN';
+  source: string; // userId who applied the effect
+  target: string; // userId affected
+  questionId: string;
+  appliedAt: string;
+  expiresAt: string | null;
+}
+
 export interface DivisionInfo {
   division: Division;
   tier: number;
@@ -54,6 +76,11 @@ export interface User {
   currentStreak: number;
   longestStreak: number;
   createdAt: string;
+
+  // Onboarding
+  onboardingCompleted: boolean;
+  favoriteLanguage?: Language;
+  tutorialStep: number;
 }
 
 export interface LanguageStats {
@@ -120,6 +147,9 @@ export interface Match {
   currentTurnUserId?: string;  // Which player's turn it is
   turnDeadlineAt?: string;  // When current turn expires
   turnDurationHours: number;  // Hours allowed per turn (default 24h = 1 day)
+
+  // Power-up state
+  powerUpState?: Record<string, PowerUpState>;
 }
 
 export interface MatchResult {
@@ -131,6 +161,16 @@ export interface MatchResult {
   totalTimeMs: number;
   answers: Record<string, AnswerData>;
   eloChange?: number;
+
+  // Power-up tracking
+  equippedPowerUp?: PowerUpType;
+  powerUpUsages?: Array<{
+    questionId: string;
+    powerUpType: PowerUpType;
+    timestamp: string;
+    target: 'self' | 'opponent';
+  }>;
+  timePenaltyMs?: number;
 }
 
 export interface GameResult {
@@ -166,10 +206,15 @@ export type RootStackParamList = {
   Login: undefined;
   Register: undefined;
   Home: undefined;
+  OnboardingWelcome: undefined;
+  OnboardingTutorial: undefined;
+  OnboardingLanguage: undefined;
+  OnboardingFirstBattle: { language: Language };
   DailyQuiz: undefined;
   Matchmaking: { language?: Language; mode?: MatchType };
   BattleMode: { language: Language };
   CustomLobby: { language: Language };
+  PowerUpSelection: { language: Language; matchType: MatchType; isBattleMode?: boolean };
   GameScreen: { matchId: string; match: Match };
   MatchResults: { matchId: string; result: MatchCompletedEvent };
   MatchHistory: undefined;

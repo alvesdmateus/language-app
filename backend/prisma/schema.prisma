@@ -52,6 +52,11 @@ model User {
   longestStreak Int  @default(0)
   lastActiveDate DateTime?
 
+  // Onboarding
+  onboardingCompleted Boolean @default(false)
+  favoriteLanguage Language?
+  tutorialStep Int @default(0)  // Track which step of tutorial they're on (0 = not started)
+
   // Relations
   dailyQuizzes DailyQuizCompletion[]
   matches      Match[]
@@ -126,6 +131,12 @@ enum MatchStatus {
   CANCELLED
 }
 
+enum PowerUpType {
+  NONE
+  FREEZE  // Freezes player's timer, -5s penalty on overall time
+  BURN    // Speeds up opponent's timer
+}
+
 model Match {
   id        String      @id @default(uuid())
   type      MatchType
@@ -150,9 +161,16 @@ model Match {
   turnDeadlineAt DateTime?  // When current turn expires
   turnDurationHours Int @default(24)  // Hours allowed per turn (default 24h = 1 day)
 
+  // CPU match (onboarding first battle)
+  isCPUMatch Boolean @default(false)
+
   // Connection and sync tracking
   playerConnections Json?  // { userId: { connected: boolean, lastSeen: ISO string, disconnectedAt: ISO string } }
   readyCheckStartedAt DateTime?  // When ready check began
+
+  // Power-up state tracking
+  // { userId: { equipped: "FREEZE"|"BURN"|"NONE", lastUsed: ISO string, cooldownEndsAt: ISO string, activeEffects: [...] } }
+  powerUpState Json?
 
   participants User[]
   results      MatchResult[]
@@ -171,6 +189,12 @@ model MatchResult {
   totalTimeMs Int  @default(0)  // Total time taken in milliseconds
   answers   Json  // { questionId: { answer: string, timeMs: number, correct: boolean } }
   eloChange Int?
+
+  // Power-up tracking
+  equippedPowerUp PowerUpType @default(NONE)
+  powerUpUsages   Json?  // Array of { questionId: string, powerUpType: string, timestamp: ISO, target: "self"|"opponent" }
+  timePenaltyMs   Int @default(0)  // Time penalty from freeze usage (5000ms per use)
+
   createdAt DateTime @default(now())
 
   match     Match    @relation(fields: [matchId], references: [id], onDelete: Cascade)

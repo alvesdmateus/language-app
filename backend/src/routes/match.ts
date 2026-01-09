@@ -7,6 +7,8 @@ import {
   checkMatchStatus,
   getMatch,
   getUserMatches,
+  createCPUMatch,
+  submitCPUMatchResult,
 } from '../controllers/matchController';
 
 const router = Router();
@@ -17,5 +19,9 @@ router.get('/status', authenticate, checkMatchStatus);
 router.get('/user/matches', authenticate, getUserMatches);
 router.get('/:matchId', authenticate, getMatch);
 router.post('/submit', authenticate, submitMatchResult);
+
+// CPU match routes (for onboarding)
+router.post('/cpu', authenticate, createCPUMatch);
+router.post('/cpu/submit', authenticate, submitCPUMatchResult);
 
 export default router;

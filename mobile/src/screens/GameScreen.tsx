@@ -11,14 +11,14 @@ import {
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Match, Question, AnswerData } from '../types';
+import { Match, Question, AnswerData, PowerUpType, ActiveEffect } from '../types';
 import { matchService } from '../services/api';
 import { useWebSocket } from '../context/WebSocketContext';
 
 const GameScreen = () => {
   const navigation = useNavigation();
   const route = useRoute();
-  const { matchId, match } = route.params as { matchId: string; match: Match };
+  const { matchId, match, isCPUMatch } = route.params as { matchId: string; match: Match; isCPUMatch?: boolean };
   const { socket, sendMatchHeartbeat } = useWebSocket();
 
   // Validate match data
@@ -45,12 +45,21 @@ const GameScreen = () => {
   const [waitingForOpponent, setWaitingForOpponent] = useState(false);
   const [deadlineRemaining, setDeadlineRemaining] = useState<number | null>(null);
 
+  // Power-up state
+  const [userId, setUserId] = useState<string>('');
+  const [powerUpCooldown, setPowerUpCooldown] = useState(0);
+  const [activeEffects, setActiveEffects] = useState<ActiveEffect[]>([]);
+  const [timerModifier, setTimerModifier] = useState(1.0);
+
   const isAsync = match.isAsync || false;
+  const powerUpsEnabled = match.powerUpsEnabled || false;
+  const equippedPowerUp = powerUpsEnabled && userId ? (match.powerUpState?.[userId]?.equipped || PowerUpType.NONE) : PowerUpType.NONE;
 
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const heartbeatRef = useRef<NodeJS.Timeout | null>(null);
   const progressAnim = useRef(new Animated.Value(0)).current;
   const shakeAnim = useRef(new Animated.Value(0)).current;
+  const powerUpAnimRef = useRef(new Animated.Value(0)).current;
 
   const currentQuestion = match.questions[currentQuestionIndex];
   const totalQuestions = match.questions.length;
@@ -124,6 +133,25 @@ const GameScreen = () => {
       console.error('Failed to clear match state:', error);
     }
   };
+
+  // Get userId from AsyncStorage
+  useEffect(() => {
+    const getUserId = async () => {
+      try {
+        const token = await AsyncStorage.getItem('token');
+        if (token) {
+          // Decode JWT to get userId (basic decode, first part is header, second is payload)
+          const payload = token.split('.')[1];
+          const decoded = JSON.parse(atob(payload));
+          setUserId(decoded.userId);
+        }
+      } catch (error) {
+        console.error('Failed to get userId:', error);
+      }
+    };
+
+    getUserId();
+  }, []);
 
   // Load saved state on mount (async matches only)
   useEffect(() => {
@@ -250,6 +278,7 @@ const GameScreen = () => {
       navigation.navigate('MatchResults' as never, {
         matchId,
         result: data,
+        isCPUMatch: isCPUMatch || false,
       } as never);
     });
 
@@ -263,6 +292,61 @@ const GameScreen = () => {
       socket.off('match:completed');
     };
   }, [socket, navigation, matchId]);
+
+  // Power-up socket event listeners
+  useEffect(() => {
+    if (!socket || !powerUpsEnabled) return;
+
+    socket.on('game:power_up_used', (data: { powerUpType: string; cooldownRemaining: number }) => {
+      console.log('Power-up used:', data);
+      setPowerUpCooldown(data.cooldownRemaining);
+
+      // Animate power-up activation
+      Animated.sequence([
+        Animated.timing(powerUpAnimRef, { toValue: 1, duration: 200, useNativeDriver: true }),
+        Animated.timing(powerUpAnimRef, { toValue: 0, duration: 200, useNativeDriver: true }),
+      ]).start();
+    });
+
+    socket.on('game:power_up_effect', (data: { effect: ActiveEffect; questionId: string }) => {
+      console.log('Power-up effect received:', data);
+      if (data.questionId === currentQuestion.id) {
+        setActiveEffects(prev => {
+          const newEffects = [...prev, data.effect];
+          // Calculate timer modifier based on effects
+          const modifier = calculateTimerModifier(newEffects);
+          setTimerModifier(modifier);
+          return newEffects;
+        });
+      }
+    });
+
+    socket.on('game:power_up_error', (data: { message: string }) => {
+      Alert.alert('Power-Up Error', data.message);
+    });
+
+    return () => {
+      socket.off('game:power_up_used');
+      socket.off('game:power_up_effect');
+      socket.off('game:power_up_error');
+    };
+  }, [socket, powerUpsEnabled, currentQuestion]);
+
+  // Power-up cooldown timer
+  useEffect(() => {
+    if (powerUpCooldown > 0) {
+      const interval = setInterval(() => {
+        setPowerUpCooldown(prev => Math.max(0, prev - 1));
+      }, 1000);
+      return () => clearInterval(interval);
+    }
+  }, [powerUpCooldown]);
+
+  // Clear power-up effects when moving to next question
+  useEffect(() => {
+    setActiveEffects([]);
+    setTimerModifier(1.0);
+  }, [currentQuestionIndex]);
 
   // Heartbeat mechanism - send heartbeat every 5 seconds
   useEffect(() => {
@@ -288,11 +372,19 @@ const GameScreen = () => {
 
     timerRef.current = setInterval(() => {
       setTimeRemaining((prev) => {
-        if (prev <= 1) {
+        // Apply timer modifier from power-ups
+        if (timerModifier === 0) {
+          // Timer frozen, don't decrement
+          return prev;
+        }
+
+        const decrement = timerModifier; // 1 for normal, 2 for burn
+
+        if (prev <= decrement) {
           handleTimeUp();
           return 0;
         }
-        return prev - 1;
+        return prev - decrement;
       });
     }, 1000);
   };
@@ -303,6 +395,37 @@ const GameScreen = () => {
       duration: 300,
       useNativeDriver: false,
     }).start();
+  };
+
+  // Power-up functions
+  const calculateTimerModifier = (effects: ActiveEffect[]): number => {
+    let isFrozen = false;
+    let isBurning = false;
+
+    effects.forEach((effect) => {
+      if (effect.type === 'FREEZE') isFrozen = true;
+      if (effect.type === 'BURN') isBurning = true;
+    });
+
+    // If both active, they cancel out
+    if (isFrozen && isBurning) return 1.0;
+    if (isFrozen) return 0; // Timer frozen
+    if (isBurning) return 2.0; // Timer 2x speed
+
+    return 1.0; // Normal
+  };
+
+  const usePowerUp = () => {
+    if (!socket || !powerUpsEnabled || equippedPowerUp === PowerUpType.NONE) return;
+    if (powerUpCooldown > 0) {
+      Alert.alert('Cooldown', `Power-up is on cooldown for ${powerUpCooldown}s`);
+      return;
+    }
+
+    socket.emit('game:use_power_up', {
+      matchId,
+      questionId: currentQuestion.id,
+    });
   };
 
   const handleTimeUp = () => {
@@ -385,7 +508,12 @@ const GameScreen = () => {
     setIsPaused(true);
 
     try {
-      await matchService.submitMatchResult(matchId, finalAnswers);
+      // Use CPU submit endpoint for CPU matches, regular endpoint for normal matches
+      if (isCPUMatch) {
+        await matchService.submitCPUMatchResult(matchId, finalAnswers);
+      } else {
+        await matchService.submitMatchResult(matchId, finalAnswers);
+      }
 
       // Clear saved state for async matches
       if (isAsync) {
@@ -572,6 +700,70 @@ const GameScreen = () => {
           </View>
         )}
       </View>
+
+      {/* Power-Up Button (if enabled and equipped) */}
+      {powerUpsEnabled && equippedPowerUp !== PowerUpType.NONE && !isAsync && (
+        <View style={styles.powerUpContainer}>
+          <TouchableOpacity
+            style={[
+              styles.powerUpButton,
+              powerUpCooldown > 0 && styles.powerUpButtonDisabled,
+              equippedPowerUp === PowerUpType.FREEZE && { backgroundColor: '#4FC3F7' },
+              equippedPowerUp === PowerUpType.BURN && { backgroundColor: '#FF6B6B' },
+            ]}
+            onPress={usePowerUp}
+            disabled={powerUpCooldown > 0 || isPaused}
+            activeOpacity={0.7}
+          >
+            <Animated.View
+              style={[
+                styles.powerUpContent,
+                {
+                  transform: [{
+                    scale: powerUpAnimRef.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [1, 1.2],
+                    }),
+                  }],
+                },
+              ]}
+            >
+              <Text style={styles.powerUpIcon}>
+                {equippedPowerUp === PowerUpType.FREEZE ? '❄️' : '🔥'}
+              </Text>
+              <View style={styles.powerUpTextContainer}>
+                <Text style={styles.powerUpName}>
+                  {equippedPowerUp === PowerUpType.FREEZE ? 'Freeze' : 'Burn'}
+                </Text>
+                {powerUpCooldown > 0 ? (
+                  <Text style={styles.powerUpCooldown}>{powerUpCooldown}s</Text>
+                ) : (
+                  <Text style={styles.powerUpReady}>READY</Text>
+                )}
+              </View>
+            </Animated.View>
+          </TouchableOpacity>
+
+          {/* Active Effects Display */}
+          {activeEffects.length > 0 && (
+            <View style={styles.activeEffectsContainer}>
+              {activeEffects.map((effect, index) => (
+                <View
+                  key={index}
+                  style={[
+                    styles.activeEffectBadge,
+                    { backgroundColor: effect.type === 'FREEZE' ? '#4FC3F7' : '#FF6B6B' },
+                  ]}
+                >
+                  <Text style={styles.activeEffectText}>
+                    {effect.type === 'FREEZE' ? '❄️ Timer Frozen!' : '🔥 Timer Burning!'}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          )}
+        </View>
+      )}
 
       {/* Question Navigation (Async Mode Only) */}
       {isAsync && (
@@ -1027,6 +1219,69 @@ const styles = StyleSheet.create({
     height: 20,
     textAlign: 'center',
     lineHeight: 20,
+  },
+  // Power-up styles
+  powerUpContainer: {
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    backgroundColor: 'white',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
+  },
+  powerUpButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  powerUpButtonDisabled: {
+    opacity: 0.5,
+  },
+  powerUpContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  powerUpIcon: {
+    fontSize: 32,
+    marginRight: 12,
+  },
+  powerUpTextContainer: {
+    flex: 1,
+  },
+  powerUpName: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: 'white',
+  },
+  powerUpCooldown: {
+    fontSize: 12,
+    color: 'white',
+    opacity: 0.8,
+  },
+  powerUpReady: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: 'white',
+  },
+  activeEffectsContainer: {
+    marginTop: 8,
+    gap: 6,
+  },
+  activeEffectBadge: {
+    padding: 8,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  activeEffectText: {
+    color: 'white',
+    fontSize: 13,
+    fontWeight: 'bold',
   },
 });
 

@@ -47,6 +47,14 @@ export const userService = {
     const response = await api.get('/language-stats');
     return response.data;
   },
+  updateFavoriteLanguage: async (language: string) => {
+    const response = await api.put('/users/favorite-language', { language });
+    return response.data;
+  },
+  completeOnboarding: async () => {
+    const response = await api.put('/users/complete-onboarding');
+    return response.data;
+  },
 };
 
 export const quizService = {
@@ -66,6 +74,8 @@ export const matchService = {
     language: string,
     options?: {
       isBattleMode?: boolean;
+      isAsync?: boolean;
+      equippedPowerUp?: string;
       customSettings?: {
         questionDuration: number;
         difficulty: string;
@@ -102,6 +112,17 @@ export const matchService = {
   getUserMatches: async (status?: 'IN_PROGRESS' | 'COMPLETED') => {
     const params = status ? `?status=${status}` : '';
     const response = await api.get(`/match/user/matches${params}`);
+    return response.data;
+  },
+  createCPUMatch: async (language: string) => {
+    const response = await api.post('/match/cpu', { language });
+    return response.data;
+  },
+  submitCPUMatchResult: async (
+    matchId: string,
+    answers: Record<string, { answer: string; timeMs: number }>
+  ) => {
+    const response = await api.post('/match/cpu/submit', { matchId, answers });
     return response.data;
   },
 };

@@ -11,6 +11,7 @@ interface AuthContextType {
   register: (email: string, username: string, password: string, displayName?: string) => Promise<void>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
+  completeOnboarding: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -83,8 +84,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const completeOnboarding = async () => {
+    try {
+      if (!token) return;
+
+      // Mark onboarding as complete on the server
+      await userService.completeOnboarding();
+
+      // Refresh user data to get updated onboarding status
+      await refreshUser();
+    } catch (error) {
+      console.error('Failed to complete onboarding:', error);
+      throw error;
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, token, loading, login, register, logout, refreshUser }}>
+    <AuthContext.Provider value={{ user, token, loading, login, register, logout, refreshUser, completeOnboarding }}>
       {children}
     </AuthContext.Provider>
   );

@@ -16,6 +16,11 @@ import LanguageStatsScreen from '../screens/LanguageStatsScreen';
 import GameScreen from '../screens/GameScreen';
 import MatchResultsScreen from '../screens/MatchResultsScreen';
 import MatchHistoryScreen from '../screens/MatchHistoryScreen';
+import PowerUpSelectionScreen from '../screens/PowerUpSelectionScreen';
+import OnboardingWelcomeScreen from '../screens/onboarding/OnboardingWelcomeScreen';
+import OnboardingTutorialScreen from '../screens/onboarding/OnboardingTutorialScreen';
+import OnboardingLanguageScreen from '../screens/onboarding/OnboardingLanguageScreen';
+import OnboardingFirstBattleScreen from '../screens/onboarding/OnboardingFirstBattleScreen';
 import { RootStackParamList } from '../types';
 
 // Tab Screens
@@ -138,16 +143,29 @@ const RootNavigator = () => {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       {!user ? (
+        // Auth screens
         <>
           <Stack.Screen name="Login" component={LoginScreen} />
           <Stack.Screen name="Register" component={RegisterScreen} />
         </>
+      ) : !user.onboardingCompleted ? (
+        // Onboarding flow
+        <>
+          <Stack.Screen name="OnboardingWelcome" component={OnboardingWelcomeScreen} />
+          <Stack.Screen name="OnboardingTutorial" component={OnboardingTutorialScreen} />
+          <Stack.Screen name="OnboardingLanguage" component={OnboardingLanguageScreen} />
+          <Stack.Screen name="OnboardingFirstBattle" component={OnboardingFirstBattleScreen} />
+          <Stack.Screen name="Game" component={GameScreen} />
+          <Stack.Screen name="MatchResults" component={MatchResultsScreen} />
+        </>
       ) : (
+        // Main app screens
         <>
           <Stack.Screen name="Home" component={MainTabs} />
           <Stack.Screen name="DailyQuiz" component={DailyQuizScreen} />
           <Stack.Screen name="Matchmaking" component={MatchmakingScreen} />
-          <Stack.Screen name="GameScreen" component={GameScreen} />
+          <Stack.Screen name="PowerUpSelection" component={PowerUpSelectionScreen} />
+          <Stack.Screen name="Game" component={GameScreen} />
           <Stack.Screen name="MatchResults" component={MatchResultsScreen} />
           <Stack.Screen name="MatchHistory" component={MatchHistoryScreen} />
           <Stack.Screen name="Flashcards" component={FlashcardsScreen} />
