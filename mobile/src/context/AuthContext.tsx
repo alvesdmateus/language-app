@@ -1,6 +1,6 @@
-import React, { createContext, useState, useContext, useEffect } from 'react';
+import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { authService, userService } from '../services/api';
+import { authService, userService, setOnUnauthorized } from '../services/api';
 import { User } from '../types';
 
 interface AuthContextType {
@@ -21,9 +21,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    loadStoredAuth();
+  // Handle unauthorized (401) responses by clearing auth state
+  const handleUnauthorized = useCallback(() => {
+    setToken(null);
+    setUser(null);
   }, []);
+
+  useEffect(() => {
+    // Register the unauthorized callback
+    setOnUnauthorized(handleUnauthorized);
+    loadStoredAuth();
+  }, [handleUnauthorized]);
 
   const loadStoredAuth = async () => {
     try {
@@ -31,8 +39,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const storedUser = await AsyncStorage.getItem('user');
 
       if (storedToken && storedUser) {
-        setToken(storedToken);
-        setUser(JSON.parse(storedUser));
+        // Validate the token by fetching the user profile
+        try {
+          const response = await userService.getProfile();
+          const validatedUser = response.data.user;
+
+          // Token is valid, update with fresh user data
+          setToken(storedToken);
+          setUser(validatedUser);
+          await AsyncStorage.setItem('user', JSON.stringify(validatedUser));
+        } catch (error: any) {
+          // Token is invalid (401 will be handled by interceptor)
+          // Clear stored data if not already cleared
+          if (error.response?.status === 401) {
+            console.log('Stored token expired, redirecting to login');
+            await AsyncStorage.removeItem('token');
+            await AsyncStorage.removeItem('user');
+          }
+        }
       }
     } catch (error) {
       console.error('Failed to load auth:', error);

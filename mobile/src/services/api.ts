@@ -3,6 +3,13 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const API_URL = 'http://192.168.0.126:3000/api';
 
+// Callback to handle logout when token is invalid
+let onUnauthorized: (() => void) | null = null;
+
+export const setOnUnauthorized = (callback: () => void) => {
+  onUnauthorized = callback;
+};
+
 const api = axios.create({
   baseURL: API_URL,
   headers: {
@@ -19,6 +26,20 @@ api.interceptors.request.use(
     return config;
   },
   (error) => {
+    return Promise.reject(error);
+  }
+);
+
+// Response interceptor to handle 401 errors
+api.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    if (error.response?.status === 401 && onUnauthorized) {
+      // Clear stored auth and trigger logout
+      await AsyncStorage.removeItem('token');
+      await AsyncStorage.removeItem('user');
+      onUnauthorized();
+    }
     return Promise.reject(error);
   }
 );
