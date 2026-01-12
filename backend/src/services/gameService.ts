@@ -263,11 +263,16 @@ class GameService {
     });
 
     if (!stats) {
+      const { getDivisionFromElo } = await import('../utils/division');
+      const startingElo = 1000;
+      const divisionInfo = getDivisionFromElo(startingElo);
+
       stats = await prisma.languageStats.create({
         data: {
           userId,
           language,
-          eloRating: 1000,
+          eloRating: startingElo,
+          division: divisionInfo.division,
         },
       });
     }

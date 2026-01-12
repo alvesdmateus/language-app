@@ -37,7 +37,7 @@ const LanguageStatsScreen = () => {
   const loadLanguageStats = async () => {
     try {
       const response = await api.get('/language-stats');
-      setLanguageStats(response.data.data.stats || []);
+      setLanguageStats(response.data.stats || []);
     } catch (error) {
       console.error('Failed to load language stats:', error);
     } finally {
@@ -80,7 +80,9 @@ const LanguageStatsScreen = () => {
           <Text style={styles.languageFlag}>{info.flag}</Text>
           <View style={styles.languageInfo}>
             <Text style={styles.languageName}>{info.name}</Text>
-            <Text style={styles.division}>{stats.division}</Text>
+            <Text style={styles.division}>
+              {stats.divisionInfo?.displayName || stats.division}
+            </Text>
           </View>
           <View style={styles.eloContainer}>
             <Text style={styles.eloLabel}>ELO</Text>

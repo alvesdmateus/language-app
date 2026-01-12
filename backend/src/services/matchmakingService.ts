@@ -2,7 +2,8 @@ import prisma from '../utils/db';
 import { getMatchmakingRange, calculateMatchmakingScore } from '../utils/elo';
 import { socketService } from './socketService';
 import { gameService } from './gameService';
-import { Language, QuestionDifficulty, MatchType } from '@prisma/client';
+import { Language, QuestionDifficulty, MatchType, PowerUpType } from '@prisma/client';
+import { powerUpService } from './powerUpService';
 
 interface LobbyPlayer {
   userId: string;
@@ -18,6 +19,7 @@ interface LobbyPlayer {
   };
   isBattleMode?: boolean;
   isAsync?: boolean;  // Async battle mode
+  equippedPowerUp?: PowerUpType;  // Power-up equipped before match
 }
 
 interface ActiveMatch {
@@ -54,6 +56,7 @@ class MatchmakingService {
       };
       isBattleMode?: boolean;
       isAsync?: boolean;
+      equippedPowerUp?: PowerUpType;
     }
   ): Promise<void> {
     // Get player's current ELO for this language
@@ -75,6 +78,7 @@ class MatchmakingService {
       customSettings: options?.customSettings,
       isBattleMode: options?.isBattleMode,
       isAsync: options?.isAsync,
+      equippedPowerUp: options?.equippedPowerUp || PowerUpType.NONE,
     });
 
     // Clean up old lobbies
@@ -267,6 +271,18 @@ class MatchmakingService {
     const matchStatus = isAsync ? 'IN_PROGRESS' : 'READY_CHECK';
     const turnDeadlineAt = isAsync ? new Date(Date.now() + 24 * 60 * 60 * 1000) : null; // 24 hours from now
 
+    // Initialize power-up state if power-ups are enabled
+    const powerUpsEnabled = player1.customSettings?.powerUpsEnabled || false;
+    let powerUpState = undefined;
+
+    if (powerUpsEnabled) {
+      const equippedPowerUps = new Map<string, PowerUpType>();
+      equippedPowerUps.set(player1Id, player1.equippedPowerUp || PowerUpType.NONE);
+      equippedPowerUps.set(player2Id, player2.equippedPowerUp || PowerUpType.NONE);
+
+      powerUpState = powerUpService.initializePowerUpState([player1Id, player2Id], equippedPowerUps);
+    }
+
     // Create match in database
     const match = await prisma.match.create({
       data: {
@@ -282,7 +298,8 @@ class MatchmakingService {
         turnDurationHours: 24,
         questionDuration,
         difficulty: player1.customSettings?.difficulty,
-        powerUpsEnabled: player1.customSettings?.powerUpsEnabled || false,
+        powerUpsEnabled,
+        powerUpState: powerUpState as any,
         playerConnections,
         questions: questions.map((q) => ({
           id: q.id,

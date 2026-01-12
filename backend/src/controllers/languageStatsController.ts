@@ -39,16 +39,34 @@ export const getAllLanguageStats = async (
         )
       );
 
+      // Add division info to all created stats
+      const statsWithDivisionInfo = createdStats.map((stat) => {
+        const divisionInfo = getDivisionFromElo(stat.eloRating);
+        return {
+          ...stat,
+          divisionInfo,
+        };
+      });
+
       res.json({
         status: 'success',
-        data: { stats: createdStats },
+        data: { stats: statsWithDivisionInfo },
       });
       return;
     }
 
+    // Add division info to all stats (calculated from current ELO)
+    const statsWithDivisionInfo = stats.map((stat) => {
+      const divisionInfo = getDivisionFromElo(stat.eloRating);
+      return {
+        ...stat,
+        divisionInfo,
+      };
+    });
+
     res.json({
       status: 'success',
-      data: { stats },
+      data: { stats: statsWithDivisionInfo },
     });
   } catch (error) {
     next(error);

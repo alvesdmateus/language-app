@@ -80,6 +80,8 @@ export async function getUserStats(userId: string) {
       longestStreak: true,
       lastActiveDate: true,
       createdAt: true,
+      onboardingCompleted: true,
+      favoriteLanguage: true,
       _count: {
         select: {
           dailyQuizzes: true,
@@ -93,7 +95,17 @@ export async function getUserStats(userId: string) {
     throw new Error('User not found');
   }
 
-  const divisionInfo = getDivisionFromElo(user.eloRating);
+  // Get highest language ELO as the user's overall ELO
+  const languageStats = await prisma.languageStats.findMany({
+    where: { userId },
+    select: { eloRating: true, language: true },
+    orderBy: { eloRating: 'desc' },
+    take: 1,
+  });
+
+  // Use highest language ELO, or default user ELO if no language stats exist
+  const actualElo = languageStats.length > 0 ? languageStats[0].eloRating : user.eloRating;
+  const divisionInfo = getDivisionFromElo(actualElo);
 
   // Get win/loss record for ranked matches
   const matchResults = await prisma.matchResult.findMany({
@@ -129,6 +141,8 @@ export async function getUserStats(userId: string) {
   return {
     user: {
       ...user,
+      eloRating: actualElo, // Override with highest language ELO
+      division: divisionInfo.division, // Override with calculated division
       divisionInfo,
     },
     stats: {

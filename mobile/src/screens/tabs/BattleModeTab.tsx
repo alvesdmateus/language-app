@@ -21,6 +21,7 @@ const BattleModeTab = () => {
   const [loading, setLoading] = useState(true);
   const [searching, setSearching] = useState(false);
   const [selectedLanguage, setSelectedLanguage] = useState<Language | null>(null);
+  const [isAsync, setIsAsync] = useState(false);
 
   useEffect(() => {
     loadLanguageStats();
@@ -68,12 +69,14 @@ const BattleModeTab = () => {
         type: selectedMode === 'RANKED' ? 'BATTLE' : 'CASUAL',
         language,
         isBattleMode: true,
+        isAsync,
       });
 
       const response = await api.post('/match/find', {
         type: selectedMode === 'RANKED' ? 'BATTLE' : 'CASUAL',
         language,
         isBattleMode: true,
+        isAsync,
       });
 
       console.log('Matchmaking response:', response.data);
@@ -162,16 +165,64 @@ const BattleModeTab = () => {
     <View style={styles.container}>
       <ModeSelector />
 
+      {/* Match Type Selector */}
+      <View style={styles.matchTypeCard}>
+        <Text style={styles.matchTypeTitle}>Match Type</Text>
+        <View style={styles.toggleContainer}>
+          <TouchableOpacity
+            style={[styles.toggleButton, !isAsync && styles.toggleButtonActive]}
+            onPress={() => setIsAsync(false)}
+            disabled={searching}
+          >
+            <Text style={[styles.toggleIcon, !isAsync && styles.toggleIconActive]}>⚡</Text>
+            <Text style={[styles.toggleText, !isAsync && styles.toggleTextActive]}>
+              Synchronous
+            </Text>
+            <Text style={[styles.toggleSubtext, !isAsync && styles.toggleSubtextActive]}>
+              Real-time battle
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.toggleButton, isAsync && styles.toggleButtonActive]}
+            onPress={() => setIsAsync(true)}
+            disabled={searching}
+          >
+            <Text style={[styles.toggleIcon, isAsync && styles.toggleIconActive]}>⏳</Text>
+            <Text style={[styles.toggleText, isAsync && styles.toggleTextActive]}>
+              Asynchronous
+            </Text>
+            <Text style={[styles.toggleSubtext, isAsync && styles.toggleSubtextActive]}>
+              Take your time
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+
       <View style={styles.infoCard}>
         <Text style={styles.infoTitle}>Battle Mode Rules</Text>
         <View style={styles.infoRow}>
           <Text style={styles.infoIcon}>📝</Text>
-          <Text style={styles.infoText}>5 questions • 45s each</Text>
+          <Text style={styles.infoText}>5 questions per match</Text>
+        </View>
+        <View style={styles.infoRow}>
+          <Text style={styles.infoIcon}>⏱️</Text>
+          <Text style={styles.infoText}>
+            {isAsync ? '24 hours to complete all questions' : '45 seconds per question'}
+          </Text>
         </View>
         <View style={styles.infoRow}>
           <Text style={styles.infoIcon}>🏆</Text>
           <Text style={styles.infoText}>Winner: Most accurate, then fastest</Text>
         </View>
+        {isAsync && (
+          <View style={styles.infoRow}>
+            <Text style={styles.infoIcon}>🔔</Text>
+            <Text style={styles.infoText}>
+              Get notified when your opponent finishes
+            </Text>
+          </View>
+        )}
       </View>
 
       <View style={styles.languageSelector}>
@@ -280,6 +331,65 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#333',
     marginBottom: 12,
+  },
+  matchTypeCard: {
+    backgroundColor: 'white',
+    marginHorizontal: 16,
+    marginTop: 12,
+    marginBottom: 8,
+    padding: 16,
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  matchTypeTitle: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 12,
+  },
+  toggleContainer: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  toggleButton: {
+    flex: 1,
+    backgroundColor: '#f5f5f5',
+    padding: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  toggleButtonActive: {
+    backgroundColor: '#E3F2FD',
+    borderColor: '#4A90E2',
+  },
+  toggleIcon: {
+    fontSize: 28,
+    marginBottom: 6,
+  },
+  toggleIconActive: {
+    // Active state handled by parent
+  },
+  toggleText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#666',
+    marginBottom: 3,
+  },
+  toggleTextActive: {
+    color: '#4A90E2',
+  },
+  toggleSubtext: {
+    fontSize: 10,
+    color: '#999',
+  },
+  toggleSubtextActive: {
+    color: '#4A90E2',
   },
 });
 

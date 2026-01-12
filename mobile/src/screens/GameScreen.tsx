@@ -10,14 +10,55 @@ import {
   Animated,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import { Match, Question, AnswerData } from '../types';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Match, Question, AnswerData, PowerUpType, ActiveEffect } from '../types';
 import { matchService } from '../services/api';
 import { useWebSocket } from '../context/WebSocketContext';
+import OnboardingGuide, { GuideStep } from '../components/OnboardingGuide';
+
+// Onboarding guide steps for first battle
+const ONBOARDING_GUIDE_STEPS: GuideStep[] = [
+  {
+    id: 'welcome',
+    title: 'Your First Battle!',
+    description: 'Answer 5 questions as quickly and accurately as you can. Beat the Training Bot to win!',
+    position: 'center',
+    arrow: 'none',
+  },
+  {
+    id: 'timer',
+    title: 'Watch the Timer',
+    description: 'You have 45 seconds per question. The faster you answer correctly, the better your chances of winning!',
+    position: 'top',
+    arrow: 'up',
+  },
+  {
+    id: 'question',
+    title: 'Read Carefully',
+    description: 'Each question tests your language skills. Read the question and choose the best answer from the options below.',
+    position: 'center',
+    arrow: 'none',
+  },
+  {
+    id: 'answer',
+    title: 'Tap to Answer',
+    description: 'Select your answer by tapping on it. You can change your selection before submitting.',
+    position: 'bottom',
+    arrow: 'down',
+  },
+  {
+    id: 'submit',
+    title: 'Ready to Go!',
+    description: 'Once you select an answer, tap "Next Question" to move on. Good luck!',
+    position: 'bottom',
+    arrow: 'down',
+  },
+];
 
 const GameScreen = () => {
   const navigation = useNavigation();
   const route = useRoute();
-  const { matchId, match } = route.params as { matchId: string; match: Match };
+  const { matchId, match, isCPUMatch } = route.params as { matchId: string; match: Match; isCPUMatch?: boolean };
   const { socket, sendMatchHeartbeat } = useWebSocket();
 
   // Validate match data
@@ -44,12 +85,26 @@ const GameScreen = () => {
   const [waitingForOpponent, setWaitingForOpponent] = useState(false);
   const [deadlineRemaining, setDeadlineRemaining] = useState<number | null>(null);
 
+  // Power-up state
+  const [userId, setUserId] = useState<string>('');
+  const [powerUpCooldown, setPowerUpCooldown] = useState(0);
+  const [activeEffects, setActiveEffects] = useState<ActiveEffect[]>([]);
+  const [timerModifier, setTimerModifier] = useState(1.0);
+
+  // Onboarding guide state
+  const [showOnboardingGuide, setShowOnboardingGuide] = useState(isCPUMatch || false);
+  const [onboardingStep, setOnboardingStep] = useState(0);
+  const [guidePaused, setGuidePaused] = useState(isCPUMatch || false);
+
   const isAsync = match.isAsync || false;
+  const powerUpsEnabled = match.powerUpsEnabled || false;
+  const equippedPowerUp = powerUpsEnabled && userId ? (match.powerUpState?.[userId]?.equipped || PowerUpType.NONE) : PowerUpType.NONE;
 
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const heartbeatRef = useRef<NodeJS.Timeout | null>(null);
   const progressAnim = useRef(new Animated.Value(0)).current;
   const shakeAnim = useRef(new Animated.Value(0)).current;
+  const powerUpAnimRef = useRef(new Animated.Value(0)).current;
 
   const currentQuestion = match.questions[currentQuestionIndex];
   const totalQuestions = match.questions.length;
@@ -61,7 +116,101 @@ const GameScreen = () => {
     status: match.status,
     questionsCount: match.questions.length,
     currentQuestionIndex,
+    isAsync,
   });
+
+  // AsyncStorage keys for match state
+  const getMatchStateKey = (matchId: string) => `match_state_${matchId}`;
+
+  // Save match state to AsyncStorage (for async matches)
+  const saveMatchState = async (
+    answers: Record<string, AnswerData>,
+    questionIndex: number
+  ) => {
+    if (!isAsync) return; // Only save for async matches
+
+    try {
+      const stateKey = getMatchStateKey(matchId);
+      const state = {
+        matchId,
+        answers,
+        currentQuestionIndex: questionIndex,
+        lastUpdated: new Date().toISOString(),
+      };
+      await AsyncStorage.setItem(stateKey, JSON.stringify(state));
+      console.log('Match state saved:', { questionIndex, answersCount: Object.keys(answers).length });
+    } catch (error) {
+      console.error('Failed to save match state:', error);
+    }
+  };
+
+  // Load match state from AsyncStorage (for async matches)
+  const loadMatchState = async () => {
+    if (!isAsync) return null;
+
+    try {
+      const stateKey = getMatchStateKey(matchId);
+      const savedState = await AsyncStorage.getItem(stateKey);
+
+      if (savedState) {
+        const state = JSON.parse(savedState);
+        console.log('Loaded saved match state:', {
+          questionIndex: state.currentQuestionIndex,
+          answersCount: Object.keys(state.answers).length,
+        });
+        return state;
+      }
+    } catch (error) {
+      console.error('Failed to load match state:', error);
+    }
+    return null;
+  };
+
+  // Clear match state from AsyncStorage
+  const clearMatchState = async () => {
+    if (!isAsync) return;
+
+    try {
+      const stateKey = getMatchStateKey(matchId);
+      await AsyncStorage.removeItem(stateKey);
+      console.log('Match state cleared');
+    } catch (error) {
+      console.error('Failed to clear match state:', error);
+    }
+  };
+
+  // Get userId from AsyncStorage
+  useEffect(() => {
+    const getUserId = async () => {
+      try {
+        const token = await AsyncStorage.getItem('token');
+        if (token) {
+          // Decode JWT to get userId (basic decode, first part is header, second is payload)
+          const payload = token.split('.')[1];
+          const decoded = JSON.parse(atob(payload));
+          setUserId(decoded.userId);
+        }
+      } catch (error) {
+        console.error('Failed to get userId:', error);
+      }
+    };
+
+    getUserId();
+  }, []);
+
+  // Load saved state on mount (async matches only)
+  useEffect(() => {
+    const restoreSavedState = async () => {
+      const savedState = await loadMatchState();
+      if (savedState) {
+        setAnswers(savedState.answers);
+        setCurrentQuestionIndex(savedState.currentQuestionIndex);
+        console.log('Restored match progress from saved state');
+      }
+    };
+
+    restoreSavedState();
+  }, [matchId, isAsync]);
 
   // Join match room on mount
   useEffect(() => {
@@ -96,15 +245,31 @@ const GameScreen = () => {
   }, [isAsync, match.turnDeadlineAt]);
 
   useEffect(() => {
-    // Only start question timer for synchronous matches
-    if (!isAsync) {
+    // Only start question timer for synchronous matches and when guide is not paused
+    if (!isAsync && !guidePaused) {
       startQuestionTimer();
     }
     animateProgress();
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [currentQuestionIndex, isAsync]);
+  }, [currentQuestionIndex, isAsync, guidePaused]);
+
+  // Onboarding guide handlers
+  const handleOnboardingStepComplete = () => {
+    if (onboardingStep < ONBOARDING_GUIDE_STEPS.length - 1) {
+      setOnboardingStep(prev => prev + 1);
+    } else {
+      // Guide complete, start the game
+      setShowOnboardingGuide(false);
+      setGuidePaused(false);
+    }
+  };
+
+  const handleOnboardingSkip = () => {
+    setShowOnboardingGuide(false);
+    setGuidePaused(false);
+  };
 
   // Socket event listeners for match connection events
   useEffect(() => {
@@ -174,6 +339,7 @@ const GameScreen = () => {
       navigation.navigate('MatchResults' as never, {
         matchId,
         result: data,
+        isCPUMatch: isCPUMatch || false,
       } as never);
     });
 
@@ -187,6 +353,61 @@ const GameScreen = () => {
       socket.off('match:completed');
     };
   }, [socket, navigation, matchId]);
+
+  // Power-up socket event listeners
+  useEffect(() => {
+    if (!socket || !powerUpsEnabled) return;
+
+    socket.on('game:power_up_used', (data: { powerUpType: string; cooldownRemaining: number }) => {
+      console.log('Power-up used:', data);
+      setPowerUpCooldown(data.cooldownRemaining);
+
+      // Animate power-up activation
+      Animated.sequence([
+        Animated.timing(powerUpAnimRef, { toValue: 1, duration: 200, useNativeDriver: true }),
+        Animated.timing(powerUpAnimRef, { toValue: 0, duration: 200, useNativeDriver: true }),
+      ]).start();
+    });
+
+    socket.on('game:power_up_effect', (data: { effect: ActiveEffect; questionId: string }) => {
+      console.log('Power-up effect received:', data);
+      if (data.questionId === currentQuestion.id) {
+        setActiveEffects(prev => {
+          const newEffects = [...prev, data.effect];
+          // Calculate timer modifier based on effects
+          const modifier = calculateTimerModifier(newEffects);
+          setTimerModifier(modifier);
+          return newEffects;
+        });
+      }
+    });
+
+    socket.on('game:power_up_error', (data: { message: string }) => {
+      Alert.alert('Power-Up Error', data.message);
+    });
+
+    return () => {
+      socket.off('game:power_up_used');
+      socket.off('game:power_up_effect');
+      socket.off('game:power_up_error');
+    };
+  }, [socket, powerUpsEnabled, currentQuestion]);
+
+  // Power-up cooldown timer
+  useEffect(() => {
+    if (powerUpCooldown > 0) {
+      const interval = setInterval(() => {
+        setPowerUpCooldown(prev => Math.max(0, prev - 1));
+      }, 1000);
+      return () => clearInterval(interval);
+    }
+  }, [powerUpCooldown]);
+
+  // Clear power-up effects when moving to next question
+  useEffect(() => {
+    setActiveEffects([]);
+    setTimerModifier(1.0);
+  }, [currentQuestionIndex]);
 
   // Heartbeat mechanism - send heartbeat every 5 seconds
   useEffect(() => {
@@ -212,11 +433,19 @@ const GameScreen = () => {
 
     timerRef.current = setInterval(() => {
       setTimeRemaining((prev) => {
-        if (prev <= 1) {
+        // Apply timer modifier from power-ups
+        if (timerModifier === 0) {
+          // Timer frozen, don't decrement
+          return prev;
+        }
+
+        const decrement = timerModifier; // 1 for normal, 2 for burn
+
+        if (prev <= decrement) {
           handleTimeUp();
           return 0;
         }
-        return prev - 1;
+        return prev - decrement;
       });
     }, 1000);
   };
@@ -227,6 +456,37 @@ const GameScreen = () => {
       duration: 300,
       useNativeDriver: false,
     }).start();
+  };
+
+  // Power-up functions
+  const calculateTimerModifier = (effects: ActiveEffect[]): number => {
+    let isFrozen = false;
+    let isBurning = false;
+
+    effects.forEach((effect) => {
+      if (effect.type === 'FREEZE') isFrozen = true;
+      if (effect.type === 'BURN') isBurning = true;
+    });
+
+    // If both active, they cancel out
+    if (isFrozen && isBurning) return 1.0;
+    if (isFrozen) return 0; // Timer frozen
+    if (isBurning) return 2.0; // Timer 2x speed
+
+    return 1.0; // Normal
+  };
+
+  const usePowerUp = () => {
+    if (!socket || !powerUpsEnabled || equippedPowerUp === PowerUpType.NONE) return;
+    if (powerUpCooldown > 0) {
+      Alert.alert('Cooldown', `Power-up is on cooldown for ${powerUpCooldown}s`);
+      return;
+    }
+
+    socket.emit('game:use_power_up', {
+      matchId,
+      questionId: currentQuestion.id,
+    });
   };
 
   const handleTimeUp = () => {
@@ -266,8 +526,8 @@ const GameScreen = () => {
     setSelectedAnswer(answer);
   };
 
-  const handleNextQuestion = () => {
-    if (!selectedAnswer && timeRemaining > 0) {
+  const handleNextQuestion = async () => {
+    if (!selectedAnswer && timeRemaining > 0 && !isAsync) {
       Alert.alert('No Answer', 'Please select an answer before continuing.');
       return;
     }
@@ -284,6 +544,12 @@ const GameScreen = () => {
     };
     setAnswers(newAnswers);
 
+    // Save state for async matches
+    if (isAsync) {
+      const nextIndex = isLastQuestion ? currentQuestionIndex : currentQuestionIndex + 1;
+      await saveMatchState(newAnswers, nextIndex);
+    }
+
     if (isLastQuestion) {
       submitMatch(newAnswers);
     } else {
@@ -291,12 +557,29 @@ const GameScreen = () => {
     }
   };
 
+  // Navigate to specific question (async mode only)
+  const goToQuestion = (index: number) => {
+    if (!isAsync) return;
+    setCurrentQuestionIndex(index);
+    setSelectedAnswer(answers[match.questions[index].id]?.answer || null);
+  };
+
   const submitMatch = async (finalAnswers: Record<string, AnswerData>) => {
     setIsSubmitting(true);
     setIsPaused(true);
 
     try {
-      await matchService.submitMatchResult(matchId, finalAnswers);
+      // Use CPU submit endpoint for CPU matches, regular endpoint for normal matches
+      if (isCPUMatch) {
+        await matchService.submitCPUMatchResult(matchId, finalAnswers);
+      } else {
+        await matchService.submitMatchResult(matchId, finalAnswers);
+      }
+
+      // Clear saved state for async matches
+      if (isAsync) {
+        await clearMatchState();
+      }
 
       // Don't navigate immediately - wait for opponent to finish
       // The match:completed socket event will trigger navigation when both players are done
@@ -324,19 +607,35 @@ const GameScreen = () => {
     }
   };
 
-  const handleQuit = () => {
-    Alert.alert(
-      'Quit Match?',
-      'Are you sure you want to quit? This will count as a loss.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Quit',
-          style: 'destructive',
-          onPress: () => navigation.navigate('Home' as never),
-        },
-      ]
-    );
+  const handleQuit = async () => {
+    if (isAsync) {
+      // For async matches, save progress and allow exit
+      await saveMatchState(answers, currentQuestionIndex);
+      Alert.alert(
+        'Progress Saved',
+        'Your progress has been saved. You can resume this match later.',
+        [
+          {
+            text: 'OK',
+            onPress: () => navigation.navigate('Home' as never),
+          },
+        ]
+      );
+    } else {
+      // For sync matches, warn about quitting
+      Alert.alert(
+        'Quit Match?',
+        'Are you sure you want to quit? This will count as a loss.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Quit',
+            style: 'destructive',
+            onPress: () => navigation.navigate('Home' as never),
+          },
+        ]
+      );
+    }
   };
 
   const getTimerColor = () => {
@@ -463,6 +762,109 @@ const GameScreen = () => {
         )}
       </View>
 
+      {/* Power-Up Button (if enabled and equipped) */}
+      {powerUpsEnabled && equippedPowerUp !== PowerUpType.NONE && !isAsync && (
+        <View style={styles.powerUpContainer}>
+          <TouchableOpacity
+            style={[
+              styles.powerUpButton,
+              powerUpCooldown > 0 && styles.powerUpButtonDisabled,
+              equippedPowerUp === PowerUpType.FREEZE && { backgroundColor: '#4FC3F7' },
+              equippedPowerUp === PowerUpType.BURN && { backgroundColor: '#FF6B6B' },
+            ]}
+            onPress={usePowerUp}
+            disabled={powerUpCooldown > 0 || isPaused}
+            activeOpacity={0.7}
+          >
+            <Animated.View
+              style={[
+                styles.powerUpContent,
+                {
+                  transform: [{
+                    scale: powerUpAnimRef.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [1, 1.2],
+                    }),
+                  }],
+                },
+              ]}
+            >
+              <Text style={styles.powerUpIcon}>
+                {equippedPowerUp === PowerUpType.FREEZE ? '❄️' : '🔥'}
+              </Text>
+              <View style={styles.powerUpTextContainer}>
+                <Text style={styles.powerUpName}>
+                  {equippedPowerUp === PowerUpType.FREEZE ? 'Freeze' : 'Burn'}
+                </Text>
+                {powerUpCooldown > 0 ? (
+                  <Text style={styles.powerUpCooldown}>{powerUpCooldown}s</Text>
+                ) : (
+                  <Text style={styles.powerUpReady}>READY</Text>
+                )}
+              </View>
+            </Animated.View>
+          </TouchableOpacity>
+
+          {/* Active Effects Display */}
+          {activeEffects.length > 0 && (
+            <View style={styles.activeEffectsContainer}>
+              {activeEffects.map((effect, index) => (
+                <View
+                  key={index}
+                  style={[
+                    styles.activeEffectBadge,
+                    { backgroundColor: effect.type === 'FREEZE' ? '#4FC3F7' : '#FF6B6B' },
+                  ]}
+                >
+                  <Text style={styles.activeEffectText}>
+                    {effect.type === 'FREEZE' ? '❄️ Timer Frozen!' : '🔥 Timer Burning!'}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          )}
+        </View>
+      )}
+
+      {/* Question Navigation (Async Mode Only) */}
+      {isAsync && (
+        <View style={styles.questionNavContainer}>
+          <Text style={styles.questionNavTitle}>Questions:</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            <View style={styles.questionNavButtons}>
+              {match.questions.map((q, index) => {
+                const isAnswered = !!answers[q.id];
+                const isCurrent = index === currentQuestionIndex;
+                return (
+                  <TouchableOpacity
+                    key={q.id}
+                    style={[
+                      styles.questionNavButton,
+                      isAnswered && styles.questionNavButtonAnswered,
+                      isCurrent && styles.questionNavButtonCurrent,
+                    ]}
+                    onPress={() => goToQuestion(index)}
+                  >
+                    <Text
+                      style={[
+                        styles.questionNavButtonText,
+                        isAnswered && styles.questionNavButtonTextAnswered,
+                        isCurrent && styles.questionNavButtonTextCurrent,
+                      ]}
+                    >
+                      {index + 1}
+                    </Text>
+                    {isAnswered && !isCurrent && (
+                      <Text style={styles.questionNavCheckmark}>✓</Text>
+                    )}
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </ScrollView>
+        </View>
+      )}
+
       {/* Question */}
       <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
         <Animated.View
@@ -533,16 +935,27 @@ const GameScreen = () => {
         <TouchableOpacity
           style={[
             styles.nextButton,
-            (!selectedAnswer || isPaused) && styles.nextButtonDisabled,
+            (!selectedAnswer || isPaused || guidePaused) && styles.nextButtonDisabled,
           ]}
           onPress={handleNextQuestion}
-          disabled={!selectedAnswer || isPaused}
+          disabled={!selectedAnswer || isPaused || guidePaused}
         >
           <Text style={styles.nextButtonText}>
             {isLastQuestion ? 'Submit Match' : 'Next Question'}
           </Text>
         </TouchableOpacity>
       </View>
+
+      {/* Onboarding Guide Overlay */}
+      {isCPUMatch && (
+        <OnboardingGuide
+          steps={ONBOARDING_GUIDE_STEPS}
+          currentStep={onboardingStep}
+          onStepComplete={handleOnboardingStepComplete}
+          onSkip={handleOnboardingSkip}
+          visible={showOnboardingGuide}
+        />
+      )}
     </View>
   );
 };
@@ -817,6 +1230,129 @@ const styles = StyleSheet.create({
   nextButtonText: {
     color: 'white',
     fontSize: 18,
+    fontWeight: 'bold',
+  },
+  questionNavContainer: {
+    backgroundColor: 'white',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
+  },
+  questionNavTitle: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#666',
+    marginBottom: 8,
+  },
+  questionNavButtons: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  questionNavButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 8,
+    backgroundColor: '#f5f5f5',
+    borderWidth: 2,
+    borderColor: '#e0e0e0',
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'relative',
+  },
+  questionNavButtonAnswered: {
+    backgroundColor: '#E8F5E9',
+    borderColor: '#34C759',
+  },
+  questionNavButtonCurrent: {
+    backgroundColor: '#4A90E2',
+    borderColor: '#4A90E2',
+  },
+  questionNavButtonText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#666',
+  },
+  questionNavButtonTextAnswered: {
+    color: '#34C759',
+  },
+  questionNavButtonTextCurrent: {
+    color: 'white',
+  },
+  questionNavCheckmark: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    fontSize: 16,
+    color: '#34C759',
+    backgroundColor: 'white',
+    borderRadius: 10,
+    width: 20,
+    height: 20,
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+  // Power-up styles
+  powerUpContainer: {
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    backgroundColor: 'white',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
+  },
+  powerUpButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  powerUpButtonDisabled: {
+    opacity: 0.5,
+  },
+  powerUpContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  powerUpIcon: {
+    fontSize: 32,
+    marginRight: 12,
+  },
+  powerUpTextContainer: {
+    flex: 1,
+  },
+  powerUpName: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: 'white',
+  },
+  powerUpCooldown: {
+    fontSize: 12,
+    color: 'white',
+    opacity: 0.8,
+  },
+  powerUpReady: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: 'white',
+  },
+  activeEffectsContainer: {
+    marginTop: 8,
+    gap: 6,
+  },
+  activeEffectBadge: {
+    padding: 8,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  activeEffectText: {
+    color: 'white',
+    fontSize: 13,
     fontWeight: 'bold',
   },
 });
