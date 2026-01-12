@@ -54,8 +54,8 @@ const OnboardingFirstBattleScreen = () => {
       // Navigate to game screen with CPU match
       navigation.navigate('Game' as never, {
         matchId: match.id,
+        match: match,
         isCPUMatch: true,
-        language
       } as never);
     } catch (error: any) {
       console.error('Failed to create CPU match:', error);
