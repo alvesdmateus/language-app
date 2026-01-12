@@ -3,6 +3,13 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const API_URL = 'http://192.168.0.126:3000/api';
 
+// Callback to handle logout when token is invalid
+let onUnauthorized: (() => void) | null = null;
+
+export const setOnUnauthorized = (callback: () => void) => {
+  onUnauthorized = callback;
+};
+
 const api = axios.create({
   baseURL: API_URL,
   headers: {
@@ -19,6 +26,20 @@ api.interceptors.request.use(
     return config;
   },
   (error) => {
+    return Promise.reject(error);
+  }
+);
+
+// Response interceptor to handle 401 errors
+api.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    if (error.response?.status === 401 && onUnauthorized) {
+      // Clear stored auth and trigger logout
+      await AsyncStorage.removeItem('token');
+      await AsyncStorage.removeItem('user');
+      onUnauthorized();
+    }
     return Promise.reject(error);
   }
 );
@@ -47,6 +68,14 @@ export const userService = {
     const response = await api.get('/language-stats');
     return response.data;
   },
+  updateFavoriteLanguage: async (language: string) => {
+    const response = await api.put('/users/favorite-language', { language });
+    return response.data;
+  },
+  completeOnboarding: async () => {
+    const response = await api.put('/users/complete-onboarding');
+    return response.data;
+  },
 };
 
 export const quizService = {
@@ -66,6 +95,8 @@ export const matchService = {
     language: string,
     options?: {
       isBattleMode?: boolean;
+      isAsync?: boolean;
+      equippedPowerUp?: string;
       customSettings?: {
         questionDuration: number;
         difficulty: string;
@@ -97,6 +128,22 @@ export const matchService = {
   },
   checkStatus: async (type: string) => {
     const response = await api.get(`/match/status?type=${type}`);
+    return response.data;
+  },
+  getUserMatches: async (status?: 'IN_PROGRESS' | 'COMPLETED') => {
+    const params = status ? `?status=${status}` : '';
+    const response = await api.get(`/match/user/matches${params}`);
+    return response.data;
+  },
+  createCPUMatch: async (language: string) => {
+    const response = await api.post('/match/cpu', { language });
+    return response.data;
+  },
+  submitCPUMatchResult: async (
+    matchId: string,
+    answers: Record<string, { answer: string; timeMs: number }>
+  ) => {
+    const response = await api.post('/match/cpu/submit', { matchId, answers });
     return response.data;
   },
 };

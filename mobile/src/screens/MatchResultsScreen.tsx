@@ -14,10 +14,11 @@ import { useAuth } from '../context/AuthContext';
 const MatchResultsScreen = () => {
   const navigation = useNavigation();
   const route = useRoute();
-  const { user } = useAuth();
-  const { matchId, result } = route.params as {
+  const { user, completeOnboarding } = useAuth();
+  const { matchId, result, isCPUMatch } = route.params as {
     matchId: string;
     result: MatchCompletedEvent;
+    isCPUMatch?: boolean;
   };
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -38,6 +39,21 @@ const MatchResultsScreen = () => {
       }),
     ]).start();
   }, []);
+
+  // Navigate to celebration screen if this was a CPU match (first battle)
+  useEffect(() => {
+    if (isCPUMatch && user && !user.onboardingCompleted) {
+      // Wait a moment to let user see results, then go to celebration
+      const timer = setTimeout(() => {
+        navigation.navigate('OnboardingCelebration' as never, {
+          result,
+          isWinner: result.winnerId === user?.id,
+        } as never);
+      }, 2500);
+
+      return () => clearTimeout(timer);
+    }
+  }, [isCPUMatch, user?.onboardingCompleted]);
 
   const isWinner = result.winnerId === user?.id;
   const isLoser = result.winnerId && result.winnerId !== user?.id;

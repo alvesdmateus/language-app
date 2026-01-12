@@ -142,6 +142,76 @@ class SocketService {
     socket.on('match:heartbeat', () => {
       matchmakingService.updatePlayerHeartbeat(userId);
     });
+
+    // Power-up events
+    socket.on('game:use_power_up', async (data: { matchId: string; questionId: string }) => {
+      try {
+        console.log(`⚡ User ${userId} used power-up in match ${data.matchId} on question ${data.questionId}`);
+
+        // Get match and power-up state
+        const match = await prisma.match.findUnique({
+          where: { id: data.matchId },
+          include: { participants: true },
+        });
+
+        if (!match || !match.powerUpsEnabled) {
+          socket.emit('game:power_up_error', { message: 'Power-ups not enabled for this match' });
+          return;
+        }
+
+        // Get opponent ID
+        const opponentId = match.participants.find((p) => p.id !== userId)?.id;
+        if (!opponentId) {
+          socket.emit('game:power_up_error', { message: 'Opponent not found' });
+          return;
+        }
+
+        const powerUpState = (match.powerUpState as any) || {};
+
+        // Use power-up service
+        const { powerUpService } = await import('./powerUpService');
+        const result = await powerUpService.usePowerUp(
+          data.matchId,
+          userId,
+          opponentId,
+          data.questionId,
+          powerUpState
+        );
+
+        if (!result.success) {
+          socket.emit('game:power_up_error', { message: result.message });
+          return;
+        }
+
+        // Record usage
+        const playerState = powerUpState[userId];
+        if (playerState?.equipped) {
+          await powerUpService.recordPowerUpUsage(
+            data.matchId,
+            userId,
+            playerState.equipped,
+            data.questionId,
+            playerState.equipped === 'FREEZE' ? 'self' : 'opponent'
+          );
+        }
+
+        // Emit to user who used the power-up
+        socket.emit('game:power_up_used', {
+          powerUpType: result.effect?.type,
+          cooldownRemaining: powerUpService.getCooldownRemaining(result.updatedState![userId]),
+        });
+
+        // Emit to opponent about the effect
+        socket.to(`match:${data.matchId}`).emit('game:power_up_effect', {
+          effect: result.effect,
+          questionId: data.questionId,
+        });
+
+      } catch (error) {
+        console.error('Error using power-up:', error);
+        socket.emit('game:power_up_error', { message: 'Failed to use power-up' });
+      }
+    });
   }
 
   /**

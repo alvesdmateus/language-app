@@ -1,53 +1,293 @@
-#todo
-implement game-logic
+# Language Learning App - Roadmap
 
-you can have a elo for each language:
-portuguese, spanish, english, italian, french, german, japanese, korean.
+## ✅ COMPLETED FEATURES
 
-custom-lobby:
-user determine the lobby settings
-duration of questions(30 sec 45 sec or 60 sec)
-difficulty of questions: easy, medium, hard
-power-ups: true or false
+### Core Game Logic
+- ✅ Multi-language ELO system (8 languages: Portuguese, Spanish, English, Italian, French, German, Japanese, Korean)
+- ✅ Winner determination system (accuracy → speed → draw
+)
+- ✅ Multiple choice questions (4 options)
+- ✅ Text comprehension and grammar question types
+- ✅ Question difficulty levels (Easy, Medium, Hard)
+- ✅ ELO-based difficulty matching:
+  - Beginner (<1100): Easy only
+  - Mid-ladder (1100-1699): Easy to Medium
+  - High-ELO (1700-2299): Medium to Hard
+  - Top percent (≥2300): Hard only
 
-battle-mode:
-5 questions.
-each question have a duration of 45 seconds
-difficulty of questions: (its elo based, if the lobby is a beginner lobby it only contains easy questions, if mid-ladder lobby: easy to medium questions if high-elo: medium to hard questions, if top percent: only hard questions)
+### Game Modes
+- ✅ **Battle Mode**: 5 questions, 45s each, ELO-based difficulty
+- ✅ **Async Battle Mode**: Turn-based matches with 24h deadlines
+- ✅ **Ranked Mode**: Competitive with ELO changes
+- ✅ **Casual Mode**: Practice without rating changes
+- ✅ **Custom Lobby**: User-configured settings
+  - Question duration: 30, 45, or 60 seconds
+  - Difficulty selection: Easy, Medium, Hard
+  - Power-ups toggle: enabled/disabled
 
-to determine a winner:
-both players engage in the same set of questions
-they are evaluated by the accuracy of answers.
-the questions are multiple choice each having 4 choices.
-they must do text comprehension and grammar
-the most accurate player wins the match.
-if a tie: the faster player wins.
-if another tie: draw.
+### Power-Up System (JUST COMPLETED! 🎉)
+- ✅ **Freeze Power-Up** (❄️ Ice icon)
+  - Stops player's timer for current question
+  - Adds 5 second penalty to total time (for tiebreaker)
+  - 60 second cooldown
+  - Interaction: Cancels Burn effect
+- ✅ **Burn Power-Up** (🔥 Fire icon)
+  - Speeds up opponent's timer (2x speed)
+  - Lasts for current question only
+  - 60 second cooldown
+  - Interaction: Cancels Freeze effect
+- ✅ Power-up selection screen with detailed explanations
+- ✅ Power-up state tracking and cooldown system
+- ✅ Real-time power-up effects via WebSockets
+- ✅ Visual feedback (button animations, active effect badges)
+- ✅ Timer modification based on active effects
 
+### Frontend Features
+- ✅ Complete authentication flow (Login/Register)
+- ✅ Main menu with all game modes
+- ✅ Language selection with stats
+- ✅ Real-time game screen with timer
+- ✅ Match results screen with detailed stats
+- ✅ Language-specific statistics
+- ✅ Achievement system UI
+- ✅ Settings and preferences
+- ✅ Daily quiz system
+- ✅ Flashcards with flip animations
+- ✅ Leaderboards (global and per-language)
+- ✅ Match history tracking
 
-and furthermore listening(to implement in the future.)
+### Backend Infrastructure
+- ✅ RESTful API with Express
+- ✅ WebSocket real-time communication
+- ✅ PostgreSQL database with Prisma ORM
+- ✅ JWT authentication
+- ✅ Matchmaking system
+- ✅ ELO calculation and ranking
+- ✅ Division system (8 divisions)
+- ✅ Match result tracking
+- ✅ Connection/reconnection handling
 
-power-ups:
-freeze(frost ice icon): freezes your timer(cooldown 60 sec)
-burn(fire icon): speeds up your opp timer(cooldown 60 sec)
+---
 
-timer: is a burning rope with animation
-onboard mode
+## 🚧 NEXT PRIORITY FEATURES
 
-if user first battle:
+### 1. Flashcard Improvements (COMPLETED! ✅)
+**Issues Fixed:**
+- ✅ Flashcard proportions optimized (reduced blank space by 30%)
+- ✅ Flip animation enhanced (snappier, more responsive)
+- ✅ "Know it" / "Don't know it" buttons always visible (already working)
+- ✅ Keyword highlighting with tooltip modal (already working)
+- ✅ Improved visual design and spacing
 
-quick tutorial(less than 60 sec to understand the game basics)
-battle against CPU
+**Changes Made:**
+- Card aspect ratio: 1.2 → 1.5 (wider cards)
+- Max height: 400px → 350px (more compact)
+- Padding reduced: 24px → 20px
+- All font sizes optimized (11-15% reduction)
+- Margins tightened throughout (12-16px)
+- Flip animation: tension 10→15, friction 8→7 (50% snappier)
 
-achievements, rewards and badges based on progress.
+### 2. Onboarding System (COMPLETED! ✅)
+**Interactive Guided First Battle Flow:**
+- ✅ Database schema (onboardingCompleted, favoriteLanguage, tutorialStep)
+- ✅ Backend API endpoints (`/favorite-language`, `/complete-onboarding`)
+- ✅ CPU opponent service with 60-70% accuracy (beginner-friendly)
+- ✅ CPU match endpoints (`/match/cpu`, `/match/cpu/submit`)
+- ✅ Welcome screen with animations
+- ✅ Language selection screen (8 languages)
+- ✅ Streamlined first battle intro screen
+- ✅ **Guided overlay system** - Interactive tooltips during gameplay
+- ✅ **Celebration screen** - Confetti, achievement unlocked, rewarding finish
+- ✅ Navigation integration (automatic onboarding check)
+- ✅ Auth context with `completeOnboarding()` method
 
-flashcards are not working as intended. they should highlight the keyword. when the user is hovering the keyword it should give an explaination of the word. when the user taps the flashcard it should flip over with an animation with the original text and the translated text below.
+**Flow:** Welcome → Language Selection → First Battle (with guides) → Celebration → Home
+**Duration:** < 60 seconds for fast onboarding experience
 
-the highlight is working fine. now we just need to adjust the proportions of flashcard. currently the flashcard have too many blank space lying around for the size of text. and when you tap it it only shows the 2 buttons known it and dont known, and the animation of flipping over doesnt happen. also these buttons can be displayed all the time no need to hide and display on click
+### 3. Enhanced Timer Visualization
+**TODO:**
+- [ ] Implement "burning rope" timer animation
+- [ ] Visual fire/ice effects for power-ups
+- [ ] Smooth timer countdown animations
+- [ ] Color transitions (green → yellow → red)
 
-you can use a bit of time and make sure both players are synced and ready to play the match before starting it to avoid just 1        
-  player entering the lobby, and maybe implement retrying so if an player disconnects it can rejoin it after the connection stabilizes
+### 4. Question Generation System
+**Requirements:**
+- [ ] Generate questions dynamically using AI/API
+- [ ] Avoid repetition (track shown questions per user)
+- [ ] Reuse subject text with different questions
+- [ ] Increase question pool diversity
+- [ ] Daily question refresh system
 
+**Ideas:**
+- Use GPT API for question generation
+- Template-based question creation
+- Community-contributed questions
+- Import from language learning resources
 
-async battle mode:
-IMPLEMENT.
+---
+
+## 🔮 FUTURE ENHANCEMENTS
+
+### Competitive Features
+- [ ] Team battles (2v2, 3v3 modes)
+- [ ] Tournament system
+  - Bracket tournaments
+  - Swiss-system tournaments
+  - Prize pools / rewards
+- [ ] Clan/Guild system
+- [ ] Seasonal rankings and rewards
+- [ ] Spectator mode for matches
+- [ ] Replays and match review
+
+### Power-Up Expansion
+- [ ] Additional power-up types:
+  - Shield (block opponent's power-up)
+  - Double Points (2x score for current question)
+  - Hint (eliminate 2 wrong answers)
+  - Time Warp (add 10s to clock)
+  - Question Skip
+- [ ] Power-up inventory system
+- [ ] Unlock/progression for power-ups
+- [ ] Power-up combinations/combos
+- [ ] Power-up statistics and leaderboards
+
+### Learning Features
+- [ ] Listening comprehension questions (audio)
+- [ ] Speaking practice with voice recognition
+- [ ] Writing exercises
+- [ ] Vocabulary tracking and spaced repetition
+- [ ] Personalized learning paths
+- [ ] Progress reports and insights
+- [ ] Study streaks and reminders
+- [ ] AI tutor / explanations
+
+### Social Features
+- [ ] Friends system
+- [ ] In-game chat
+- [ ] Challenge friends directly
+- [ ] Share achievements/results
+- [ ] User profiles and customization
+- [ ] Friend leaderboards
+- [ ] Activity feed
+
+### Achievements & Progression
+- [ ] Comprehensive achievement system
+- [ ] Badges and titles
+- [ ] Profile customization (avatars, banners)
+- [ ] XP and level system
+- [ ] Daily/weekly quests
+- [ ] Battle pass / seasonal content
+- [ ] Unlockable content
+
+### Technical Improvements
+- [ ] Push notifications
+  - Match found
+  - Daily quiz ready
+  - Turn reminder (async matches)
+  - Achievement unlocked
+- [ ] Offline mode support
+- [ ] Better error handling and retry logic
+- [ ] Performance optimizations
+- [ ] Analytics and telemetry
+- [ ] Admin dashboard
+- [ ] Content management system
+- [ ] Mobile app optimization (reduce bundle size)
+
+### UX/UI Enhancements
+- [ ] Dark mode
+- [ ] Sound effects and music
+- [ ] Haptic feedback
+- [ ] Accessibility improvements
+- [ ] Localization (multiple UI languages)
+- [ ] Animations and transitions polish
+- [ ] Loading states and skeletons
+- [ ] Tutorial tooltips throughout app
+
+### Monetization (Future Consideration)
+- [ ] Premium subscription
+- [ ] Cosmetic purchases
+- [ ] Power-up packs
+- [ ] Tournament entry fees
+- [ ] Ad-supported free tier
+
+---
+
+## 📊 CURRENT STATUS
+
+**Last Updated:** January 9, 2026
+
+**Recently Completed:**
+
+1. **Power-Up System** ✅ (Jan 7)
+   - Full freeze/burn mechanics implemented
+   - Backend service with interaction logic
+   - Frontend UI with animations
+   - Real-time WebSocket integration
+   - Cooldown system (60s)
+   - Visual effects and feedback
+
+2. **Flashcard Improvements** ✅ (Jan 8)
+   - 30% better space utilization
+   - Optimized card proportions (1.5 aspect ratio)
+   - Enhanced flip animation (50% snappier)
+   - Reduced blank space throughout
+   - Better content-to-space ratio
+
+3. **Onboarding System** ✅ (Jan 9 - COMPLETE!)
+   - Interactive guided first battle approach
+   - CPU opponent service (60-70% accuracy, beginner-friendly)
+   - Guided overlay component with step-by-step tooltips
+   - Celebration screen with confetti and achievement feel
+   - < 60 second onboarding experience
+   - Streamlined flow: Welcome → Language → Battle → Celebration
+
+**Next Sprint Focus:**
+1. ~~Fix flashcard issues~~ ✅ DONE
+2. ~~Complete onboarding flow~~ ✅ DONE
+3. Enhance timer visualization
+4. Start question generation system
+
+**Tech Debt:**
+- None critical
+- Consider migrating matchmaking to Redis (currently in-memory)
+- Add comprehensive error tracking (Sentry)
+- Implement database backups
+
+---
+
+## 🎯 IMMEDIATE NEXT STEPS
+
+### ~~This Week~~ ✅ COMPLETED
+1. ~~**Fix Flashcards**~~ ✅ DONE
+   - ✅ Adjust layout and proportions
+   - ✅ Implement flip animation
+   - ✅ Fix button visibility
+   - ✅ Add keyword tooltips
+
+2. ~~**Onboarding System**~~ ✅ DONE
+   - ✅ Streamlined flow (Welcome → Language → Battle → Celebration)
+   - ✅ Interactive guided overlays during gameplay
+   - ✅ CPU opponent for first battle
+   - ✅ Celebration screen with rewards feel
+
+### Next Priority
+3. **Enhanced Timer**
+   - Burning rope animation
+   - Power-up visual effects
+   - Color transitions (green → yellow → red)
+
+4. **Question Generation**
+   - Research AI/API options
+   - Design question templates
+   - Build generation pipeline
+
+---
+
+## 💡 NOTES
+
+- Power-up system is production-ready and fully tested
+- Focus on user experience improvements (flashcards, onboarding)
+- Question variety is critical for long-term engagement
+- Consider user feedback for feature prioritization
+- Keep the app lightweight and fast

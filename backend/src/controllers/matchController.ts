@@ -8,7 +8,8 @@ import { calculateMultiPlayerRatings } from '../utils/elo';
 import { updateUserElo } from '../services/userService';
 import { getDivisionFromElo } from '../utils/division';
 import { socketService } from '../services/socketService';
-import { Language, QuestionDifficulty, MatchType } from '@prisma/client';
+import { cpuOpponentService } from '../services/cpuOpponentService';
+import { Language, QuestionDifficulty, MatchType, PowerUpType } from '@prisma/client';
 
 /**
  * Join matchmaking lobby and find a match
@@ -19,13 +20,14 @@ export const findMatch = async (
   next: NextFunction
 ) => {
   try {
-    const { type, language, customSettings, isBattleMode, isAsync } = req.body;
+    const { type, language, customSettings, isBattleMode, isAsync, equippedPowerUp } = req.body;
 
     console.log(`[MATCHMAKING] User ${req.userId} requesting match:`, {
       type,
       language,
       isBattleMode,
       isAsync,
+      equippedPowerUp,
     });
 
     if (!['RANKED', 'CASUAL', 'CUSTOM', 'BATTLE'].includes(type)) {
@@ -51,6 +53,7 @@ export const findMatch = async (
       customSettings,
       isBattleMode: isBattleMode || type === 'BATTLE',
       isAsync: isAsync || false,
+      equippedPowerUp: equippedPowerUp as PowerUpType,
     });
 
     console.log(`[MATCHMAKING] User ${req.userId} joined lobby, searching for opponent...`);
@@ -460,6 +463,153 @@ export const getMatch = async (
     res.json({
       status: 'success',
       data: { match },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Get all matches for the current user
+ */
+export const getUserMatches = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const userId = req.userId!;
+    const { status } = req.query; // Optional filter: 'IN_PROGRESS', 'COMPLETED', etc.
+
+    const where: any = {
+      participants: {
+        some: {
+          id: userId,
+        },
+      },
+    };
+
+    if (status) {
+      where.status = status;
+    }
+
+    const matches = await prisma.match.findMany({
+      where,
+      include: {
+        participants: {
+          select: {
+            id: true,
+            username: true,
+            displayName: true,
+            eloRating: true,
+          },
+        },
+        results: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                username: true,
+                displayName: true,
+              },
+            },
+          },
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+
+    // Separate active and completed matches
+    const activeMatches = matches.filter(
+      (m) => m.status === 'IN_PROGRESS' || m.status === 'READY_CHECK'
+    );
+    const completedMatches = matches.filter((m) => m.status === 'COMPLETED');
+
+    // For async matches, check if user has submitted answers
+    const activeAsyncMatches = activeMatches.filter((m) => {
+      if (!m.isAsync) return true;
+      // Check if user has already submitted
+      const userResult = m.results.find((r) => r.userId === userId);
+      return !userResult; // Only include if user hasn't submitted yet
+    });
+
+    res.json({
+      status: 'success',
+      data: {
+        activeMatches: activeAsyncMatches,
+        completedMatches,
+        allMatches: matches,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Create a CPU match for onboarding
+ */
+export const createCPUMatch = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { language } = req.body;
+
+    if (!language) {
+      throw new AppError('Language is required', 400);
+    }
+
+    const validLanguages = ['PORTUGUESE', 'SPANISH', 'ENGLISH', 'ITALIAN', 'FRENCH', 'GERMAN', 'JAPANESE', 'KOREAN'];
+    if (!validLanguages.includes(language)) {
+      throw new AppError('Invalid language', 400);
+    }
+
+    // Create CPU match
+    const match = await cpuOpponentService.createCPUMatch(req.userId!, language as Language);
+
+    res.json({
+      status: 'success',
+      data: { match },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Submit result for CPU match
+ */
+export const submitCPUMatchResult = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { matchId, answers } = req.body;
+
+    // Check if it's a CPU match
+    const isCPU = await cpuOpponentService.isCPUMatch(matchId);
+    if (!isCPU) {
+      throw new AppError('Not a CPU match', 400);
+    }
+
+    // Complete the CPU match
+    const result = await cpuOpponentService.completeCPUMatch(
+      matchId,
+      req.userId!,
+      answers
+    );
+
+    // Emit match completed event
+    socketService.emitToUser(req.userId!, 'match:completed', result);
+
+    res.json({
+      status: 'success',
+      data: result,
     });
   } catch (error) {
     next(error);

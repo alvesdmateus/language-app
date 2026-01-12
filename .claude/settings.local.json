@@ -25,7 +25,14 @@
       "Bash(npx ts-node:*)",
       "Bash(npm run prisma:seed:*)",
       "Bash(cat:*)",
-      "Bash(npx react-native start --reset-cache)"
+      "Bash(npx react-native start --reset-cache)",
+      "Bash(timeout:*)",
+      "Bash(npm run prisma:generate:*)",
+      "Bash(ping:*)",
+      "Bash(npm run prisma:migrate:*)",
+      "Bash(tasklist:*)",
+      "Bash(PGPASSWORD=314159 psql:*)",
+      "Bash(pkill:*)"
     ]
   }
 }

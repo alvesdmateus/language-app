@@ -106,3 +106,76 @@ export const getDivisionLeaderboard = async (
     next(error);
   }
 };
+
+export const updateFavoriteLanguage = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { language } = req.body;
+
+    if (!language) {
+      throw new AppError('Language is required', 400);
+    }
+
+    const validLanguages = ['PORTUGUESE', 'SPANISH', 'ENGLISH', 'ITALIAN', 'FRENCH', 'GERMAN', 'JAPANESE', 'KOREAN'];
+    if (!validLanguages.includes(language)) {
+      throw new AppError('Invalid language', 400);
+    }
+
+    const user = await prisma.user.update({
+      where: { id: req.userId! },
+      data: { favoriteLanguage: language },
+      select: {
+        id: true,
+        email: true,
+        username: true,
+        displayName: true,
+        favoriteLanguage: true,
+        onboardingCompleted: true,
+        tutorialStep: true,
+      },
+    });
+
+    res.json({
+      status: 'success',
+      data: { user },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const completeOnboarding = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const user = await prisma.user.update({
+      where: { id: req.userId! },
+      data: {
+        onboardingCompleted: true,
+        tutorialStep: 100, // Mark as fully completed
+      },
+      select: {
+        id: true,
+        email: true,
+        username: true,
+        displayName: true,
+        favoriteLanguage: true,
+        onboardingCompleted: true,
+        tutorialStep: true,
+      },
+    });
+
+    res.json({
+      status: 'success',
+      data: { user },
+      message: 'Onboarding completed successfully!',
+    });
+  } catch (error) {
+    next(error);
+  }
+};
