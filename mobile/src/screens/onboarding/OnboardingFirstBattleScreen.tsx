@@ -92,13 +92,13 @@ const OnboardingFirstBattleScreen = () => {
         {/* Hero Section */}
         <View style={styles.heroSection}>
           <Text style={styles.emoji}>⚔️</Text>
-          <Text style={styles.title}>Time for Your First Battle!</Text>
+          <Text style={styles.title}>Ready to Battle?</Text>
           <Text style={styles.subtitle}>
-            Let's test your skills in a practice match against our Training Bot
+            Practice against our Training Bot - we'll guide you through!
           </Text>
         </View>
 
-        {/* Training Bot Card */}
+        {/* Training Bot Card - Simplified */}
         <View style={styles.botCard}>
           <View style={styles.botHeader}>
             <Text style={styles.botEmoji}>🤖</Text>
@@ -108,40 +108,20 @@ const OnboardingFirstBattleScreen = () => {
             </View>
           </View>
 
-          <View style={styles.botStats}>
-            <View style={styles.statItem}>
-              <Text style={styles.statLabel}>ELO Rating</Text>
-              <Text style={styles.statValue}>800</Text>
+          <View style={styles.quickInfo}>
+            <View style={styles.quickInfoItem}>
+              <Text style={styles.quickInfoIcon}>📝</Text>
+              <Text style={styles.quickInfoText}>5 questions</Text>
             </View>
-            <View style={styles.statDivider} />
-            <View style={styles.statItem}>
-              <Text style={styles.statLabel}>Difficulty</Text>
-              <Text style={styles.statValue}>Easy</Text>
+            <View style={styles.quickInfoItem}>
+              <Text style={styles.quickInfoIcon}>⏱️</Text>
+              <Text style={styles.quickInfoText}>45s each</Text>
             </View>
-          </View>
-
-          <View style={styles.botFeatures}>
-            <View style={styles.featureRow}>
-              <Text style={styles.featureBullet}>•</Text>
-              <Text style={styles.featureText}>5 questions at easy difficulty</Text>
-            </View>
-            <View style={styles.featureRow}>
-              <Text style={styles.featureBullet}>•</Text>
-              <Text style={styles.featureText}>45 seconds per question</Text>
-            </View>
-            <View style={styles.featureRow}>
-              <Text style={styles.featureBullet}>•</Text>
-              <Text style={styles.featureText}>No ELO changes (practice only)</Text>
+            <View style={styles.quickInfoItem}>
+              <Text style={styles.quickInfoIcon}>🎯</Text>
+              <Text style={styles.quickInfoText}>Easy mode</Text>
             </View>
           </View>
-        </View>
-
-        {/* Tips Section */}
-        <View style={styles.tipsCard}>
-          <Text style={styles.tipsTitle}>💡 Quick Tips</Text>
-          <Text style={styles.tipsText}>
-            Answer correctly and quickly to win. If you tie on accuracy, the fastest time wins!
-          </Text>
         </View>
 
         {/* Start Button */}
@@ -153,13 +133,13 @@ const OnboardingFirstBattleScreen = () => {
           {isLoading ? (
             <ActivityIndicator color="#FFFFFF" size="small" />
           ) : (
-            <Text style={styles.startButtonText}>Start Battle</Text>
+            <Text style={styles.startButtonText}>Let's Go!</Text>
           )}
         </TouchableOpacity>
 
         {/* Info Text */}
         <Text style={styles.infoText}>
-          This is a practice match to help you learn the game
+          Don't worry - we'll show you how everything works
         </Text>
       </Animated.View>
     </View>
@@ -174,38 +154,39 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     paddingHorizontal: 24,
-    paddingTop: 60,
-    paddingBottom: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   heroSection: {
     alignItems: 'center',
-    marginBottom: 32,
+    marginBottom: 40,
   },
   emoji: {
-    fontSize: 64,
-    marginBottom: 16,
+    fontSize: 80,
+    marginBottom: 20,
   },
   title: {
-    fontSize: 28,
+    fontSize: 32,
     fontWeight: 'bold',
     color: '#FFFFFF',
     textAlign: 'center',
     marginBottom: 12,
   },
   subtitle: {
-    fontSize: 16,
+    fontSize: 17,
     color: '#8B98A5',
     textAlign: 'center',
     lineHeight: 24,
-    paddingHorizontal: 20,
+    paddingHorizontal: 10,
   },
   botCard: {
     backgroundColor: '#1A2332',
-    borderRadius: 16,
+    borderRadius: 20,
     padding: 24,
-    marginBottom: 20,
+    marginBottom: 40,
     borderWidth: 2,
     borderColor: '#2A3A4A',
+    width: '100%',
   },
   botHeader: {
     flexDirection: 'row',
@@ -230,82 +211,35 @@ const styles = StyleSheet.create({
     color: '#4CAF50',
     fontWeight: '600',
   },
-  botStats: {
+  quickInfo: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    marginBottom: 20,
-    paddingVertical: 16,
-    backgroundColor: '#0F1419',
-    borderRadius: 12,
   },
-  statItem: {
-    alignItems: 'center',
-    flex: 1,
-  },
-  statDivider: {
-    width: 1,
-    backgroundColor: '#2A3A4A',
-  },
-  statLabel: {
-    fontSize: 12,
-    color: '#8B98A5',
-    marginBottom: 6,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  statValue: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
-  },
-  botFeatures: {
-    gap: 12,
-  },
-  featureRow: {
-    flexDirection: 'row',
+  quickInfoItem: {
     alignItems: 'center',
   },
-  featureBullet: {
-    fontSize: 18,
-    color: '#1E88E5',
-    marginRight: 12,
-    width: 20,
-  },
-  featureText: {
-    fontSize: 15,
-    color: '#D1D5DB',
-    flex: 1,
-  },
-  tipsCard: {
-    backgroundColor: '#1A2F3A',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 32,
-    borderLeftWidth: 4,
-    borderLeftColor: '#FFC107',
-  },
-  tipsTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
+  quickInfoIcon: {
+    fontSize: 28,
     marginBottom: 8,
   },
-  tipsText: {
+  quickInfoText: {
     fontSize: 14,
     color: '#D1D5DB',
-    lineHeight: 20,
+    fontWeight: '600',
   },
   startButton: {
     backgroundColor: '#1E88E5',
-    paddingVertical: 18,
-    borderRadius: 12,
+    paddingVertical: 20,
+    paddingHorizontal: 60,
+    borderRadius: 30,
     alignItems: 'center',
     marginBottom: 16,
     shadowColor: '#1E88E5',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
+    shadowOpacity: 0.4,
     shadowRadius: 8,
-    elevation: 4,
+    elevation: 6,
+    width: '100%',
   },
   startButtonDisabled: {
     backgroundColor: '#4A5568',
@@ -313,15 +247,14 @@ const styles = StyleSheet.create({
   },
   startButtonText: {
     color: '#FFFFFF',
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: 'bold',
     letterSpacing: 0.5,
   },
   infoText: {
-    fontSize: 13,
+    fontSize: 14,
     color: '#8B98A5',
     textAlign: 'center',
-    fontStyle: 'italic',
   },
 });
 

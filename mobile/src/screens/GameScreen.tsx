@@ -14,6 +14,46 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Match, Question, AnswerData, PowerUpType, ActiveEffect } from '../types';
 import { matchService } from '../services/api';
 import { useWebSocket } from '../context/WebSocketContext';
+import OnboardingGuide, { GuideStep } from '../components/OnboardingGuide';
+
+// Onboarding guide steps for first battle
+const ONBOARDING_GUIDE_STEPS: GuideStep[] = [
+  {
+    id: 'welcome',
+    title: 'Your First Battle!',
+    description: 'Answer 5 questions as quickly and accurately as you can. Beat the Training Bot to win!',
+    position: 'center',
+    arrow: 'none',
+  },
+  {
+    id: 'timer',
+    title: 'Watch the Timer',
+    description: 'You have 45 seconds per question. The faster you answer correctly, the better your chances of winning!',
+    position: 'top',
+    arrow: 'up',
+  },
+  {
+    id: 'question',
+    title: 'Read Carefully',
+    description: 'Each question tests your language skills. Read the question and choose the best answer from the options below.',
+    position: 'center',
+    arrow: 'none',
+  },
+  {
+    id: 'answer',
+    title: 'Tap to Answer',
+    description: 'Select your answer by tapping on it. You can change your selection before submitting.',
+    position: 'bottom',
+    arrow: 'down',
+  },
+  {
+    id: 'submit',
+    title: 'Ready to Go!',
+    description: 'Once you select an answer, tap "Next Question" to move on. Good luck!',
+    position: 'bottom',
+    arrow: 'down',
+  },
+];
 
 const GameScreen = () => {
   const navigation = useNavigation();
@@ -50,6 +90,11 @@ const GameScreen = () => {
   const [powerUpCooldown, setPowerUpCooldown] = useState(0);
   const [activeEffects, setActiveEffects] = useState<ActiveEffect[]>([]);
   const [timerModifier, setTimerModifier] = useState(1.0);
+
+  // Onboarding guide state
+  const [showOnboardingGuide, setShowOnboardingGuide] = useState(isCPUMatch || false);
+  const [onboardingStep, setOnboardingStep] = useState(0);
+  const [guidePaused, setGuidePaused] = useState(isCPUMatch || false);
 
   const isAsync = match.isAsync || false;
   const powerUpsEnabled = match.powerUpsEnabled || false;
@@ -200,15 +245,31 @@ const GameScreen = () => {
   }, [isAsync, match.turnDeadlineAt]);
 
   useEffect(() => {
-    // Only start question timer for synchronous matches
-    if (!isAsync) {
+    // Only start question timer for synchronous matches and when guide is not paused
+    if (!isAsync && !guidePaused) {
       startQuestionTimer();
     }
     animateProgress();
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [currentQuestionIndex, isAsync]);
+  }, [currentQuestionIndex, isAsync, guidePaused]);
+
+  // Onboarding guide handlers
+  const handleOnboardingStepComplete = () => {
+    if (onboardingStep < ONBOARDING_GUIDE_STEPS.length - 1) {
+      setOnboardingStep(prev => prev + 1);
+    } else {
+      // Guide complete, start the game
+      setShowOnboardingGuide(false);
+      setGuidePaused(false);
+    }
+  };
+
+  const handleOnboardingSkip = () => {
+    setShowOnboardingGuide(false);
+    setGuidePaused(false);
+  };
 
   // Socket event listeners for match connection events
   useEffect(() => {
@@ -874,16 +935,27 @@ const GameScreen = () => {
         <TouchableOpacity
           style={[
             styles.nextButton,
-            (!selectedAnswer || isPaused) && styles.nextButtonDisabled,
+            (!selectedAnswer || isPaused || guidePaused) && styles.nextButtonDisabled,
           ]}
           onPress={handleNextQuestion}
-          disabled={!selectedAnswer || isPaused}
+          disabled={!selectedAnswer || isPaused || guidePaused}
         >
           <Text style={styles.nextButtonText}>
             {isLastQuestion ? 'Submit Match' : 'Next Question'}
           </Text>
         </TouchableOpacity>
       </View>
+
+      {/* Onboarding Guide Overlay */}
+      {isCPUMatch && (
+        <OnboardingGuide
+          steps={ONBOARDING_GUIDE_STEPS}
+          currentStep={onboardingStep}
+          onStepComplete={handleOnboardingStepComplete}
+          onSkip={handleOnboardingSkip}
+          visible={showOnboardingGuide}
+        />
+      )}
     </View>
   );
 };

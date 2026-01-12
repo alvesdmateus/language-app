@@ -4,7 +4,8 @@
 
 ### Core Game Logic
 - ✅ Multi-language ELO system (8 languages: Portuguese, Spanish, English, Italian, French, German, Japanese, Korean)
-- ✅ Winner determination system (accuracy → speed → draw)
+- ✅ Winner determination system (accuracy → speed → draw
+)
 - ✅ Multiple choice questions (4 options)
 - ✅ Text comprehension and grammar question types
 - ✅ Question difficulty levels (Easy, Medium, Hard)
@@ -86,25 +87,22 @@
 - Margins tightened throughout (12-16px)
 - Flip animation: tension 10→15, friction 8→7 (50% snappier)
 
-### 2. Onboarding System (IN PROGRESS - 70% Complete) 🚧
-**Phase 1 - Completed:** ✅
-- ✅ Database schema updated (onboardingCompleted, favoriteLanguage, tutorialStep)
+### 2. Onboarding System (COMPLETED! ✅)
+**Interactive Guided First Battle Flow:**
+- ✅ Database schema (onboardingCompleted, favoriteLanguage, tutorialStep)
 - ✅ Backend API endpoints (`/favorite-language`, `/complete-onboarding`)
-- ✅ Frontend types updated
+- ✅ CPU opponent service with 60-70% accuracy (beginner-friendly)
+- ✅ CPU match endpoints (`/match/cpu`, `/match/cpu/submit`)
 - ✅ Welcome screen with animations
-- ✅ 4-step tutorial screen (Battle, Timer, Power-Ups, Rankings)
 - ✅ Language selection screen (8 languages)
-- ✅ API integration for saving preferences
+- ✅ Streamlined first battle intro screen
+- ✅ **Guided overlay system** - Interactive tooltips during gameplay
+- ✅ **Celebration screen** - Confetti, achievement unlocked, rewarding finish
+- ✅ Navigation integration (automatic onboarding check)
+- ✅ Auth context with `completeOnboarding()` method
 
-**Phase 2 - Remaining:**
-- [ ] CPU opponent service (backend logic)
-- [ ] First Battle screen (introduce CPU match)
-- [ ] Navigation integration (onboarding check)
-- [ ] Auth context updates (refresh user after onboarding)
-- [ ] CPU match endpoint and logic
-- [ ] End-to-end testing
-
-**See:** `ONBOARDING_IMPLEMENTATION.md` for detailed implementation status
+**Flow:** Welcome → Language Selection → First Battle (with guides) → Celebration → Home
+**Duration:** < 60 seconds for fast onboarding experience
 
 ### 3. Enhanced Timer Visualization
 **TODO:**
@@ -217,7 +215,7 @@
 
 ## 📊 CURRENT STATUS
 
-**Last Updated:** January 8, 2026
+**Last Updated:** January 9, 2026
 
 **Recently Completed:**
 
@@ -236,17 +234,17 @@
    - Reduced blank space throughout
    - Better content-to-space ratio
 
-3. **Onboarding System - Phase 1** 🚧 (Jan 8 - 70% Complete)
-   - Database schema with onboarding fields
-   - Backend API endpoints for onboarding
-   - Welcome screen with animations
-   - 4-step interactive tutorial
-   - Language selection screen
-   - API integration complete
+3. **Onboarding System** ✅ (Jan 9 - COMPLETE!)
+   - Interactive guided first battle approach
+   - CPU opponent service (60-70% accuracy, beginner-friendly)
+   - Guided overlay component with step-by-step tooltips
+   - Celebration screen with confetti and achievement feel
+   - < 60 second onboarding experience
+   - Streamlined flow: Welcome → Language → Battle → Celebration
 
 **Next Sprint Focus:**
 1. ~~Fix flashcard issues~~ ✅ DONE
-2. Complete onboarding flow (CPU opponent, navigation integration)
+2. ~~Complete onboarding flow~~ ✅ DONE
 3. Enhance timer visualization
 4. Start question generation system
 
@@ -261,25 +259,25 @@
 ## 🎯 IMMEDIATE NEXT STEPS
 
 ### ~~This Week~~ ✅ COMPLETED
-1. ~~**Fix Flashcards** (1-2 days)~~ ✅ DONE
+1. ~~**Fix Flashcards**~~ ✅ DONE
    - ✅ Adjust layout and proportions
    - ✅ Implement flip animation
    - ✅ Fix button visibility
    - ✅ Add keyword tooltips
 
-### This Week (Current)
-2. **Start Onboarding** (2-3 days)
-   - Design onboarding flow
-   - Create tutorial screens
-   - Implement language selection
-   - Build CPU opponent logic
+2. ~~**Onboarding System**~~ ✅ DONE
+   - ✅ Streamlined flow (Welcome → Language → Battle → Celebration)
+   - ✅ Interactive guided overlays during gameplay
+   - ✅ CPU opponent for first battle
+   - ✅ Celebration screen with rewards feel
 
-### Next Week
-3. **Enhanced Timer** (1-2 days)
+### Next Priority
+3. **Enhanced Timer**
    - Burning rope animation
    - Power-up visual effects
+   - Color transitions (green → yellow → red)
 
-4. **Question Generation** (Ongoing)
+4. **Question Generation**
    - Research AI/API options
    - Design question templates
    - Build generation pipeline

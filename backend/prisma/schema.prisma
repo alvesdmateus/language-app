@@ -163,6 +163,7 @@ model Match {
 
   // CPU match (onboarding first battle)
   isCPUMatch Boolean @default(false)
+  cpuResult  Json?  // { score: number, correctAnswers: number, totalTimeMs: number, answers: {...} }
 
   // Connection and sync tracking
   playerConnections Json?  // { userId: { connected: boolean, lastSeen: ISO string, disconnectedAt: ISO string } }

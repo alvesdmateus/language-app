@@ -40,20 +40,18 @@ const MatchResultsScreen = () => {
     ]).start();
   }, []);
 
-  // Complete onboarding if this was a CPU match (first battle)
+  // Navigate to celebration screen if this was a CPU match (first battle)
   useEffect(() => {
     if (isCPUMatch && user && !user.onboardingCompleted) {
-      const handleOnboardingCompletion = async () => {
-        try {
-          // Wait a moment to let user see results
-          await new Promise((resolve) => setTimeout(resolve, 2000));
-          await completeOnboarding();
-        } catch (error) {
-          console.error('Failed to complete onboarding:', error);
-        }
-      };
+      // Wait a moment to let user see results, then go to celebration
+      const timer = setTimeout(() => {
+        navigation.navigate('OnboardingCelebration' as never, {
+          result,
+          isWinner: result.winnerId === user?.id,
+        } as never);
+      }, 2500);
 
-      handleOnboardingCompletion();
+      return () => clearTimeout(timer);
     }
   }, [isCPUMatch, user?.onboardingCompleted]);
 

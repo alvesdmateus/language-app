@@ -21,6 +21,7 @@ import OnboardingWelcomeScreen from '../screens/onboarding/OnboardingWelcomeScre
 import OnboardingTutorialScreen from '../screens/onboarding/OnboardingTutorialScreen';
 import OnboardingLanguageScreen from '../screens/onboarding/OnboardingLanguageScreen';
 import OnboardingFirstBattleScreen from '../screens/onboarding/OnboardingFirstBattleScreen';
+import OnboardingCelebrationScreen from '../screens/onboarding/OnboardingCelebrationScreen';
 import { RootStackParamList } from '../types';
 
 // Tab Screens
@@ -157,6 +158,7 @@ const RootNavigator = () => {
           <Stack.Screen name="OnboardingFirstBattle" component={OnboardingFirstBattleScreen} />
           <Stack.Screen name="Game" component={GameScreen} />
           <Stack.Screen name="MatchResults" component={MatchResultsScreen} />
+          <Stack.Screen name="OnboardingCelebration" component={OnboardingCelebrationScreen} />
         </>
       ) : (
         // Main app screens

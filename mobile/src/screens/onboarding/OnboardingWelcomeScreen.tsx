@@ -33,7 +33,8 @@ const OnboardingWelcomeScreen = () => {
   }, []);
 
   const handleStart = () => {
-    navigation.navigate('OnboardingTutorial' as never);
+    // Skip tutorial - go directly to language selection for faster onboarding
+    navigation.navigate('OnboardingLanguage' as never);
   };
 
   return (

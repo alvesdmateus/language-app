@@ -210,6 +210,7 @@ export type RootStackParamList = {
   OnboardingTutorial: undefined;
   OnboardingLanguage: undefined;
   OnboardingFirstBattle: { language: Language };
+  OnboardingCelebration: { result: MatchCompletedEvent; isWinner: boolean };
   DailyQuiz: undefined;
   Matchmaking: { language?: Language; mode?: MatchType };
   BattleMode: { language: Language };

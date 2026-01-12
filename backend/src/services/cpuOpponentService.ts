@@ -136,8 +136,8 @@ class CPUOpponentService {
    * Create a CPU match for onboarding
    */
   async createCPUMatch(userId: string, language: Language): Promise<any> {
-    // Get 5 easy questions for the first battle
-    const questions = await prisma.question.findMany({
+    // Get easy questions first, then medium as fallback for beginner-friendly experience
+    let questions = await prisma.question.findMany({
       where: {
         language,
         difficulty: QuestionDifficulty.EASY,
@@ -148,8 +148,38 @@ class CPUOpponentService {
       },
     });
 
+    // If not enough easy questions, supplement with medium ones
     if (questions.length < 5) {
-      throw new Error('Not enough questions available for CPU match');
+      const mediumQuestions = await prisma.question.findMany({
+        where: {
+          language,
+          difficulty: QuestionDifficulty.MEDIUM,
+        },
+        take: 5 - questions.length,
+        orderBy: {
+          createdAt: 'desc',
+        },
+      });
+      questions = [...questions, ...mediumQuestions];
+    }
+
+    // If still not enough, get any questions for this language
+    if (questions.length < 5) {
+      const anyQuestions = await prisma.question.findMany({
+        where: {
+          language,
+          id: { notIn: questions.map(q => q.id) },
+        },
+        take: 5 - questions.length,
+        orderBy: {
+          createdAt: 'desc',
+        },
+      });
+      questions = [...questions, ...anyQuestions];
+    }
+
+    if (questions.length < 5) {
+      throw new Error(`Not enough questions available for ${language}. Need 5, found ${questions.length}.`);
     }
 
     // Create match in database
@@ -193,16 +223,11 @@ class CPUOpponentService {
     // Generate CPU answers
     const cpuResult = this.generateCPUAnswers(questions);
 
-    // Store CPU answers in a temporary location (we'll use this when user submits)
-    // For now, we'll create a match result for the CPU immediately
-    await prisma.matchResult.create({
+    // Store CPU result directly on the match (avoids foreign key issues)
+    await prisma.match.update({
+      where: { id: match.id },
       data: {
-        matchId: match.id,
-        userId: this.CPU_ID, // Special CPU user ID
-        score: cpuResult.score,
-        correctAnswers: cpuResult.correctAnswers,
-        totalTimeMs: cpuResult.totalTimeMs,
-        answers: cpuResult.answers as any,
+        cpuResult: cpuResult as any,
       },
     });
 
@@ -223,17 +248,14 @@ class CPUOpponentService {
     // Get match
     const match = await prisma.match.findUnique({
       where: { id: matchId },
-      include: {
-        results: true,
-      },
     });
 
     if (!match || !match.isCPUMatch) {
       throw new Error('Invalid CPU match');
     }
 
-    // Get CPU result
-    const cpuResult = match.results.find(r => r.userId === this.CPU_ID);
+    // Get CPU result from the match's cpuResult field
+    const cpuResult = match.cpuResult as unknown as CPUMatchResult | null;
     if (!cpuResult) {
       throw new Error('CPU result not found');
     }
