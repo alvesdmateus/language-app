@@ -80,6 +80,8 @@ export async function getUserStats(userId: string) {
       longestStreak: true,
       lastActiveDate: true,
       createdAt: true,
+      onboardingCompleted: true,
+      favoriteLanguage: true,
       _count: {
         select: {
           dailyQuizzes: true,
