@@ -32,7 +32,11 @@
       "Bash(npm run prisma:migrate:*)",
       "Bash(tasklist:*)",
       "Bash(PGPASSWORD=314159 psql:*)",
-      "Bash(pkill:*)"
+      "Bash(pkill:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(gh pr create:*)"
     ]
   }
 }
