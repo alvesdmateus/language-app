@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-Competitive language learning app where users complete daily quizzes and compete in real-time ELO-rated matches across 8 languages. Backend API is production-ready; mobile client (React Native/Expo) has been removed in favor of an upcoming web client (React + Vite).
+Competitive language learning app where users complete daily quizzes and compete in real-time ELO-rated matches across 8 languages. Backend API is production-ready; mobile client built with React Native + Expo.
 
 ## Tech Stack
 
@@ -11,7 +11,7 @@ Competitive language learning app where users complete daily quizzes and compete
 - **Real-time**: Socket.IO (WebSocket with long-polling fallback)
 - **Auth**: JWT (jsonwebtoken + bcryptjs)
 - **Security**: helmet, cors, compression
-- **Web (planned)**: React + Vite + TypeScript
+- **Mobile**: React Native + Expo + TypeScript
 
 ## Directory Structure
 
@@ -30,7 +30,7 @@ language-app/
 │   │   ├── schema.prisma         # Database schema (source of truth)
 │   │   └── seed.ts               # Seeds questions + sample users
 │   └── package.json
-├── web/                          # React + Vite frontend (to be built)
+├── mobile/                       # React Native + Expo mobile client
 ├── docker-compose.yml            # PostgreSQL + backend
 ├── DIVISIONS.md                  # Division system details
 ├── MATCHMAKING.md                # ELO and matchmaking algorithms
@@ -231,6 +231,11 @@ npm run prisma:migrate   # Run migrations
 npm run prisma:studio    # DB GUI (port 5555)
 npm run prisma:seed      # Seed questions + users
 
+# Mobile
+cd mobile
+npm install              # Install dependencies
+npx expo start           # Start Expo dev server
+
 # Docker
 docker-compose up        # PostgreSQL (5432) + backend (3000)
 ```
@@ -255,4 +260,4 @@ CORS_ORIGIN=http://localhost:19006
 - **Prisma**: Single client in `utils/db.ts`; import as `import prisma from '../utils/db'`
 - **Routes**: `Router()` + `authenticate` middleware + controller function; routes mounted in `index.ts`
 - **Onboarding**: CPU matches (`isCPUMatch`) for first-battle experience; `user.onboardingCompleted` flag
-- **Mobile removed**: The `mobile/` directory has been deleted; web client will replace it
+- **Mobile client**: React Native + Expo app in `mobile/`; uses same API and WebSocket events
