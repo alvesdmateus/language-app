@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import { matchService } from '../services/api';
 import { useWebSocket } from '../context/WebSocketContext';
+import { colors, gradients, spacing, radii, shadows, typography, commonStyles } from '../theme';
 
 const MatchmakingScreen = () => {
   const route = useRoute();
@@ -149,11 +152,21 @@ const MatchmakingScreen = () => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Matchmaking</Text>
+      {/* Header */}
+      <LinearGradient
+        colors={gradients.secondary}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.headerGradient}
+      >
+        <MaterialCommunityIcons name="sword-cross" size={28} color={colors.textInverse} />
+        <Text style={styles.title}>Matchmaking</Text>
+      </LinearGradient>
 
       {!connected && (
         <View style={styles.warningBox}>
-          <Text style={styles.warningText}>⚠️ Connecting to server...</Text>
+          <Ionicons name="warning-outline" size={18} color="#856404" style={{ marginRight: spacing.sm }} />
+          <Text style={styles.warningText}>Connecting to server...</Text>
         </View>
       )}
 
@@ -162,43 +175,81 @@ const MatchmakingScreen = () => {
           <Text style={styles.subtitle}>Choose your game mode</Text>
 
           <TouchableOpacity
-            style={[styles.button, styles.rankedButton]}
+            style={styles.button}
             onPress={() => findMatch('RANKED')}
             disabled={!connected}
+            activeOpacity={0.8}
           >
-            <Text style={styles.buttonTitle}>Ranked Match</Text>
-            <Text style={styles.buttonSubtitle}>Compete for ELO rating</Text>
+            <LinearGradient
+              colors={gradients.ranked}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.buttonGradient}
+            >
+              <Ionicons name="trophy" size={24} color={colors.textInverse} style={{ marginRight: spacing.md }} />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.buttonTitle}>Ranked Match</Text>
+                <Text style={styles.buttonSubtitle}>Compete for ELO rating</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={22} color={colors.textInverse} />
+            </LinearGradient>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.button, styles.casualButton]}
+            style={styles.button}
             onPress={() => findMatch('CASUAL')}
             disabled={!connected}
+            activeOpacity={0.8}
           >
-            <Text style={styles.buttonTitle}>Casual Match</Text>
-            <Text style={styles.buttonSubtitle}>Practice without pressure</Text>
+            <LinearGradient
+              colors={gradients.casual}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.buttonGradient}
+            >
+              <Ionicons name="game-controller" size={24} color={colors.textInverse} style={{ marginRight: spacing.md }} />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.buttonTitle}>Casual Match</Text>
+                <Text style={styles.buttonSubtitle}>Practice without pressure</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={22} color={colors.textInverse} />
+            </LinearGradient>
           </TouchableOpacity>
         </>
       ) : searching || routeMode ? (
         <View style={styles.searchingContainer}>
-          <ActivityIndicator size="large" color="#007AFF" />
+          <View style={styles.searchingPulse}>
+            <MaterialCommunityIcons name="sword-cross" size={40} color={colors.secondary} />
+          </View>
+          <ActivityIndicator size="large" color={colors.secondary} style={{ marginTop: spacing.xl }} />
           <Text style={styles.searchingText}>
             Searching for {matchType?.toLowerCase()} opponent...
           </Text>
 
           {lobbyStatus && (
             <View style={styles.lobbyInfo}>
-              <Text style={styles.lobbyText}>
-                Players in lobby: {lobbyStatus.totalPlayers}
-              </Text>
-              <Text style={styles.lobbyText}>
-                {matchType === 'RANKED' ? 'Ranked' : 'Casual'}: {' '}
-                {matchType === 'RANKED' ? lobbyStatus.rankedPlayers : lobbyStatus.casualPlayers}
-              </Text>
+              <View style={styles.lobbyRow}>
+                <Ionicons name="people" size={18} color={colors.textSecondary} />
+                <Text style={styles.lobbyText}>
+                  Players in lobby: {lobbyStatus.totalPlayers}
+                </Text>
+              </View>
+              <View style={styles.lobbyRow}>
+                <Ionicons
+                  name={matchType === 'RANKED' ? 'trophy' : 'game-controller'}
+                  size={18}
+                  color={colors.textSecondary}
+                />
+                <Text style={styles.lobbyText}>
+                  {matchType === 'RANKED' ? 'Ranked' : 'Casual'}:{' '}
+                  {matchType === 'RANKED' ? lobbyStatus.rankedPlayers : lobbyStatus.casualPlayers}
+                </Text>
+              </View>
             </View>
           )}
 
-          <TouchableOpacity style={styles.cancelButton} onPress={handleCancelSearch}>
+          <TouchableOpacity style={styles.cancelButton} onPress={handleCancelSearch} activeOpacity={0.8}>
+            <Ionicons name="close-circle-outline" size={20} color={colors.textInverse} style={{ marginRight: spacing.sm }} />
             <Text style={styles.cancelButtonText}>Cancel Search</Text>
           </TouchableOpacity>
         </View>
@@ -210,89 +261,116 @@ const MatchmakingScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 20,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: colors.background,
+  },
+  headerGradient: {
+    paddingTop: 56,
+    paddingBottom: spacing.xl,
+    paddingHorizontal: spacing.xl,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
   },
   title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginTop: 40,
-    marginBottom: 10,
+    ...typography.h2,
+    color: colors.textInverse,
   },
   subtitle: {
-    fontSize: 16,
-    color: '#666',
-    marginBottom: 30,
+    ...typography.subtitle,
+    color: colors.textSecondary,
+    marginHorizontal: spacing.xl,
+    marginTop: spacing.xl,
+    marginBottom: spacing.xxxl,
   },
   warningBox: {
-    backgroundColor: '#FFF3CD',
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 20,
+    backgroundColor: colors.goldLight,
+    padding: spacing.md,
+    borderRadius: radii.sm,
+    marginHorizontal: spacing.xl,
+    marginTop: spacing.lg,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   warningText: {
     color: '#856404',
     textAlign: 'center',
-    fontSize: 14,
+    ...typography.bodySmall,
   },
   button: {
-    padding: 20,
-    borderRadius: 12,
-    marginBottom: 20,
+    marginHorizontal: spacing.xl,
+    marginBottom: spacing.xl,
+    borderRadius: radii.lg,
+    overflow: 'hidden',
+    ...shadows.lg,
   },
-  rankedButton: {
-    backgroundColor: '#FF3B30',
-  },
-  casualButton: {
-    backgroundColor: '#34C759',
+  buttonGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: spacing.xl,
   },
   buttonTitle: {
-    color: 'white',
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 5,
+    color: colors.textInverse,
+    ...typography.h3,
   },
   buttonSubtitle: {
-    color: 'rgba(255, 255, 255, 0.9)',
-    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.85)',
+    ...typography.bodySmall,
+    marginTop: spacing.xs,
   },
   searchingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingTop: 60,
+    paddingHorizontal: spacing.xl,
+  },
+  searchingPulse: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: colors.secondaryLight,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   searchingText: {
     textAlign: 'center',
-    fontSize: 18,
-    color: '#007AFF',
-    marginTop: 20,
-    fontWeight: '600',
+    ...typography.title,
+    color: colors.secondary,
+    marginTop: spacing.xl,
   },
   lobbyInfo: {
-    marginTop: 30,
-    padding: 20,
-    backgroundColor: 'white',
-    borderRadius: 12,
+    marginTop: spacing.xxxl,
+    padding: spacing.xl,
+    backgroundColor: colors.surface,
+    borderRadius: radii.lg,
     width: '100%',
+    ...shadows.sm,
+    gap: spacing.md,
+  },
+  lobbyRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
   },
   lobbyText: {
-    fontSize: 16,
-    color: '#333',
-    marginBottom: 8,
+    ...typography.body,
+    color: colors.textPrimary,
     textAlign: 'center',
   },
   cancelButton: {
-    marginTop: 40,
-    backgroundColor: '#FF3B30',
-    paddingHorizontal: 40,
-    paddingVertical: 15,
-    borderRadius: 8,
+    marginTop: spacing.xxxl + spacing.sm,
+    backgroundColor: colors.danger,
+    paddingHorizontal: spacing.xxxl + spacing.sm,
+    paddingVertical: spacing.lg,
+    borderRadius: radii.pill,
+    flexDirection: 'row',
+    alignItems: 'center',
+    ...shadows.dangerButton,
   },
   cancelButtonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: 'bold',
+    color: colors.textInverse,
+    ...typography.button,
   },
 });
 

@@ -8,6 +8,9 @@ import {
   Dimensions,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+import { colors, gradients, spacing, radii, shadows, typography } from '../../theme';
 
 const { width, height } = Dimensions.get('window');
 
@@ -38,7 +41,12 @@ const OnboardingWelcomeScreen = () => {
   };
 
   return (
-    <View style={styles.container}>
+    <LinearGradient
+      colors={gradients.secondary}
+      style={styles.container}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
+    >
       <Animated.View
         style={[
           styles.content,
@@ -50,9 +58,13 @@ const OnboardingWelcomeScreen = () => {
       >
         {/* Hero Icon */}
         <View style={styles.heroContainer}>
-          <Text style={styles.heroEmoji}>🌍</Text>
-          <Text style={styles.sparkle1}>✨</Text>
-          <Text style={styles.sparkle2}>✨</Text>
+          <Ionicons name="globe-outline" size={100} color={colors.textInverse} />
+          <View style={styles.sparkle1}>
+            <Ionicons name="sparkles" size={28} color={colors.gold} />
+          </View>
+          <View style={styles.sparkle2}>
+            <Ionicons name="sparkles" size={22} color={colors.gold} />
+          </View>
         </View>
 
         {/* Title */}
@@ -67,76 +79,71 @@ const OnboardingWelcomeScreen = () => {
         {/* Features */}
         <View style={styles.features}>
           <View style={styles.feature}>
-            <Text style={styles.featureIcon}>⚔️</Text>
+            <Ionicons name="flash" size={28} color={colors.accent} style={styles.featureIcon} />
             <Text style={styles.featureText}>Battle Players Worldwide</Text>
           </View>
           <View style={styles.feature}>
-            <Text style={styles.featureIcon}>🏆</Text>
+            <Ionicons name="trophy" size={28} color={colors.gold} style={styles.featureIcon} />
             <Text style={styles.featureText}>Climb the Rankings</Text>
           </View>
           <View style={styles.feature}>
-            <Text style={styles.featureIcon}>🔥</Text>
+            <Ionicons name="flame" size={28} color={colors.danger} style={styles.featureIcon} />
             <Text style={styles.featureText}>Use Strategic Power-Ups</Text>
           </View>
         </View>
 
         {/* CTA Button */}
         <TouchableOpacity style={styles.startButton} onPress={handleStart} activeOpacity={0.8}>
-          <Text style={styles.startButtonText}>Let's Get Started! 🚀</Text>
+          <Text style={styles.startButtonText}>Let's Get Started!</Text>
+          <Ionicons name="rocket" size={20} color={colors.secondary} style={{ marginLeft: spacing.sm }} />
         </TouchableOpacity>
 
         {/* Duration indicator */}
         <Text style={styles.duration}>Takes less than 60 seconds</Text>
       </Animated.View>
-    </View>
+    </LinearGradient>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#4A90E2',
   },
   content: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 30,
+    paddingHorizontal: spacing.xxxl,
   },
   heroContainer: {
     position: 'relative',
-    marginBottom: 30,
-  },
-  heroEmoji: {
-    fontSize: 100,
+    marginBottom: spacing.xxxl,
   },
   sparkle1: {
     position: 'absolute',
     top: -10,
     right: -20,
-    fontSize: 30,
   },
   sparkle2: {
     position: 'absolute',
     bottom: 10,
     left: -15,
-    fontSize: 24,
   },
   title: {
-    fontSize: 24,
+    ...typography.h2,
     color: 'rgba(255, 255, 255, 0.9)',
     fontWeight: '500',
-    marginBottom: 8,
+    marginBottom: spacing.sm,
   },
   appName: {
     fontSize: 42,
     fontWeight: 'bold',
-    color: 'white',
-    marginBottom: 16,
+    color: colors.textInverse,
+    marginBottom: spacing.lg,
     textAlign: 'center',
   },
   subtitle: {
-    fontSize: 16,
+    ...typography.body,
     color: 'rgba(255, 255, 255, 0.85)',
     textAlign: 'center',
     marginBottom: 50,
@@ -151,39 +158,35 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: 'rgba(255, 255, 255, 0.15)',
-    paddingVertical: 16,
-    paddingHorizontal: 20,
-    borderRadius: 12,
-    marginBottom: 12,
+    paddingVertical: spacing.lg,
+    paddingHorizontal: spacing.xl,
+    borderRadius: radii.md,
+    marginBottom: spacing.md,
   },
   featureIcon: {
-    fontSize: 28,
-    marginRight: 16,
+    marginRight: spacing.lg,
   },
   featureText: {
-    fontSize: 16,
-    color: 'white',
-    fontWeight: '600',
+    ...typography.subtitle,
+    color: colors.textInverse,
   },
   startButton: {
-    backgroundColor: 'white',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.surface,
     paddingVertical: 18,
     paddingHorizontal: 50,
-    borderRadius: 30,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
-    marginBottom: 16,
+    borderRadius: radii.full,
+    ...shadows.xl,
+    marginBottom: spacing.lg,
   },
   startButtonText: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#4A90E2',
+    ...typography.button,
+    color: colors.secondary,
   },
   duration: {
-    fontSize: 13,
+    ...typography.caption,
     color: 'rgba(255, 255, 255, 0.7)',
     fontStyle: 'italic',
   },

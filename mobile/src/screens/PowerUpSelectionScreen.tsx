@@ -8,10 +8,13 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { PowerUpType, MatchType, Language } from '../types';
 import { matchService } from '../services/api';
 import { useWebSocket } from '../context/WebSocketContext';
+import { colors, gradients, spacing, radii, shadows, typography, commonStyles } from '../theme';
 
 const PowerUpSelectionScreen = () => {
   const navigation = useNavigation();
@@ -30,8 +33,10 @@ const PowerUpSelectionScreen = () => {
     {
       type: PowerUpType.FREEZE,
       name: 'Freeze',
-      icon: '❄️',
-      color: '#4FC3F7',
+      icon: 'snowflake' as const,
+      color: colors.secondary,
+      colorLight: colors.secondaryLight,
+      gradient: gradients.secondary,
       description: 'Freeze your timer for the current question',
       details: [
         'Stops your timer temporarily',
@@ -45,8 +50,10 @@ const PowerUpSelectionScreen = () => {
     {
       type: PowerUpType.BURN,
       name: 'Burn',
-      icon: '🔥',
-      color: '#FF6B6B',
+      icon: 'fire' as const,
+      color: colors.danger,
+      colorLight: colors.dangerLight,
+      gradient: gradients.danger,
       description: 'Speed up your opponent\'s timer',
       details: [
         'Doubles opponent\'s timer speed',
@@ -60,8 +67,10 @@ const PowerUpSelectionScreen = () => {
     {
       type: PowerUpType.NONE,
       name: 'No Power-Up',
-      icon: '⭕',
-      color: '#9E9E9E',
+      icon: 'cancel' as const,
+      color: colors.textTertiary,
+      colorLight: colors.surfaceSecondary,
+      gradient: gradients.dark,
       description: 'Play without power-ups',
       details: [
         'No special abilities',
@@ -118,18 +127,25 @@ const PowerUpSelectionScreen = () => {
   return (
     <ScrollView style={styles.container}>
       {/* Header */}
-      <View style={styles.header}>
+      <LinearGradient
+        colors={gradients.purple}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.header}
+      >
         <TouchableOpacity
           onPress={() => navigation.goBack()}
           style={styles.backButton}
         >
-          <Text style={styles.backButtonText}>← Back</Text>
+          <Ionicons name="arrow-back" size={22} color={colors.textInverse} />
+          <Text style={styles.backButtonText}>Back</Text>
         </TouchableOpacity>
+        <MaterialCommunityIcons name="lightning-bolt" size={32} color={colors.textInverse} />
         <Text style={styles.headerTitle}>Select Power-Up</Text>
         <Text style={styles.headerSubtitle}>
           Choose your strategy for this match
         </Text>
-      </View>
+      </LinearGradient>
 
       {/* Power-Up Cards */}
       <View style={styles.powerUpsContainer}>
@@ -142,14 +158,16 @@ const PowerUpSelectionScreen = () => {
               style={[
                 styles.powerUpCard,
                 isSelected && styles.powerUpCardSelected,
-                { borderColor: isSelected ? powerUp.color : '#e0e0e0' }
+                { borderColor: isSelected ? powerUp.color : colors.border }
               ]}
               onPress={() => handlePowerUpSelect(powerUp.type)}
               activeOpacity={0.7}
             >
               {/* Power-Up Header */}
               <View style={styles.powerUpHeader}>
-                <Text style={styles.powerUpIcon}>{powerUp.icon}</Text>
+                <View style={[styles.powerUpIconCircle, { backgroundColor: powerUp.colorLight }]}>
+                  <MaterialCommunityIcons name={powerUp.icon} size={28} color={powerUp.color} />
+                </View>
                 <View style={styles.powerUpTitleContainer}>
                   <Text style={[styles.powerUpName, isSelected && { color: powerUp.color }]}>
                     {powerUp.name}
@@ -158,7 +176,7 @@ const PowerUpSelectionScreen = () => {
                 </View>
                 {isSelected && (
                   <View style={[styles.selectedBadge, { backgroundColor: powerUp.color }]}>
-                    <Text style={styles.selectedBadgeText}>✓</Text>
+                    <Ionicons name="checkmark" size={18} color={colors.textInverse} />
                   </View>
                 )}
               </View>
@@ -167,7 +185,7 @@ const PowerUpSelectionScreen = () => {
               <View style={styles.detailsContainer}>
                 {powerUp.details.map((detail, index) => (
                   <View key={index} style={styles.detailRow}>
-                    <Text style={styles.detailBullet}>•</Text>
+                    <Ionicons name="ellipse" size={6} color={colors.textTertiary} style={{ marginTop: 6, marginRight: spacing.sm }} />
                     <Text style={styles.detailText}>{detail}</Text>
                   </View>
                 ))}
@@ -177,15 +195,21 @@ const PowerUpSelectionScreen = () => {
               {isSelected && (
                 <View style={styles.prosConsContainer}>
                   <View style={styles.prosContainer}>
-                    <Text style={styles.prosTitle}>✅ Pros:</Text>
+                    <View style={styles.prosConsTitleRow}>
+                      <Ionicons name="checkmark-circle" size={16} color="#2E7D32" />
+                      <Text style={styles.prosTitle}>Pros:</Text>
+                    </View>
                     {powerUp.pros.map((pro, index) => (
-                      <Text key={index} style={styles.prosText}>• {pro}</Text>
+                      <Text key={index} style={styles.prosText}>  {pro}</Text>
                     ))}
                   </View>
                   <View style={styles.consContainer}>
-                    <Text style={styles.consTitle}>⚠️ Cons:</Text>
+                    <View style={styles.prosConsTitleRow}>
+                      <Ionicons name="alert-circle" size={16} color={colors.accentDark} />
+                      <Text style={styles.consTitle}>Cons:</Text>
+                    </View>
                     {powerUp.cons.map((con, index) => (
-                      <Text key={index} style={styles.consText}>• {con}</Text>
+                      <Text key={index} style={styles.consText}>  {con}</Text>
                     ))}
                   </View>
                 </View>
@@ -197,12 +221,15 @@ const PowerUpSelectionScreen = () => {
 
       {/* Info Box */}
       <View style={styles.infoBox}>
-        <Text style={styles.infoTitle}>ℹ️ How Power-Ups Work</Text>
+        <View style={styles.infoTitleRow}>
+          <Ionicons name="information-circle" size={18} color={colors.secondaryDark} />
+          <Text style={styles.infoTitle}>How Power-Ups Work</Text>
+        </View>
         <Text style={styles.infoText}>
-          • Power-ups activate during matches{'\n'}
-          • Each power-up has a 60-second cooldown{'\n'}
-          • Freeze and Burn can cancel each other{'\n'}
-          • Strategic timing is key!
+          {'\u2022'} Power-ups activate during matches{'\n'}
+          {'\u2022'} Each power-up has a 60-second cooldown{'\n'}
+          {'\u2022'} Freeze and Burn can cancel each other{'\n'}
+          {'\u2022'} Strategic timing is key!
         </Text>
       </View>
 
@@ -210,24 +237,41 @@ const PowerUpSelectionScreen = () => {
       <TouchableOpacity
         style={[
           styles.startButton,
-          selectedPowerUpData && { backgroundColor: selectedPowerUpData.color },
           isSearching && styles.startButtonDisabled,
         ]}
         onPress={handleStartMatch}
         disabled={isSearching}
+        activeOpacity={0.8}
       >
-        {isSearching ? (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator color="white" size="small" />
-            <Text style={styles.startButtonText}>Finding Match...</Text>
-          </View>
-        ) : (
-          <Text style={styles.startButtonText}>
-            {selectedPowerUp === PowerUpType.NONE
-              ? 'Start Match (No Power-Up)'
-              : `Start Match with ${selectedPowerUpData?.icon} ${selectedPowerUpData?.name}`}
-          </Text>
-        )}
+        <LinearGradient
+          colors={selectedPowerUpData?.gradient || gradients.dark}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={styles.startButtonGradient}
+        >
+          {isSearching ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator color={colors.textInverse} size="small" />
+              <Text style={styles.startButtonText}>Finding Match...</Text>
+            </View>
+          ) : (
+            <View style={styles.startButtonContent}>
+              {selectedPowerUp !== PowerUpType.NONE && selectedPowerUpData && (
+                <MaterialCommunityIcons
+                  name={selectedPowerUpData.icon}
+                  size={22}
+                  color={colors.textInverse}
+                  style={{ marginRight: spacing.sm }}
+                />
+              )}
+              <Text style={styles.startButtonText}>
+                {selectedPowerUp === PowerUpType.NONE
+                  ? 'Start Match (No Power-Up)'
+                  : `Start Match with ${selectedPowerUpData?.name}`}
+              </Text>
+            </View>
+          )}
+        </LinearGradient>
       </TouchableOpacity>
     </ScrollView>
   );
@@ -236,175 +280,170 @@ const PowerUpSelectionScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: colors.background,
   },
   header: {
-    backgroundColor: 'white',
     paddingTop: 50,
-    paddingBottom: 20,
-    paddingHorizontal: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
+    paddingBottom: spacing.xxl,
+    paddingHorizontal: spacing.xl,
   },
   backButton: {
-    marginBottom: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: spacing.lg,
+    gap: spacing.xs,
   },
   backButtonText: {
-    fontSize: 16,
-    color: '#4A90E2',
-    fontWeight: '600',
+    ...typography.subtitle,
+    color: colors.textInverse,
   },
   headerTitle: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 8,
+    ...typography.h2,
+    color: colors.textInverse,
+    marginTop: spacing.md,
+    marginBottom: spacing.sm,
   },
   headerSubtitle: {
-    fontSize: 14,
-    color: '#666',
+    ...typography.bodySmall,
+    color: 'rgba(255, 255, 255, 0.85)',
   },
   powerUpsContainer: {
-    padding: 20,
-    gap: 16,
+    padding: spacing.xl,
+    gap: spacing.lg,
   },
   powerUpCard: {
-    backgroundColor: 'white',
-    borderRadius: 16,
-    padding: 20,
+    backgroundColor: colors.surface,
+    borderRadius: radii.lg,
+    padding: spacing.xl,
     borderWidth: 3,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
+    ...shadows.md,
   },
   powerUpCardSelected: {
-    shadowOpacity: 0.2,
-    shadowRadius: 12,
-    elevation: 6,
+    ...shadows.lg,
   },
   powerUpHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: spacing.lg,
   },
-  powerUpIcon: {
-    fontSize: 48,
-    marginRight: 16,
+  powerUpIconCircle: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: spacing.lg,
   },
   powerUpTitleContainer: {
     flex: 1,
   },
   powerUpName: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 4,
+    ...typography.stat,
+    color: colors.textPrimary,
+    marginBottom: spacing.xs,
   },
   powerUpDescription: {
-    fontSize: 13,
-    color: '#666',
+    ...typography.bodySmall,
+    color: colors.textSecondary,
   },
   selectedBadge: {
     width: 32,
     height: 32,
-    borderRadius: 16,
+    borderRadius: radii.full,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  selectedBadgeText: {
-    color: 'white',
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
   detailsContainer: {
-    marginBottom: 12,
+    marginBottom: spacing.md,
   },
   detailRow: {
     flexDirection: 'row',
-    marginBottom: 6,
-  },
-  detailBullet: {
-    fontSize: 14,
-    color: '#666',
-    marginRight: 8,
+    marginBottom: spacing.xs + 2,
   },
   detailText: {
     flex: 1,
-    fontSize: 14,
-    color: '#666',
+    ...typography.bodySmall,
+    color: colors.textSecondary,
   },
   prosConsContainer: {
-    marginTop: 12,
-    paddingTop: 12,
+    marginTop: spacing.md,
+    paddingTop: spacing.md,
     borderTopWidth: 1,
-    borderTopColor: '#e0e0e0',
-    gap: 12,
+    borderTopColor: colors.border,
+    gap: spacing.md,
+  },
+  prosConsTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    marginBottom: spacing.xs,
   },
   prosContainer: {
-    backgroundColor: '#E8F5E9',
-    padding: 12,
-    borderRadius: 8,
+    backgroundColor: colors.primaryLight,
+    padding: spacing.md,
+    borderRadius: radii.sm,
   },
   prosTitle: {
-    fontSize: 13,
-    fontWeight: 'bold',
+    ...typography.bodySmall,
+    fontWeight: '700',
     color: '#2E7D32',
-    marginBottom: 4,
   },
   prosText: {
-    fontSize: 12,
+    ...typography.caption,
     color: '#2E7D32',
-    marginLeft: 4,
+    marginLeft: spacing.xs,
   },
   consContainer: {
-    backgroundColor: '#FFF3E0',
-    padding: 12,
-    borderRadius: 8,
+    backgroundColor: colors.accentLight,
+    padding: spacing.md,
+    borderRadius: radii.sm,
   },
   consTitle: {
-    fontSize: 13,
-    fontWeight: 'bold',
-    color: '#E65100',
-    marginBottom: 4,
+    ...typography.bodySmall,
+    fontWeight: '700',
+    color: colors.accentDark,
   },
   consText: {
-    fontSize: 12,
-    color: '#E65100',
-    marginLeft: 4,
+    ...typography.caption,
+    color: colors.accentDark,
+    marginLeft: spacing.xs,
   },
   infoBox: {
-    backgroundColor: '#E3F2FD',
-    marginHorizontal: 20,
-    marginBottom: 20,
-    padding: 16,
-    borderRadius: 12,
+    backgroundColor: colors.secondaryLight,
+    marginHorizontal: spacing.xl,
+    marginBottom: spacing.xl,
+    padding: spacing.lg,
+    borderRadius: radii.md,
     borderLeftWidth: 4,
-    borderLeftColor: '#2196F3',
+    borderLeftColor: colors.secondary,
+  },
+  infoTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginBottom: spacing.sm,
   },
   infoTitle: {
-    fontSize: 15,
-    fontWeight: 'bold',
-    color: '#1976D2',
-    marginBottom: 8,
+    ...typography.subtitle,
+    fontWeight: '700',
+    color: colors.secondaryDark,
   },
   infoText: {
-    fontSize: 13,
-    color: '#1976D2',
-    lineHeight: 20,
+    ...typography.bodySmall,
+    color: colors.secondaryDark,
+    lineHeight: 22,
   },
   startButton: {
-    marginHorizontal: 20,
+    marginHorizontal: spacing.xl,
     marginBottom: 30,
+    borderRadius: radii.md,
+    overflow: 'hidden',
+    ...shadows.lg,
+  },
+  startButtonGradient: {
     padding: 18,
-    borderRadius: 12,
+    borderRadius: radii.md,
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 6,
-    elevation: 4,
   },
   startButtonDisabled: {
     opacity: 0.6,
@@ -412,12 +451,15 @@ const styles = StyleSheet.create({
   loadingContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: spacing.md,
+  },
+  startButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   startButtonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: 'bold',
+    color: colors.textInverse,
+    ...typography.button,
   },
 });
 

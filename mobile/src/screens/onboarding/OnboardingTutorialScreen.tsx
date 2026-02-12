@@ -9,40 +9,53 @@ import {
   Animated,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+import { colors, gradients, spacing, radii, shadows, typography } from '../../theme';
 
 const { width } = Dimensions.get('window');
 
 interface TutorialStep {
-  icon: string;
+  iconName: keyof typeof Ionicons.glyphMap;
+  iconColor: string;
   title: string;
   description: string;
-  visual: string;
+  visualName: keyof typeof Ionicons.glyphMap;
+  visualColor: string;
 }
 
 const tutorialSteps: TutorialStep[] = [
   {
-    icon: '⚔️',
+    iconName: 'flash',
+    iconColor: colors.accent,
     title: 'Battle Mode',
     description: 'Answer 5 questions in 45 seconds each. Race against opponents to prove your language skills!',
-    visual: '📝',
+    visualName: 'document-text',
+    visualColor: colors.secondary,
   },
   {
-    icon: '⏱️',
+    iconName: 'timer',
+    iconColor: colors.danger,
     title: 'Beat the Timer',
     description: 'Each question has a timer. Answer quickly and accurately to win. Speed matters in tiebreakers!',
-    visual: '⏰',
+    visualName: 'alarm',
+    visualColor: colors.accent,
   },
   {
-    icon: '🔥',
+    iconName: 'flame',
+    iconColor: colors.accent,
     title: 'Power-Ups',
     description: 'Use Freeze to stop your timer or Burn to speed up your opponent\'s. Strategic timing is key!',
-    visual: '❄️',
+    visualName: 'snow',
+    visualColor: colors.secondary,
   },
   {
-    icon: '🏆',
+    iconName: 'trophy',
+    iconColor: colors.gold,
     title: 'Climb the Ranks',
     description: 'Win matches to increase your ELO rating and rise through 8 divisions - from Bronze to Grandmaster!',
-    visual: '📈',
+    visualName: 'trending-up',
+    visualColor: colors.primary,
   },
 ];
 
@@ -120,8 +133,19 @@ const OnboardingTutorialScreen = () => {
       <View style={styles.content}>
         {/* Visual Icon */}
         <View style={styles.visualContainer}>
-          <Text style={styles.mainIcon}>{currentStepData.icon}</Text>
-          <Text style={styles.visual}>{currentStepData.visual}</Text>
+          <View style={styles.mainIconContainer}>
+            <LinearGradient
+              colors={gradients.secondary}
+              style={styles.mainIconGradient}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+            >
+              <Ionicons name={currentStepData.iconName} size={80} color={colors.textInverse} />
+            </LinearGradient>
+          </View>
+          <View style={styles.visualBadge}>
+            <Ionicons name={currentStepData.visualName} size={32} color={currentStepData.visualColor} />
+          </View>
         </View>
 
         {/* Title & Description */}
@@ -138,15 +162,29 @@ const OnboardingTutorialScreen = () => {
           style={[styles.navButton, currentStep === 0 && styles.navButtonDisabled]}
           disabled={currentStep === 0}
         >
+          <Ionicons
+            name="arrow-back"
+            size={18}
+            color={currentStep === 0 ? colors.textTertiary : colors.secondary}
+            style={{ marginRight: spacing.xs }}
+          />
           <Text style={[styles.navButtonText, currentStep === 0 && styles.navButtonTextDisabled]}>
-            ← Back
+            Back
           </Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.nextButton} onPress={handleNext} activeOpacity={0.8}>
-          <Text style={styles.nextButtonText}>
-            {currentStep === tutorialSteps.length - 1 ? 'Continue' : 'Next'} →
-          </Text>
+          <LinearGradient
+            colors={gradients.secondary}
+            style={styles.nextButtonGradient}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+          >
+            <Text style={styles.nextButtonText}>
+              {currentStep === tutorialSteps.length - 1 ? 'Continue' : 'Next'}
+            </Text>
+            <Ionicons name="arrow-forward" size={18} color={colors.textInverse} style={{ marginLeft: spacing.xs }} />
+          </LinearGradient>
         </TouchableOpacity>
       </View>
 
@@ -161,69 +199,82 @@ const OnboardingTutorialScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8f9fa',
+    backgroundColor: colors.background,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
+    paddingHorizontal: spacing.xl,
     paddingTop: 60,
-    paddingBottom: 20,
+    paddingBottom: spacing.xl,
   },
   skipButton: {
     width: 60,
   },
   skipText: {
-    fontSize: 16,
-    color: '#4A90E2',
-    fontWeight: '600',
+    ...typography.subtitle,
+    color: colors.secondary,
   },
   progressContainer: {
     flexDirection: 'row',
-    gap: 8,
+    gap: spacing.sm,
   },
   progressDot: {
     width: 8,
     height: 8,
-    borderRadius: 4,
-    backgroundColor: '#e0e0e0',
+    borderRadius: radii.full,
+    backgroundColor: colors.border,
   },
   progressDotActive: {
-    backgroundColor: '#4A90E2',
+    backgroundColor: colors.secondary,
   },
   content: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 30,
+    paddingHorizontal: spacing.xxxl,
   },
   visualContainer: {
     position: 'relative',
     marginBottom: 50,
   },
-  mainIcon: {
-    fontSize: 120,
+  mainIconContainer: {
+    borderRadius: radii.full,
+    overflow: 'hidden',
+    ...shadows.lg,
   },
-  visual: {
+  mainIconGradient: {
+    width: 160,
+    height: 160,
+    borderRadius: radii.full,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  visualBadge: {
     position: 'absolute',
-    bottom: -10,
-    right: -10,
-    fontSize: 50,
+    bottom: -8,
+    right: -8,
+    width: 56,
+    height: 56,
+    borderRadius: radii.full,
+    backgroundColor: colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...shadows.md,
   },
   textContainer: {
     alignItems: 'center',
   },
   title: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#1a1a1a',
-    marginBottom: 16,
+    ...typography.h1,
+    color: colors.textPrimary,
+    marginBottom: spacing.lg,
     textAlign: 'center',
   },
   description: {
-    fontSize: 16,
-    color: '#666',
+    ...typography.body,
+    color: colors.textSecondary,
     textAlign: 'center',
     lineHeight: 24,
     maxWidth: 320,
@@ -231,52 +282,52 @@ const styles = StyleSheet.create({
   footer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
+    paddingHorizontal: spacing.xl,
     paddingBottom: 40,
-    gap: 12,
+    gap: spacing.md,
   },
   navButton: {
     flex: 1,
-    paddingVertical: 16,
-    borderRadius: 12,
+    flexDirection: 'row',
+    paddingVertical: spacing.lg,
+    borderRadius: radii.md,
     borderWidth: 2,
-    borderColor: '#4A90E2',
+    borderColor: colors.secondary,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   navButtonDisabled: {
-    borderColor: '#e0e0e0',
+    borderColor: colors.border,
   },
   navButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#4A90E2',
+    ...typography.subtitle,
+    color: colors.secondary,
   },
   navButtonTextDisabled: {
-    color: '#ccc',
+    color: colors.textTertiary,
   },
   nextButton: {
     flex: 1,
-    backgroundColor: '#4A90E2',
-    paddingVertical: 16,
-    borderRadius: 12,
+    borderRadius: radii.md,
+    overflow: 'hidden',
+    ...shadows.md,
+  },
+  nextButtonGradient: {
+    flexDirection: 'row',
+    paddingVertical: spacing.lg,
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    justifyContent: 'center',
   },
   nextButtonText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: 'white',
+    ...typography.button,
+    color: colors.textInverse,
   },
   timeRemaining: {
     position: 'absolute',
     bottom: 10,
     alignSelf: 'center',
-    fontSize: 12,
-    color: '#999',
+    ...typography.caption,
+    color: colors.textTertiary,
     fontStyle: 'italic',
   },
 });

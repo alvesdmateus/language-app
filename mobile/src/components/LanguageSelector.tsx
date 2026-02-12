@@ -8,13 +8,10 @@ import {
   ScrollView,
   Pressable,
 } from 'react-native';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { Language } from '../types';
-
-interface LanguageInfo {
-  name: string;
-  flag: string;
-  color: string;
-}
+import { LANGUAGE_INFO } from '../theme/languages';
+import { colors, spacing, radii, shadows, typography } from '../theme';
 
 interface LanguageSelectorProps {
   selectedLanguage: Language | null;
@@ -29,19 +26,8 @@ interface LanguageSelectorProps {
     draws: number;
   }>;
   showStats?: boolean;
-  navigation?: any; // Navigation object to hide/show tab bar
+  navigation?: any;
 }
-
-const LANGUAGE_INFO: Record<Language, LanguageInfo> = {
-  PORTUGUESE: { name: 'Portuguese', flag: '🇧🇷', color: '#009739' },
-  SPANISH: { name: 'Spanish', flag: '🇪🇸', color: '#C60B1E' },
-  ENGLISH: { name: 'English', flag: '🇺🇸', color: '#3C3B6E' },
-  ITALIAN: { name: 'Italian', flag: '🇮🇹', color: '#009246' },
-  FRENCH: { name: 'French', flag: '🇫🇷', color: '#0055A4' },
-  GERMAN: { name: 'German', flag: '🇩🇪', color: '#000000' },
-  JAPANESE: { name: 'Japanese', flag: '🇯🇵', color: '#BC002D' },
-  KOREAN: { name: 'Korean', flag: '🇰🇷', color: '#003478' },
-};
 
 const LanguageSelector: React.FC<LanguageSelectorProps> = ({
   selectedLanguage,
@@ -53,21 +39,18 @@ const LanguageSelector: React.FC<LanguageSelectorProps> = ({
 }) => {
   const [modalVisible, setModalVisible] = useState(false);
 
-  // Hide/show tab bar when modal opens/closes
   useEffect(() => {
     if (navigation) {
       if (modalVisible) {
-        // Hide tab bar when modal is open
         navigation.setOptions({
           tabBarStyle: { display: 'none' },
         });
       } else {
-        // Show tab bar when modal is closed
         navigation.setOptions({
           tabBarStyle: {
-            backgroundColor: 'white',
+            backgroundColor: colors.surface,
             borderTopWidth: 1,
-            borderTopColor: '#e0e0e0',
+            borderTopColor: colors.border,
             height: 70,
             paddingBottom: 10,
             paddingTop: 8,
@@ -86,7 +69,6 @@ const LanguageSelector: React.FC<LanguageSelectorProps> = ({
 
   return (
     <View>
-      {/* Selected Language Display */}
       <TouchableOpacity
         style={[styles.selector, disabled && styles.selectorDisabled]}
         onPress={() => setModalVisible(true)}
@@ -103,17 +85,18 @@ const LanguageSelector: React.FC<LanguageSelectorProps> = ({
           </View>
         ) : (
           <View style={styles.selectedContent}>
-            <Text style={styles.placeholderIcon}>🌍</Text>
+            <View style={styles.globeIcon}>
+              <Ionicons name="globe-outline" size={28} color={colors.secondary} />
+            </View>
             <View style={styles.selectedInfo}>
               <Text style={styles.placeholderText}>Select a language</Text>
               <Text style={styles.placeholderSubtext}>Tap to choose</Text>
             </View>
           </View>
         )}
-        <Text style={styles.chevron}>▼</Text>
+        <Ionicons name="chevron-down" size={20} color={colors.textTertiary} />
       </TouchableOpacity>
 
-      {/* Language Selection Modal */}
       <Modal
         animationType="slide"
         transparent={true}
@@ -134,7 +117,7 @@ const LanguageSelector: React.FC<LanguageSelectorProps> = ({
                 onPress={() => setModalVisible(false)}
                 style={styles.closeButton}
               >
-                <Text style={styles.closeButtonText}>✕</Text>
+                <Ionicons name="close" size={20} color={colors.textSecondary} />
               </TouchableOpacity>
             </View>
 
@@ -169,7 +152,9 @@ const LanguageSelector: React.FC<LanguageSelectorProps> = ({
                           </Text>
                         )}
                       </View>
-                      {isSelected && <Text style={styles.checkmark}>✓</Text>}
+                      {isSelected && (
+                        <Ionicons name="checkmark-circle" size={24} color={colors.primary} />
+                      )}
                     </View>
 
                     {showStats && stats && (
@@ -181,11 +166,11 @@ const LanguageSelector: React.FC<LanguageSelectorProps> = ({
                           </Text>
                         </View>
                         <View style={styles.statItem}>
-                          <Text style={styles.statLabel}>Division</Text>
+                          <Text style={styles.statLabel}>DIVISION</Text>
                           <Text style={styles.statValue}>{stats.division}</Text>
                         </View>
                         <View style={styles.statItem}>
-                          <Text style={styles.statLabel}>Win Rate</Text>
+                          <Text style={styles.statLabel}>WIN RATE</Text>
                           <Text style={styles.statValue}>{winRate}%</Text>
                         </View>
                       </View>
@@ -203,18 +188,14 @@ const LanguageSelector: React.FC<LanguageSelectorProps> = ({
 
 const styles = StyleSheet.create({
   selector: {
-    backgroundColor: 'white',
-    borderRadius: 12,
+    backgroundColor: colors.surface,
+    borderRadius: radii.lg,
     padding: 18,
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: '#e0e0e0',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    borderColor: colors.border,
+    ...shadows.md,
   },
   selectorDisabled: {
     opacity: 0.6,
@@ -226,95 +207,85 @@ const styles = StyleSheet.create({
   },
   selectedFlag: {
     fontSize: 40,
-    marginRight: 16,
+    marginRight: spacing.lg,
   },
   selectedInfo: {
     flex: 1,
   },
   selectedLabel: {
-    fontSize: 12,
-    color: '#999',
-    marginBottom: 4,
+    ...typography.caption,
+    marginBottom: spacing.xs,
   },
   selectedName: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#333',
+    ...typography.h3,
   },
-  placeholderIcon: {
-    fontSize: 40,
-    marginRight: 16,
+  globeIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: radii.full,
+    backgroundColor: colors.secondaryLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: spacing.lg,
   },
   placeholderText: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#999',
+    color: colors.textTertiary,
   },
   placeholderSubtext: {
-    fontSize: 13,
-    color: '#bbb',
+    ...typography.bodySmall,
+    color: colors.textTertiary,
     marginTop: 2,
-  },
-  chevron: {
-    fontSize: 16,
-    color: '#666',
-    marginLeft: 8,
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: colors.overlay,
     justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: 'white',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
+    backgroundColor: colors.surface,
+    borderTopLeftRadius: radii.xl,
+    borderTopRightRadius: radii.xl,
     maxHeight: '80%',
-    paddingBottom: 90, // Extra padding to clear tab navigation bar
+    paddingBottom: 90,
   },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.lg,
     borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
+    borderBottomColor: colors.border,
   },
   modalTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#333',
+    ...typography.h3,
   },
   closeButton: {
     width: 32,
     height: 32,
-    borderRadius: 16,
-    backgroundColor: '#f5f5f5',
+    borderRadius: radii.full,
+    backgroundColor: colors.surfaceSecondary,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  closeButtonText: {
-    fontSize: 18,
-    color: '#666',
-    fontWeight: 'bold',
-  },
   languageList: {
-    paddingHorizontal: 20,
-    paddingTop: 12,
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing.md,
   },
   languageOption: {
-    backgroundColor: 'white',
-    borderRadius: 10,
+    backgroundColor: colors.surface,
+    borderRadius: radii.md,
     padding: 14,
     marginBottom: 10,
     borderLeftWidth: 4,
     borderWidth: 1,
-    borderColor: '#e0e0e0',
+    borderColor: colors.border,
   },
   languageOptionSelected: {
-    backgroundColor: '#f0f8ff',
-    borderColor: '#4A90E2',
+    backgroundColor: colors.primaryLight,
+    borderColor: colors.primary,
   },
   languageHeader: {
     flexDirection: 'row',
@@ -322,25 +293,17 @@ const styles = StyleSheet.create({
   },
   languageFlag: {
     fontSize: 32,
-    marginRight: 12,
+    marginRight: spacing.md,
   },
   languageInfo: {
     flex: 1,
   },
   languageName: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#333',
+    ...typography.title,
   },
   languageSubtitle: {
-    fontSize: 12,
-    color: '#999',
+    ...typography.caption,
     marginTop: 2,
-  },
-  checkmark: {
-    fontSize: 20,
-    color: '#4A90E2',
-    fontWeight: 'bold',
   },
   statsRow: {
     flexDirection: 'row',
@@ -348,20 +311,19 @@ const styles = StyleSheet.create({
     paddingTop: 10,
     marginTop: 10,
     borderTopWidth: 1,
-    borderTopColor: '#f0f0f0',
+    borderTopColor: colors.borderLight,
   },
   statItem: {
     alignItems: 'center',
   },
   statLabel: {
-    fontSize: 11,
-    color: '#999',
-    marginBottom: 4,
+    ...typography.label,
+    marginBottom: spacing.xs,
   },
   statValue: {
     fontSize: 14,
-    fontWeight: 'bold',
-    color: '#333',
+    fontWeight: '700',
+    color: colors.textPrimary,
   },
 });
 

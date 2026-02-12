@@ -31,6 +31,17 @@ language-app/
 │   │   └── seed.ts               # Seeds questions + sample users
 │   └── package.json
 ├── mobile/                       # React Native + Expo mobile client
+│   ├── src/
+│   │   ├── components/           # DivisionBadge, LanguageSelector, OnboardingGuide
+│   │   ├── context/              # AuthContext, WebSocketContext
+│   │   ├── navigation/           # RootNavigator (Auth | Onboarding | Main tabs+stack)
+│   │   ├── screens/              # All app screens
+│   │   │   ├── onboarding/       # 5-step first-time user flow
+│   │   │   └── tabs/             # Bottom tab screens (Battle, Challenges, Learn, Profile)
+│   │   ├── services/             # Axios API client + service modules
+│   │   ├── theme/                # Design tokens, language constants
+│   │   └── types/                # Shared enums, interfaces, navigation types
+│   └── package.json
 ├── docker-compose.yml            # PostgreSQL + backend
 ├── DIVISIONS.md                  # Division system details
 ├── MATCHMAKING.md                # ELO and matchmaking algorithms

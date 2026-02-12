@@ -9,6 +9,9 @@ import {
   Easing,
 } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+import { colors, gradients, spacing, radii, shadows, typography } from '../../theme';
 import { useAuth } from '../../context/AuthContext';
 import { MatchCompletedEvent } from '../../types';
 
@@ -108,7 +111,7 @@ const OnboardingCelebrationScreen = () => {
   const correctAnswers = userResult?.correctAnswers || 0;
   const totalQuestions = result?.results?.[0]?.score ? 5 : 5; // Default to 5 questions
 
-  const confettiColors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD', '#FF9FF3'];
+  const confettiColors = [colors.danger, colors.primary, colors.secondary, colors.accent, colors.gold, colors.purple, '#FF9FF3'];
 
   useEffect(() => {
     // Entry animations
@@ -163,7 +166,12 @@ const OnboardingCelebrationScreen = () => {
   };
 
   return (
-    <View style={styles.container}>
+    <LinearGradient
+      colors={gradients.dark}
+      style={styles.container}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 0, y: 1 }}
+    >
       {/* Confetti */}
       {Array.from({ length: 30 }).map((_, index) => (
         <ConfettiParticle
@@ -192,11 +200,23 @@ const OnboardingCelebrationScreen = () => {
             },
           ]}
         >
-          <Text style={styles.trophy}>{isWinner ? '🏆' : '🌟'}</Text>
+          <View style={styles.trophyIconWrapper}>
+            <Ionicons
+              name={isWinner ? 'trophy' : 'star'}
+              size={80}
+              color={colors.gold}
+            />
+          </View>
           <View style={styles.sparkleContainer}>
-            <Text style={styles.sparkle1}>✨</Text>
-            <Text style={styles.sparkle2}>✨</Text>
-            <Text style={styles.sparkle3}>⭐</Text>
+            <View style={styles.sparkle1}>
+              <Ionicons name="sparkles" size={22} color={colors.gold} />
+            </View>
+            <View style={styles.sparkle2}>
+              <Ionicons name="sparkles" size={18} color={colors.gold} />
+            </View>
+            <View style={styles.sparkle3}>
+              <Ionicons name="star" size={16} color={colors.accent} />
+            </View>
           </View>
         </Animated.View>
 
@@ -212,13 +232,17 @@ const OnboardingCelebrationScreen = () => {
         <View style={styles.statsCard}>
           <View style={styles.statRow}>
             <View style={styles.statItem}>
-              <Text style={styles.statIcon}>✅</Text>
+              <Ionicons name="checkmark-circle" size={32} color={colors.primary} />
               <Text style={styles.statValue}>{correctAnswers}/{totalQuestions}</Text>
               <Text style={styles.statLabel}>Correct</Text>
             </View>
             <View style={styles.statDivider} />
             <View style={styles.statItem}>
-              <Text style={styles.statIcon}>{isWinner ? '🥇' : '🎯'}</Text>
+              <Ionicons
+                name={isWinner ? 'medal' : 'flag'}
+                size={32}
+                color={isWinner ? colors.gold : colors.secondary}
+              />
               <Text style={styles.statValue}>{isWinner ? 'Won' : 'Completed'}</Text>
               <Text style={styles.statLabel}>Result</Text>
             </View>
@@ -228,7 +252,7 @@ const OnboardingCelebrationScreen = () => {
         {/* Achievement */}
         <View style={styles.achievementCard}>
           <View style={styles.achievementBadge}>
-            <Text style={styles.achievementIcon}>🎖️</Text>
+            <Ionicons name="ribbon" size={28} color={colors.gold} />
           </View>
           <View style={styles.achievementContent}>
             <Text style={styles.achievementTitle}>Achievement Unlocked!</Text>
@@ -252,19 +276,28 @@ const OnboardingCelebrationScreen = () => {
           disabled={isCompleting}
           activeOpacity={0.8}
         >
-          <Text style={styles.continueButtonText}>
-            {isCompleting ? 'Loading...' : 'Start Your Journey'}
-          </Text>
+          <LinearGradient
+            colors={isCompleting ? [colors.textSecondary, colors.textSecondary] : gradients.secondary}
+            style={styles.continueButtonGradient}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+          >
+            <Text style={styles.continueButtonText}>
+              {isCompleting ? 'Loading...' : 'Start Your Journey'}
+            </Text>
+            {!isCompleting && (
+              <Ionicons name="arrow-forward" size={20} color={colors.textInverse} style={{ marginLeft: spacing.sm }} />
+            )}
+          </LinearGradient>
         </TouchableOpacity>
       </Animated.View>
-    </View>
+    </LinearGradient>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#1a1a2e',
   },
   confetti: {
     position: 'absolute',
@@ -276,15 +309,20 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 30,
+    paddingHorizontal: spacing.xxxl,
     paddingVertical: 40,
   },
   trophyContainer: {
     position: 'relative',
-    marginBottom: 24,
+    marginBottom: spacing.xxl,
   },
-  trophy: {
-    fontSize: 100,
+  trophyIconWrapper: {
+    width: 120,
+    height: 120,
+    borderRadius: radii.full,
+    backgroundColor: 'rgba(255, 200, 0, 0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   sparkleContainer: {
     position: 'absolute',
@@ -293,41 +331,38 @@ const styles = StyleSheet.create({
   },
   sparkle1: {
     position: 'absolute',
-    fontSize: 24,
     top: -10,
     right: -20,
   },
   sparkle2: {
     position: 'absolute',
-    fontSize: 20,
     bottom: 20,
     left: -25,
   },
   sparkle3: {
     position: 'absolute',
-    fontSize: 18,
     top: 20,
     right: -30,
   },
   title: {
     fontSize: 36,
     fontWeight: 'bold',
-    color: '#FFD700',
-    marginBottom: 8,
+    color: colors.gold,
+    marginBottom: spacing.sm,
     textAlign: 'center',
   },
   subtitle: {
-    fontSize: 18,
+    ...typography.body,
     color: 'rgba(255, 255, 255, 0.8)',
-    marginBottom: 32,
+    marginBottom: spacing.xxxl,
     textAlign: 'center',
   },
   statsCard: {
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 16,
-    padding: 20,
+    borderRadius: radii.lg,
+    padding: spacing.xl,
     width: '100%',
-    marginBottom: 20,
+    marginBottom: spacing.xl,
   },
   statRow: {
     flexDirection: 'row',
@@ -337,111 +372,97 @@ const styles = StyleSheet.create({
   statItem: {
     alignItems: 'center',
     flex: 1,
+    gap: spacing.sm,
   },
   statDivider: {
     width: 1,
     height: 50,
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
   },
-  statIcon: {
-    fontSize: 32,
-    marginBottom: 8,
-  },
   statValue: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: 'white',
-    marginBottom: 4,
+    ...typography.stat,
+    color: colors.textInverse,
   },
   statLabel: {
-    fontSize: 13,
+    ...typography.caption,
     color: 'rgba(255, 255, 255, 0.6)',
   },
   achievementCard: {
-    backgroundColor: 'rgba(255, 215, 0, 0.15)',
-    borderRadius: 16,
-    padding: 16,
+    backgroundColor: 'rgba(255, 200, 0, 0.12)',
+    borderRadius: radii.lg,
+    padding: spacing.lg,
     width: '100%',
-    marginBottom: 20,
+    marginBottom: spacing.xl,
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(255, 215, 0, 0.3)',
+    borderColor: 'rgba(255, 200, 0, 0.25)',
   },
   achievementBadge: {
     width: 56,
     height: 56,
-    borderRadius: 28,
-    backgroundColor: 'rgba(255, 215, 0, 0.2)',
+    borderRadius: radii.full,
+    backgroundColor: 'rgba(255, 200, 0, 0.18)',
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 16,
-  },
-  achievementIcon: {
-    fontSize: 32,
+    marginRight: spacing.lg,
   },
   achievementContent: {
     flex: 1,
   },
   achievementTitle: {
-    fontSize: 12,
-    color: '#FFD700',
-    fontWeight: '600',
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-    marginBottom: 4,
+    ...typography.label,
+    color: colors.gold,
+    marginBottom: spacing.xs,
   },
   achievementName: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: 'white',
+    ...typography.title,
+    color: colors.textInverse,
     marginBottom: 2,
   },
   achievementDesc: {
-    fontSize: 13,
+    ...typography.bodySmall,
     color: 'rgba(255, 255, 255, 0.6)',
   },
   welcomeCard: {
-    backgroundColor: 'rgba(74, 144, 226, 0.2)',
-    borderRadius: 16,
-    padding: 20,
+    backgroundColor: 'rgba(28, 176, 246, 0.15)',
+    borderRadius: radii.lg,
+    padding: spacing.xl,
     width: '100%',
-    marginBottom: 32,
+    marginBottom: spacing.xxxl,
   },
   welcomeTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#4A90E2',
-    marginBottom: 8,
+    ...typography.subtitle,
+    color: colors.secondary,
+    marginBottom: spacing.sm,
     textAlign: 'center',
   },
   welcomeText: {
-    fontSize: 14,
+    ...typography.bodySmall,
     color: 'rgba(255, 255, 255, 0.7)',
     lineHeight: 20,
     textAlign: 'center',
   },
   continueButton: {
-    backgroundColor: '#4A90E2',
-    paddingVertical: 18,
-    paddingHorizontal: 48,
-    borderRadius: 30,
     width: '100%',
-    shadowColor: '#4A90E2',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 8,
-    elevation: 8,
+    borderRadius: radii.full,
+    overflow: 'hidden',
+    ...shadows.lg,
   },
   continueButtonDisabled: {
-    backgroundColor: '#666',
-    shadowOpacity: 0,
+    opacity: 0.7,
+  },
+  continueButtonGradient: {
+    flexDirection: 'row',
+    paddingVertical: 18,
+    paddingHorizontal: 48,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   continueButtonText: {
+    ...typography.button,
+    color: colors.textInverse,
     fontSize: 18,
-    fontWeight: 'bold',
-    color: 'white',
-    textAlign: 'center',
   },
 });
 

@@ -11,21 +11,14 @@ import {
 } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useAuth } from '../../context/AuthContext';
 import { userService } from '../../services/api';
 import { DivisionBadge } from '../../components/DivisionBadge';
 import { Language } from '../../types';
-
-const LANGUAGE_INFO: Record<Language, { name: string; flag: string }> = {
-  PORTUGUESE: { name: 'Portuguese', flag: '🇧🇷' },
-  SPANISH: { name: 'Spanish', flag: '🇪🇸' },
-  ENGLISH: { name: 'English', flag: '🇺🇸' },
-  ITALIAN: { name: 'Italian', flag: '🇮🇹' },
-  FRENCH: { name: 'French', flag: '🇫🇷' },
-  GERMAN: { name: 'German', flag: '🇩🇪' },
-  JAPANESE: { name: 'Japanese', flag: '🇯🇵' },
-  KOREAN: { name: 'Korean', flag: '🇰🇷' },
-};
+import { LANGUAGE_INFO } from '../../theme/languages';
+import { colors, gradients, spacing, radii, shadows, typography } from '../../theme';
 
 const ProfileTab = () => {
   const navigation = useNavigation();
@@ -37,17 +30,15 @@ const ProfileTab = () => {
   const [preferredLanguageElo, setPreferredLanguageElo] = useState<number>(1000);
   const [languageSelectorVisible, setLanguageSelectorVisible] = useState(false);
 
-  // Load preferred language on mount
   useEffect(() => {
     loadPreferredLanguage();
   }, []);
 
-  // Reload user stats when tab comes into focus
   useFocusEffect(
     React.useCallback(() => {
       loadUserStats();
       loadLanguageStats();
-      refreshUser(); // Refresh user data from auth context
+      refreshUser();
     }, [])
   );
 
@@ -56,7 +47,6 @@ const ProfileTab = () => {
     loadLanguageStats();
   }, []);
 
-  // Update ELO when language stats or preferred language changes
   useEffect(() => {
     if (languageStats.length > 0) {
       const stats = languageStats.find((s) => s.language === preferredLanguage);
@@ -92,7 +82,6 @@ const ProfileTab = () => {
       setPreferredLanguage(language);
       setLanguageSelectorVisible(false);
 
-      // Update ELO for the new preferred language
       const stats = languageStats.find((s) => s.language === language);
       if (stats) {
         setPreferredLanguageElo(stats.eloRating);
@@ -120,27 +109,29 @@ const ProfileTab = () => {
     setRefreshing(false);
   };
 
-  const StatCard = ({ icon, value, label, color }: any) => (
+  const StatCard = ({ icon, iconColor, value, label }: any) => (
     <View style={styles.statCard}>
-      <Text style={styles.statIcon}>{icon}</Text>
-      <Text style={[styles.statValue, color && { color }]}>{value}</Text>
+      <Ionicons name={icon} size={24} color={iconColor} />
+      <Text style={[styles.statValue, { color: iconColor }]}>{value}</Text>
       <Text style={styles.statLabel}>{label}</Text>
     </View>
   );
 
-  const MenuCard = ({ icon, title, subtitle, color, onPress }: any) => (
+  const MenuCard = ({ icon, iconColor, title, subtitle, gradientColors, onPress }: any) => (
     <TouchableOpacity
-      style={[styles.card, { borderLeftColor: color }]}
+      style={styles.card}
       onPress={onPress}
       activeOpacity={0.7}
     >
       <View style={styles.cardContent}>
-        <Text style={styles.cardIcon}>{icon}</Text>
+        <LinearGradient colors={gradientColors} style={styles.cardIconCircle}>
+          <Ionicons name={icon} size={20} color={colors.white} />
+        </LinearGradient>
         <View style={styles.cardText}>
           <Text style={styles.cardTitle}>{title}</Text>
           <Text style={styles.cardSubtitle}>{subtitle}</Text>
         </View>
-        <Text style={styles.cardArrow}>›</Text>
+        <Ionicons name="chevron-forward" size={20} color={colors.textTertiary} />
       </View>
     </TouchableOpacity>
   );
@@ -149,7 +140,7 @@ const ProfileTab = () => {
     <ScrollView
       style={styles.container}
       refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
       }
       showsVerticalScrollIndicator={false}
     >
@@ -171,16 +162,16 @@ const ProfileTab = () => {
 
       <View style={styles.statsContainer}>
         <StatCard
-          icon="🔥"
+          icon="flame"
+          iconColor={colors.accent}
           value={user?.currentStreak || 0}
           label="Day Streak"
-          color="#FF6B35"
         />
         <StatCard
-          icon="⭐"
+          icon="star"
+          iconColor={colors.gold}
           value={user?.totalPoints || 0}
           label="Points"
-          color="#FFD700"
         />
         <TouchableOpacity
           style={styles.eloStatCard}
@@ -188,8 +179,8 @@ const ProfileTab = () => {
           activeOpacity={0.7}
         >
           <View style={styles.statCard}>
-            <Text style={styles.statIcon}>🏆</Text>
-            <Text style={[styles.statValue, { color: '#4A90E2' }]}>
+            <Ionicons name="trophy" size={24} color={colors.secondary} />
+            <Text style={[styles.statValue, { color: colors.secondary }]}>
               {preferredLanguageElo || 1000}
             </Text>
             <View style={styles.eloLabelContainer}>
@@ -224,31 +215,31 @@ const ProfileTab = () => {
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>More Stats</Text>
         <MenuCard
-          icon="👤"
+          icon="person"
+          gradientColors={['#8E8E93', '#636366']}
           title="Full Profile"
           subtitle="View detailed statistics and history"
-          color="#8E8E93"
           onPress={() => navigation.navigate('Profile' as never)}
         />
         <MenuCard
-          icon="📜"
+          icon="time"
+          gradientColors={gradients.accent}
           title="Match History"
           subtitle="Review your past battles"
-          color="#FF9500"
           onPress={() => navigation.navigate('MatchHistory' as never)}
         />
         <MenuCard
-          icon="🏅"
+          icon="stats-chart"
+          gradientColors={gradients.purple}
           title="Language Stats"
           subtitle="Rankings and stats by language"
-          color="#5856D6"
           onPress={() => navigation.navigate('LanguageStats' as never)}
         />
         <MenuCard
-          icon="📊"
+          icon="podium"
+          gradientColors={gradients.primary}
           title="Leaderboard"
           subtitle="See how you rank globally"
-          color="#34C759"
           onPress={() => navigation.navigate('Leaderboard' as never)}
         />
       </View>
@@ -274,7 +265,7 @@ const ProfileTab = () => {
                 onPress={() => setLanguageSelectorVisible(false)}
                 style={styles.closeButton}
               >
-                <Text style={styles.closeButtonText}>✕</Text>
+                <Ionicons name="close" size={20} color={colors.textSecondary} />
               </TouchableOpacity>
             </View>
 
@@ -304,7 +295,9 @@ const ProfileTab = () => {
                         </Text>
                       )}
                     </View>
-                    {isSelected && <Text style={styles.checkmark}>✓</Text>}
+                    {isSelected && (
+                      <Ionicons name="checkmark-circle" size={24} color={colors.primary} />
+                    )}
                   </TouchableOpacity>
                 );
               })}
@@ -319,15 +312,15 @@ const ProfileTab = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: colors.background,
   },
   header: {
-    backgroundColor: 'white',
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 16,
+    backgroundColor: colors.surface,
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing.xl,
+    paddingBottom: spacing.lg,
     borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
+    borderBottomColor: colors.border,
   },
   headerTop: {
     flexDirection: 'row',
@@ -335,31 +328,24 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   greeting: {
-    fontSize: 14,
-    color: '#666',
+    ...typography.bodySmall,
   },
   username: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#333',
-    marginTop: 4,
+    ...typography.h2,
+    marginTop: spacing.xs,
   },
   statsContainer: {
     flexDirection: 'row',
-    padding: 16,
+    padding: spacing.lg,
     gap: 10,
   },
   statCard: {
     flex: 1,
-    backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 16,
+    backgroundColor: colors.surface,
+    borderRadius: radii.md,
+    padding: spacing.lg,
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    ...shadows.md,
   },
   eloStatCard: {
     flex: 1,
@@ -367,121 +353,99 @@ const styles = StyleSheet.create({
   eloLabelContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    marginTop: 4,
+    gap: spacing.xs,
+    marginTop: spacing.xs,
   },
   languageFlag: {
     fontSize: 14,
   },
   changeLanguageHint: {
     fontSize: 9,
-    color: '#999',
-    marginTop: 4,
-  },
-  statIcon: {
-    fontSize: 28,
-    marginBottom: 8,
+    color: colors.textTertiary,
+    marginTop: spacing.xs,
   },
   statValue: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: '#333',
+    ...typography.stat,
+    marginTop: spacing.xs,
   },
   statLabel: {
-    fontSize: 11,
-    color: '#666',
-    marginTop: 4,
+    ...typography.caption,
+    marginTop: spacing.xs,
   },
   summaryCard: {
-    backgroundColor: 'white',
-    borderRadius: 12,
+    backgroundColor: colors.surface,
+    borderRadius: radii.md,
     padding: 18,
-    marginHorizontal: 16,
-    marginBottom: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    marginHorizontal: spacing.lg,
+    marginBottom: spacing.sm,
+    ...shadows.md,
   },
   summaryTitle: {
-    fontSize: 17,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 12,
+    ...typography.title,
+    marginBottom: spacing.md,
   },
   summaryRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingVertical: 8,
+    paddingVertical: spacing.sm,
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    borderBottomColor: colors.borderLight,
   },
   summaryLabel: {
-    fontSize: 14,
-    color: '#666',
+    ...typography.body,
+    color: colors.textSecondary,
   },
   summaryValue: {
-    fontSize: 14,
+    ...typography.body,
     fontWeight: '600',
-    color: '#333',
   },
   section: {
-    padding: 16,
+    padding: spacing.lg,
   },
   sectionTitle: {
+    ...typography.title,
     fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 12,
+    marginBottom: spacing.md,
   },
   card: {
-    backgroundColor: 'white',
-    borderRadius: 12,
-    marginBottom: 12,
-    borderLeftWidth: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    backgroundColor: colors.surface,
+    borderRadius: radii.lg,
+    marginBottom: spacing.md,
+    ...shadows.md,
   },
   cardContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 16,
+    padding: spacing.lg,
   },
-  cardIcon: {
-    fontSize: 28,
-    marginRight: 16,
+  cardIconCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: radii.full,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: spacing.lg,
   },
   cardText: {
     flex: 1,
   },
   cardTitle: {
+    ...typography.title,
     fontSize: 16,
-    fontWeight: 'bold',
-    color: '#333',
   },
   cardSubtitle: {
-    fontSize: 13,
-    color: '#666',
+    ...typography.bodySmall,
     marginTop: 2,
-  },
-  cardArrow: {
-    fontSize: 28,
-    color: '#ccc',
-    fontWeight: '300',
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: colors.overlay,
     justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: 'white',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
+    backgroundColor: colors.surface,
+    borderTopLeftRadius: radii.xl,
+    borderTopRightRadius: radii.xl,
     maxHeight: '70%',
     paddingBottom: 90,
   },
@@ -489,68 +453,55 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.lg,
     borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
+    borderBottomColor: colors.border,
   },
   modalTitle: {
+    ...typography.title,
     fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
   },
   closeButton: {
     width: 32,
     height: 32,
-    borderRadius: 16,
-    backgroundColor: '#f5f5f5',
+    borderRadius: radii.full,
+    backgroundColor: colors.surfaceSecondary,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  closeButtonText: {
-    fontSize: 18,
-    color: '#666',
-    fontWeight: 'bold',
-  },
   languageList: {
-    paddingHorizontal: 20,
-    paddingTop: 12,
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing.md,
   },
   languageOption: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 16,
+    backgroundColor: colors.surface,
+    borderRadius: radii.md,
+    padding: spacing.lg,
     marginBottom: 10,
     borderWidth: 2,
-    borderColor: '#e0e0e0',
+    borderColor: colors.border,
   },
   languageOptionSelected: {
-    backgroundColor: '#f0f8ff',
-    borderColor: '#4A90E2',
+    backgroundColor: colors.primaryLight,
+    borderColor: colors.primary,
   },
   languageFlag2: {
     fontSize: 32,
-    marginRight: 12,
+    marginRight: spacing.md,
   },
   languageInfo: {
     flex: 1,
   },
   languageName: {
+    ...typography.title,
     fontSize: 16,
-    fontWeight: 'bold',
-    color: '#333',
   },
   languageElo: {
-    fontSize: 13,
-    color: '#666',
+    ...typography.bodySmall,
     marginTop: 2,
-  },
-  checkmark: {
-    fontSize: 20,
-    color: '#4A90E2',
-    fontWeight: 'bold',
   },
 });
 

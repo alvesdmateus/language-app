@@ -1,6 +1,9 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Division, DivisionInfo } from '../types';
+import { colors, divisionColors, spacing, radii, shadows, typography } from '../theme';
 
 interface DivisionBadgeProps {
   division: Division;
@@ -9,26 +12,26 @@ interface DivisionBadgeProps {
   showTier?: boolean;
 }
 
-const DIVISION_COLORS: Record<Division, string> = {
-  [Division.UNRANKED]: '#808080',
-  [Division.BRONZE]: '#CD7F32',
-  [Division.SILVER]: '#C0C0C0',
-  [Division.GOLD]: '#FFD700',
-  [Division.PLATINUM]: '#E5E4E2',
-  [Division.DIAMOND]: '#B9F2FF',
-  [Division.MASTER]: '#9B30FF',
-  [Division.GRANDMASTER]: '#FF1493',
+const DIVISION_ICONS: Record<Division, keyof typeof MaterialCommunityIcons.glyphMap> = {
+  [Division.UNRANKED]: 'circle-outline',
+  [Division.BRONZE]: 'shield-outline',
+  [Division.SILVER]: 'shield-half-full',
+  [Division.GOLD]: 'shield-star',
+  [Division.PLATINUM]: 'diamond-stone',
+  [Division.DIAMOND]: 'diamond',
+  [Division.MASTER]: 'crown',
+  [Division.GRANDMASTER]: 'trophy',
 };
 
-const DIVISION_EMOJIS: Record<Division, string> = {
-  [Division.UNRANKED]: '⚪',
-  [Division.BRONZE]: '🥉',
-  [Division.SILVER]: '🥈',
-  [Division.GOLD]: '🥇',
-  [Division.PLATINUM]: '💎',
-  [Division.DIAMOND]: '💠',
-  [Division.MASTER]: '👑',
-  [Division.GRANDMASTER]: '🏆',
+const DIVISION_GRADIENTS: Record<Division, readonly [string, string]> = {
+  [Division.UNRANKED]: ['#BFBFBF', '#AFAFAF'] as const,
+  [Division.BRONZE]: ['#E8A04A', '#CD7F32'] as const,
+  [Division.SILVER]: ['#D8D8D8', '#C0C0C0'] as const,
+  [Division.GOLD]: ['#FFD700', '#FFC200'] as const,
+  [Division.PLATINUM]: ['#F0EFED', '#E5E4E2'] as const,
+  [Division.DIAMOND]: ['#4DD4F7', '#1CB0F6'] as const,
+  [Division.MASTER]: ['#D9A3FF', '#CE82FF'] as const,
+  [Division.GRANDMASTER]: ['#FF6BA6', '#FF4B88'] as const,
 };
 
 export const DivisionBadge: React.FC<DivisionBadgeProps> = ({
@@ -37,23 +40,22 @@ export const DivisionBadge: React.FC<DivisionBadgeProps> = ({
   size = 'medium',
   showTier = true,
 }) => {
-  const color = divisionInfo?.color || DIVISION_COLORS[division];
-  const emoji = DIVISION_EMOJIS[division];
+  const color = divisionInfo?.color || divisionColors[division];
+  const icon = DIVISION_ICONS[division];
 
-  const sizeStyles = {
-    small: { fontSize: 12, padding: 4, emojiSize: 14 },
-    medium: { fontSize: 14, padding: 8, emojiSize: 18 },
-    large: { fontSize: 16, padding: 10, emojiSize: 22 },
+  const sizeConfig = {
+    small: { iconSize: 14, fontSize: 12, paddingH: 10, paddingV: 4 },
+    medium: { iconSize: 18, fontSize: 14, paddingH: 14, paddingV: 6 },
+    large: { iconSize: 22, fontSize: 16, paddingH: 16, paddingV: 8 },
   };
 
-  const currentSize = sizeStyles[size];
-
+  const config = sizeConfig[size];
   const displayName = divisionInfo?.displayName || division.replace('_', ' ');
 
   return (
-    <View style={[styles.badge, { borderColor: color, padding: currentSize.padding }]}>
-      <Text style={{ fontSize: currentSize.emojiSize }}>{emoji}</Text>
-      <Text style={[styles.text, { fontSize: currentSize.fontSize }]}>
+    <View style={[styles.badge, { borderColor: color, paddingHorizontal: config.paddingH, paddingVertical: config.paddingV }]}>
+      <MaterialCommunityIcons name={icon} size={config.iconSize} color={color} />
+      <Text style={[styles.badgeText, { fontSize: config.fontSize }]}>
         {displayName}
       </Text>
     </View>
@@ -66,99 +68,107 @@ export const DivisionCard: React.FC<{
   eloRating: number;
 }> = ({ division, divisionInfo, eloRating }) => {
   const color = divisionInfo.color;
-  const emoji = DIVISION_EMOJIS[division];
+  const icon = DIVISION_ICONS[division];
+  const gradient = DIVISION_GRADIENTS[division];
 
-  // Calculate progress within division
   const progress = divisionInfo.maxElo !== Infinity
     ? ((eloRating - divisionInfo.minElo) / (divisionInfo.maxElo - divisionInfo.minElo)) * 100
     : 100;
 
   return (
-    <View style={[styles.card, { borderColor: color }]}>
-      <View style={styles.cardHeader}>
-        <Text style={styles.emoji}>{emoji}</Text>
-        <View style={styles.cardInfo}>
-          <Text style={styles.divisionName}>{divisionInfo.displayName}</Text>
-          <Text style={styles.eloText}>{eloRating} ELO</Text>
+    <View style={styles.card}>
+      <LinearGradient
+        colors={gradient}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.cardGradientHeader}
+      >
+        <MaterialCommunityIcons name={icon} size={36} color={colors.white} />
+        <View style={styles.cardHeaderInfo}>
+          <Text style={styles.cardDivisionName}>{divisionInfo.displayName}</Text>
+          <Text style={styles.cardEloText}>{eloRating} ELO</Text>
         </View>
-      </View>
+      </LinearGradient>
+
       {divisionInfo.maxElo !== Infinity && (
-        <>
+        <View style={styles.cardProgressSection}>
           <View style={styles.progressBar}>
-            <View
+            <LinearGradient
+              colors={gradient}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
               style={[
                 styles.progressFill,
-                { width: `${Math.min(100, Math.max(0, progress))}%`, backgroundColor: color },
+                { width: `${Math.min(100, Math.max(0, progress))}%` },
               ]}
             />
           </View>
           <Text style={styles.progressText}>
             {divisionInfo.maxElo - eloRating} ELO to next division
           </Text>
-        </>
+        </View>
       )}
     </View>
   );
 };
 
 const styles = StyleSheet.create({
+  // Badge styles
   badge: {
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 2,
-    borderRadius: 20,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    gap: 6,
-    backgroundColor: 'white',
+    borderRadius: radii.pill,
+    gap: spacing.sm,
+    backgroundColor: colors.surface,
   },
-  text: {
-    fontWeight: 'bold',
-    color: '#333',
+  badgeText: {
+    fontWeight: '700',
+    color: colors.textPrimary,
   },
+
+  // Card styles
   card: {
-    backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 16,
-    borderWidth: 3,
-    marginVertical: 8,
+    backgroundColor: colors.surface,
+    borderRadius: radii.lg,
+    marginVertical: spacing.sm,
+    overflow: 'hidden',
+    ...shadows.md,
   },
-  cardHeader: {
+  cardGradientHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
+    padding: spacing.lg,
+    gap: spacing.md,
   },
-  emoji: {
-    fontSize: 40,
-    marginRight: 12,
-  },
-  cardInfo: {
+  cardHeaderInfo: {
     flex: 1,
   },
-  divisionName: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#333',
+  cardDivisionName: {
+    ...typography.h3,
+    color: colors.textInverse,
   },
-  eloText: {
-    fontSize: 16,
-    color: '#666',
-    marginTop: 4,
+  cardEloText: {
+    ...typography.subtitle,
+    color: 'rgba(255, 255, 255, 0.85)',
+    marginTop: 2,
+  },
+  cardProgressSection: {
+    padding: spacing.lg,
   },
   progressBar: {
-    height: 8,
-    backgroundColor: '#f0f0f0',
-    borderRadius: 4,
+    height: 10,
+    backgroundColor: colors.surfaceSecondary,
+    borderRadius: radii.full,
     overflow: 'hidden',
-    marginBottom: 8,
+    marginBottom: spacing.sm,
   },
   progressFill: {
     height: '100%',
-    borderRadius: 4,
+    borderRadius: radii.full,
   },
   progressText: {
-    fontSize: 12,
-    color: '#666',
+    ...typography.caption,
     textAlign: 'center',
   },
 });

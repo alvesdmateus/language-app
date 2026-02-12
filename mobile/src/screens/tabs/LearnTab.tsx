@@ -1,23 +1,28 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+import { colors, gradients, spacing, radii, shadows, typography } from '../../theme';
 
 const LearnTab = () => {
   const navigation = useNavigation();
 
-  const LearningCard = ({ icon, title, subtitle, color, onPress }: any) => (
+  const LearningCard = ({ icon, title, subtitle, gradientColors, onPress }: any) => (
     <TouchableOpacity
-      style={[styles.card, { borderLeftColor: color }]}
+      style={styles.card}
       onPress={onPress}
       activeOpacity={0.7}
     >
       <View style={styles.cardContent}>
-        <Text style={styles.cardIcon}>{icon}</Text>
+        <LinearGradient colors={gradientColors} style={styles.cardIconCircle}>
+          <Ionicons name={icon} size={24} color={colors.white} />
+        </LinearGradient>
         <View style={styles.cardText}>
           <Text style={styles.cardTitle}>{title}</Text>
           <Text style={styles.cardSubtitle}>{subtitle}</Text>
         </View>
-        <Text style={styles.cardArrow}>›</Text>
+        <Ionicons name="chevron-forward" size={20} color={colors.textTertiary} />
       </View>
     </TouchableOpacity>
   );
@@ -32,22 +37,27 @@ const LearnTab = () => {
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Study Materials</Text>
         <LearningCard
-          icon="📚"
+          icon="book"
           title="Flashcards"
           subtitle="Practice with interactive flashcards"
-          color="#FF9500"
+          gradientColors={gradients.accent}
           onPress={() => navigation.navigate('Flashcards' as never)}
         />
       </View>
 
       <View style={styles.tipCard}>
-        <Text style={styles.tipIcon}>💡</Text>
-        <View style={styles.tipContent}>
-          <Text style={styles.tipTitle}>Study Tip</Text>
-          <Text style={styles.tipText}>
-            Regular practice is key! Try to complete at least one flashcard session daily to maintain your progress.
-          </Text>
-        </View>
+        <LinearGradient
+          colors={[colors.goldLight, '#FFF3D6']}
+          style={styles.tipGradient}
+        >
+          <Ionicons name="bulb" size={28} color={colors.accent} />
+          <View style={styles.tipContent}>
+            <Text style={styles.tipTitle}>Study Tip</Text>
+            <Text style={styles.tipText}>
+              Regular practice is key! Try to complete at least one flashcard session daily to maintain your progress.
+            </Text>
+          </View>
+        </LinearGradient>
       </View>
     </ScrollView>
   );
@@ -56,97 +66,82 @@ const LearnTab = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: colors.background,
   },
   header: {
-    backgroundColor: 'white',
-    padding: 20,
+    backgroundColor: colors.surface,
+    padding: spacing.xl,
     borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
+    borderBottomColor: colors.border,
   },
   headerTitle: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 4,
+    ...typography.h2,
+    marginBottom: spacing.xs,
   },
   headerSubtitle: {
-    fontSize: 14,
-    color: '#666',
+    ...typography.bodySmall,
   },
   section: {
-    padding: 16,
+    padding: spacing.lg,
   },
   sectionTitle: {
+    ...typography.title,
     fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 12,
+    marginBottom: spacing.md,
   },
   card: {
-    backgroundColor: 'white',
-    borderRadius: 12,
-    marginBottom: 12,
-    borderLeftWidth: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    backgroundColor: colors.surface,
+    borderRadius: radii.lg,
+    marginBottom: spacing.md,
+    ...shadows.md,
   },
   cardContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 16,
+    padding: spacing.lg,
   },
-  cardIcon: {
-    fontSize: 32,
-    marginRight: 16,
+  cardIconCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: radii.full,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: spacing.lg,
   },
   cardText: {
     flex: 1,
   },
   cardTitle: {
-    fontSize: 17,
-    fontWeight: 'bold',
-    color: '#333',
+    ...typography.title,
   },
   cardSubtitle: {
-    fontSize: 13,
-    color: '#666',
+    ...typography.bodySmall,
     marginTop: 2,
   },
-  cardArrow: {
-    fontSize: 28,
-    color: '#ccc',
-    fontWeight: '300',
-  },
   tipCard: {
-    backgroundColor: '#FFF9E6',
-    borderRadius: 12,
-    margin: 16,
-    padding: 16,
-    flexDirection: 'row',
+    margin: spacing.lg,
+    borderRadius: radii.lg,
+    overflow: 'hidden',
     borderWidth: 1,
-    borderColor: '#FFE599',
+    borderColor: colors.gold,
   },
-  tipIcon: {
-    fontSize: 28,
-    marginRight: 12,
+  tipGradient: {
+    flexDirection: 'row',
+    padding: spacing.lg,
+    alignItems: 'flex-start',
+    gap: spacing.md,
   },
   tipContent: {
     flex: 1,
   },
   tipTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
+    ...typography.title,
     color: '#8B6914',
-    marginBottom: 4,
+    marginBottom: spacing.xs,
   },
   tipText: {
-    fontSize: 13,
+    ...typography.bodySmall,
     color: '#8B6914',
-    lineHeight: 18,
   },
 });
 

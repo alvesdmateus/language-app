@@ -6,11 +6,15 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Alert,
+  ScrollView,
 } from 'react-native';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { Language } from '../types';
 import { api } from '../services/api';
 import LanguageSelector from '../components/LanguageSelector';
+import { colors, gradients, spacing, radii, shadows, typography } from '../theme';
 
 const BattleModeScreen = () => {
   const navigation = useNavigation();
@@ -21,6 +25,8 @@ const BattleModeScreen = () => {
   const [selectedLanguage, setSelectedLanguage] = useState<Language | null>(null);
   const [searching, setSearching] = useState(false);
   const [isAsync, setIsAsync] = useState(false);
+
+  const isRanked = mode === 'RANKED';
 
   useEffect(() => {
     loadLanguageStats();
@@ -66,14 +72,14 @@ const BattleModeScreen = () => {
 
     try {
       console.log('Starting matchmaking with:', {
-        type: mode === 'RANKED' ? 'BATTLE' : 'CASUAL',
+        type: isRanked ? 'BATTLE' : 'CASUAL',
         language,
         isBattleMode: true,
         isAsync,
       });
 
       const response = await api.post('/match/find', {
-        type: mode === 'RANKED' ? 'BATTLE' : 'CASUAL',
+        type: isRanked ? 'BATTLE' : 'CASUAL',
         language,
         isBattleMode: true,
         isAsync,
@@ -82,18 +88,16 @@ const BattleModeScreen = () => {
       console.log('Matchmaking response:', response.data);
 
       if (response.data.data.matched) {
-        // Match found immediately
         console.log('Match found immediately, navigating to GameScreen');
         navigation.navigate('GameScreen' as never, {
           matchId: response.data.data.match.id,
           match: response.data.data.match,
         } as never);
       } else {
-        // Waiting for opponent
         console.log('No immediate match, navigating to Matchmaking screen');
         navigation.navigate('Matchmaking' as never, {
           language,
-          mode: mode === 'RANKED' ? 'BATTLE' : 'CASUAL',
+          mode: isRanked ? 'BATTLE' : 'CASUAL',
         } as never);
       }
     } catch (error: any) {
@@ -113,34 +117,40 @@ const BattleModeScreen = () => {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#4A90E2" />
+        <ActivityIndicator size="large" color={colors.secondary} />
         <Text style={styles.loadingText}>Loading language stats...</Text>
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <ScrollView style={styles.container}>
       {/* Header */}
-      <View style={styles.header}>
+      <LinearGradient
+        colors={isRanked ? gradients.ranked : gradients.casual}
+        style={styles.header}
+      >
         <TouchableOpacity
           onPress={() => navigation.goBack()}
           disabled={searching}
+          style={styles.backButtonTouch}
         >
-          <Text style={styles.backButton}>← Back</Text>
+          <Ionicons name="arrow-back" size={24} color={colors.textInverse} />
         </TouchableOpacity>
         <View style={styles.headerContent}>
-          <Text style={styles.headerIcon}>
-            {mode === 'RANKED' ? '⚔️' : '🎮'}
-          </Text>
+          {isRanked ? (
+            <MaterialCommunityIcons name="sword-cross" size={48} color={colors.textInverse} />
+          ) : (
+            <Ionicons name="game-controller" size={48} color={colors.textInverse} />
+          )}
           <Text style={styles.headerTitle}>
-            {mode === 'RANKED' ? 'Ranked Battle' : 'Casual Battle'}
+            {isRanked ? 'Ranked Battle' : 'Casual Battle'}
           </Text>
           <Text style={styles.headerSubtitle}>
             Choose your language to begin
           </Text>
         </View>
-      </View>
+      </LinearGradient>
 
       {/* Match Type Selector */}
       <View style={styles.matchTypeCard}>
@@ -151,7 +161,11 @@ const BattleModeScreen = () => {
             onPress={() => setIsAsync(false)}
             disabled={searching}
           >
-            <Text style={[styles.toggleIcon, !isAsync && styles.toggleIconActive]}>⚡</Text>
+            <Ionicons
+              name="flash"
+              size={28}
+              color={!isAsync ? colors.secondary : colors.textTertiary}
+            />
             <Text style={[styles.toggleText, !isAsync && styles.toggleTextActive]}>
               Synchronous
             </Text>
@@ -165,7 +179,11 @@ const BattleModeScreen = () => {
             onPress={() => setIsAsync(true)}
             disabled={searching}
           >
-            <Text style={[styles.toggleIcon, isAsync && styles.toggleIconActive]}>⏳</Text>
+            <Ionicons
+              name="time"
+              size={28}
+              color={isAsync ? colors.secondary : colors.textTertiary}
+            />
             <Text style={[styles.toggleText, isAsync && styles.toggleTextActive]}>
               Asynchronous
             </Text>
@@ -180,32 +198,32 @@ const BattleModeScreen = () => {
       <View style={styles.infoCard}>
         <Text style={styles.infoTitle}>Battle Mode Rules</Text>
         <View style={styles.infoRow}>
-          <Text style={styles.infoIcon}>📝</Text>
+          <Ionicons name="document-text" size={18} color={colors.secondary} />
           <Text style={styles.infoText}>5 questions per match</Text>
         </View>
         <View style={styles.infoRow}>
-          <Text style={styles.infoIcon}>⏱️</Text>
+          <Ionicons name="timer" size={18} color={colors.secondary} />
           <Text style={styles.infoText}>
             {isAsync ? '24 hours to complete all questions' : '45 seconds per question'}
           </Text>
         </View>
         <View style={styles.infoRow}>
-          <Text style={styles.infoIcon}>🎯</Text>
+          <Ionicons name="ribbon" size={18} color={colors.secondary} />
           <Text style={styles.infoText}>
-            {mode === 'RANKED'
+            {isRanked
               ? 'ELO rating will be affected'
               : 'Practice mode - no ELO changes'}
           </Text>
         </View>
         <View style={styles.infoRow}>
-          <Text style={styles.infoIcon}>🏆</Text>
+          <Ionicons name="trophy" size={18} color={colors.secondary} />
           <Text style={styles.infoText}>
             Winner: Most accurate, then fastest
           </Text>
         </View>
         {isAsync && (
           <View style={styles.infoRow}>
-            <Text style={styles.infoIcon}>🔔</Text>
+            <Ionicons name="notifications" size={18} color={colors.secondary} />
             <Text style={styles.infoText}>
               Get notified when your opponent finishes
             </Text>
@@ -224,158 +242,129 @@ const BattleModeScreen = () => {
           showStats={true}
         />
       </View>
-    </View>
+
+      <View style={{ height: spacing.xxxl }} />
+    </ScrollView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: colors.background,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f5f5f5',
+    backgroundColor: colors.background,
   },
   loadingText: {
-    marginTop: 12,
-    fontSize: 16,
-    color: '#666',
+    marginTop: spacing.md,
+    ...typography.body,
+    color: colors.textSecondary,
   },
   header: {
-    backgroundColor: 'white',
     paddingTop: 50,
-    paddingBottom: 20,
-    paddingHorizontal: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
+    paddingBottom: spacing.xl,
+    paddingHorizontal: spacing.xl,
   },
-  backButton: {
-    fontSize: 16,
-    color: '#4A90E2',
-    marginBottom: 16,
+  backButtonTouch: {
+    marginBottom: spacing.lg,
+    alignSelf: 'flex-start',
+    padding: spacing.xs,
   },
   headerContent: {
     alignItems: 'center',
   },
-  headerIcon: {
-    fontSize: 48,
-    marginBottom: 8,
-  },
   headerTitle: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 4,
+    ...typography.h2,
+    color: colors.textInverse,
+    marginTop: spacing.sm,
+    marginBottom: spacing.xs,
   },
   headerSubtitle: {
-    fontSize: 15,
-    color: '#666',
+    ...typography.subtitle,
+    color: 'rgba(255, 255, 255, 0.85)',
   },
   matchTypeCard: {
-    backgroundColor: 'white',
-    marginHorizontal: 20,
-    marginTop: 20,
-    marginBottom: 12,
-    padding: 16,
-    borderRadius: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    backgroundColor: colors.surface,
+    marginHorizontal: spacing.xl,
+    marginTop: spacing.xl,
+    marginBottom: spacing.md,
+    padding: spacing.lg,
+    borderRadius: radii.md,
+    ...shadows.md,
   },
   matchTypeTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 12,
+    ...typography.title,
+    marginBottom: spacing.md,
   },
   toggleContainer: {
     flexDirection: 'row',
-    gap: 12,
+    gap: spacing.md,
   },
   toggleButton: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
-    padding: 16,
-    borderRadius: 8,
+    backgroundColor: colors.background,
+    padding: spacing.lg,
+    borderRadius: radii.sm,
     alignItems: 'center',
     borderWidth: 2,
     borderColor: 'transparent',
   },
   toggleButtonActive: {
-    backgroundColor: '#E3F2FD',
-    borderColor: '#4A90E2',
-  },
-  toggleIcon: {
-    fontSize: 32,
-    marginBottom: 8,
-  },
-  toggleIconActive: {
-    // Active state handled by parent
+    backgroundColor: colors.secondaryLight,
+    borderColor: colors.secondary,
   },
   toggleText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#666',
-    marginBottom: 4,
+    ...typography.buttonSmall,
+    color: colors.textSecondary,
+    marginTop: spacing.sm,
+    marginBottom: spacing.xs,
   },
   toggleTextActive: {
-    color: '#4A90E2',
+    color: colors.secondary,
   },
   toggleSubtext: {
-    fontSize: 11,
-    color: '#999',
+    ...typography.caption,
+    color: colors.textTertiary,
   },
   toggleSubtextActive: {
-    color: '#4A90E2',
+    color: colors.secondary,
   },
   infoCard: {
-    backgroundColor: 'white',
-    margin: 20,
-    marginBottom: 12,
-    padding: 16,
-    borderRadius: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    backgroundColor: colors.surface,
+    margin: spacing.xl,
+    marginBottom: spacing.md,
+    padding: spacing.lg,
+    borderRadius: radii.md,
+    ...shadows.md,
   },
   infoTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 12,
+    ...typography.title,
+    marginBottom: spacing.md,
   },
   infoRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
-  },
-  infoIcon: {
-    fontSize: 18,
-    marginRight: 10,
-    width: 24,
+    marginBottom: spacing.sm,
+    gap: spacing.sm,
   },
   infoText: {
-    fontSize: 14,
-    color: '#666',
+    ...typography.body,
+    color: colors.textSecondary,
     flex: 1,
   },
   languageSelector: {
     flex: 1,
-    paddingHorizontal: 20,
-    paddingTop: 12,
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing.md,
   },
   sectionTitle: {
+    ...typography.title,
     fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 12,
+    marginBottom: spacing.md,
   },
 });
 

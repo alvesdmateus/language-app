@@ -19,6 +19,7 @@
     "axios": "^1.6.2",
     "babel-preset-expo": "^54.0.9",
     "expo": "~54.0.0",
+    "expo-linear-gradient": "~15.0.8",
     "expo-navigation-bar": "~5.0.10",
     "expo-status-bar": "~3.0.9",
     "fbjs": "^3.0.5",

@@ -8,9 +8,12 @@ import {
   Alert,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Language } from '../../types';
 import { api } from '../../services/api';
 import LanguageSelector from '../../components/LanguageSelector';
+import { colors, gradients, spacing, radii, shadows, typography } from '../../theme';
 
 type BattleMode = 'RANKED' | 'CASUAL';
 
@@ -65,13 +68,6 @@ const BattleModeTab = () => {
     setSearching(true);
 
     try {
-      console.log('Starting matchmaking with:', {
-        type: selectedMode === 'RANKED' ? 'BATTLE' : 'CASUAL',
-        language,
-        isBattleMode: true,
-        isAsync,
-      });
-
       const response = await api.post('/match/find', {
         type: selectedMode === 'RANKED' ? 'BATTLE' : 'CASUAL',
         language,
@@ -79,28 +75,21 @@ const BattleModeTab = () => {
         isAsync,
       });
 
-      console.log('Matchmaking response:', response.data);
-
       if (response.data.data.matched) {
-        console.log('Match found immediately, navigating to GameScreen');
         navigation.navigate('GameScreen' as never, {
           matchId: response.data.data.match.id,
           match: response.data.data.match,
         } as never);
       } else {
-        console.log('No immediate match, navigating to Matchmaking screen');
         navigation.navigate('Matchmaking' as never, {
           language,
           mode: selectedMode === 'RANKED' ? 'BATTLE' : 'CASUAL',
         } as never);
       }
     } catch (error: any) {
-      console.error('Failed to join matchmaking - Full error:', error);
-      console.error('Error response:', error?.response?.data);
-      console.error('Error status:', error?.response?.status);
       Alert.alert(
         'Error',
-        error?.response?.data?.message || 'Failed to start matchmaking. Check console for details.'
+        error?.response?.data?.message || 'Failed to start matchmaking.'
       );
     } finally {
       setSearching(false);
@@ -113,16 +102,24 @@ const BattleModeTab = () => {
       <TouchableOpacity
         style={[
           styles.modeButton,
-          selectedMode === 'RANKED' && styles.modeButtonActive,
+          selectedMode === 'RANKED' && styles.modeButtonRanked,
         ]}
         onPress={() => setSelectedMode('RANKED')}
         disabled={searching}
       >
-        <Text style={styles.modeIcon}>⚔️</Text>
+        {selectedMode === 'RANKED' ? (
+          <LinearGradient colors={gradients.ranked} style={styles.modeIconCircle}>
+            <MaterialCommunityIcons name="sword-cross" size={24} color={colors.white} />
+          </LinearGradient>
+        ) : (
+          <View style={[styles.modeIconCircle, { backgroundColor: colors.surfaceSecondary }]}>
+            <MaterialCommunityIcons name="sword-cross" size={24} color={colors.textTertiary} />
+          </View>
+        )}
         <Text
           style={[
             styles.modeButtonText,
-            selectedMode === 'RANKED' && styles.modeButtonTextActive,
+            selectedMode === 'RANKED' && styles.modeButtonTextRanked,
           ]}
         >
           Ranked
@@ -133,16 +130,24 @@ const BattleModeTab = () => {
       <TouchableOpacity
         style={[
           styles.modeButton,
-          selectedMode === 'CASUAL' && styles.modeButtonActive,
+          selectedMode === 'CASUAL' && styles.modeButtonCasual,
         ]}
         onPress={() => setSelectedMode('CASUAL')}
         disabled={searching}
       >
-        <Text style={styles.modeIcon}>🎮</Text>
+        {selectedMode === 'CASUAL' ? (
+          <LinearGradient colors={gradients.casual} style={styles.modeIconCircle}>
+            <Ionicons name="game-controller" size={24} color={colors.white} />
+          </LinearGradient>
+        ) : (
+          <View style={[styles.modeIconCircle, { backgroundColor: colors.surfaceSecondary }]}>
+            <Ionicons name="game-controller" size={24} color={colors.textTertiary} />
+          </View>
+        )}
         <Text
           style={[
             styles.modeButtonText,
-            selectedMode === 'CASUAL' && styles.modeButtonTextActive,
+            selectedMode === 'CASUAL' && styles.modeButtonTextCasual,
           ]}
         >
           Casual
@@ -156,7 +161,7 @@ const BattleModeTab = () => {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#FF3B30" />
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
@@ -165,7 +170,6 @@ const BattleModeTab = () => {
     <View style={styles.container}>
       <ModeSelector />
 
-      {/* Match Type Selector */}
       <View style={styles.matchTypeCard}>
         <Text style={styles.matchTypeTitle}>Match Type</Text>
         <View style={styles.toggleContainer}>
@@ -174,7 +178,11 @@ const BattleModeTab = () => {
             onPress={() => setIsAsync(false)}
             disabled={searching}
           >
-            <Text style={[styles.toggleIcon, !isAsync && styles.toggleIconActive]}>⚡</Text>
+            <Ionicons
+              name="flash"
+              size={24}
+              color={!isAsync ? colors.secondary : colors.textTertiary}
+            />
             <Text style={[styles.toggleText, !isAsync && styles.toggleTextActive]}>
               Synchronous
             </Text>
@@ -188,7 +196,11 @@ const BattleModeTab = () => {
             onPress={() => setIsAsync(true)}
             disabled={searching}
           >
-            <Text style={[styles.toggleIcon, isAsync && styles.toggleIconActive]}>⏳</Text>
+            <Ionicons
+              name="time"
+              size={24}
+              color={isAsync ? colors.secondary : colors.textTertiary}
+            />
             <Text style={[styles.toggleText, isAsync && styles.toggleTextActive]}>
               Asynchronous
             </Text>
@@ -202,22 +214,22 @@ const BattleModeTab = () => {
       <View style={styles.infoCard}>
         <Text style={styles.infoTitle}>Battle Mode Rules</Text>
         <View style={styles.infoRow}>
-          <Text style={styles.infoIcon}>📝</Text>
+          <Ionicons name="document-text" size={16} color={colors.secondary} />
           <Text style={styles.infoText}>5 questions per match</Text>
         </View>
         <View style={styles.infoRow}>
-          <Text style={styles.infoIcon}>⏱️</Text>
+          <Ionicons name="timer" size={16} color={colors.accent} />
           <Text style={styles.infoText}>
             {isAsync ? '24 hours to complete all questions' : '45 seconds per question'}
           </Text>
         </View>
         <View style={styles.infoRow}>
-          <Text style={styles.infoIcon}>🏆</Text>
+          <Ionicons name="trophy" size={16} color={colors.gold} />
           <Text style={styles.infoText}>Winner: Most accurate, then fastest</Text>
         </View>
         {isAsync && (
           <View style={styles.infoRow}>
-            <Text style={styles.infoIcon}>🔔</Text>
+            <Ionicons name="notifications" size={16} color={colors.purple} />
             <Text style={styles.infoText}>
               Get notified when your opponent finishes
             </Text>
@@ -243,153 +255,140 @@ const BattleModeTab = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: colors.background,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f5f5f5',
+    backgroundColor: colors.background,
   },
   modeSelector: {
     flexDirection: 'row',
-    padding: 16,
-    gap: 12,
-    backgroundColor: 'white',
+    padding: spacing.lg,
+    gap: spacing.md,
+    backgroundColor: colors.surface,
     borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
+    borderBottomColor: colors.border,
   },
   modeButton: {
     flex: 1,
-    backgroundColor: '#f8f8f8',
-    borderRadius: 12,
-    padding: 16,
+    backgroundColor: colors.surfaceSecondary,
+    borderRadius: radii.lg,
+    padding: spacing.lg,
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: '#e0e0e0',
+    borderColor: colors.border,
   },
-  modeButtonActive: {
-    backgroundColor: '#FFF0F0',
-    borderColor: '#FF3B30',
+  modeButtonRanked: {
+    backgroundColor: colors.dangerLight,
+    borderColor: colors.danger,
   },
-  modeIcon: {
-    fontSize: 32,
-    marginBottom: 8,
+  modeButtonCasual: {
+    backgroundColor: colors.secondaryLight,
+    borderColor: colors.secondary,
+  },
+  modeIconCircle: {
+    width: 48,
+    height: 48,
+    borderRadius: radii.full,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.sm,
   },
   modeButtonText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#666',
+    ...typography.title,
+    color: colors.textTertiary,
   },
-  modeButtonTextActive: {
-    color: '#FF3B30',
+  modeButtonTextRanked: {
+    color: colors.danger,
+  },
+  modeButtonTextCasual: {
+    color: colors.secondary,
   },
   modeSubtext: {
-    fontSize: 11,
-    color: '#999',
-    marginTop: 4,
+    ...typography.caption,
+    marginTop: spacing.xs,
   },
   infoCard: {
-    backgroundColor: 'white',
-    margin: 16,
-    marginBottom: 8,
+    backgroundColor: colors.surface,
+    margin: spacing.lg,
+    marginBottom: spacing.sm,
     padding: 14,
-    borderRadius: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 2,
+    borderRadius: radii.md,
+    ...shadows.sm,
   },
   infoTitle: {
+    ...typography.title,
     fontSize: 14,
-    fontWeight: 'bold',
-    color: '#333',
     marginBottom: 10,
   },
   infoRow: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 6,
-  },
-  infoIcon: {
-    fontSize: 16,
-    marginRight: 8,
-    width: 20,
+    gap: spacing.sm,
   },
   infoText: {
-    fontSize: 13,
-    color: '#666',
+    ...typography.bodySmall,
   },
   languageSelector: {
     flex: 1,
-    paddingHorizontal: 16,
-    paddingTop: 12,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.md,
   },
   sectionTitle: {
+    ...typography.title,
     fontSize: 16,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 12,
+    marginBottom: spacing.md,
   },
   matchTypeCard: {
-    backgroundColor: 'white',
-    marginHorizontal: 16,
-    marginTop: 12,
-    marginBottom: 8,
-    padding: 16,
-    borderRadius: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    backgroundColor: colors.surface,
+    marginHorizontal: spacing.lg,
+    marginTop: spacing.md,
+    marginBottom: spacing.sm,
+    padding: spacing.lg,
+    borderRadius: radii.md,
+    ...shadows.md,
   },
   matchTypeTitle: {
+    ...typography.title,
     fontSize: 14,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 12,
+    marginBottom: spacing.md,
   },
   toggleContainer: {
     flexDirection: 'row',
-    gap: 12,
+    gap: spacing.md,
   },
   toggleButton: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
-    padding: 12,
-    borderRadius: 8,
+    backgroundColor: colors.surfaceSecondary,
+    padding: spacing.md,
+    borderRadius: radii.sm,
     alignItems: 'center',
     borderWidth: 2,
     borderColor: 'transparent',
   },
   toggleButtonActive: {
-    backgroundColor: '#E3F2FD',
-    borderColor: '#4A90E2',
-  },
-  toggleIcon: {
-    fontSize: 28,
-    marginBottom: 6,
-  },
-  toggleIconActive: {
-    // Active state handled by parent
+    backgroundColor: colors.secondaryLight,
+    borderColor: colors.secondary,
   },
   toggleText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#666',
+    color: colors.textTertiary,
+    marginTop: spacing.xs,
     marginBottom: 3,
   },
   toggleTextActive: {
-    color: '#4A90E2',
+    color: colors.secondary,
   },
   toggleSubtext: {
     fontSize: 10,
-    color: '#999',
+    color: colors.textTertiary,
   },
   toggleSubtextActive: {
-    color: '#4A90E2',
+    color: colors.secondary,
   },
 });
 

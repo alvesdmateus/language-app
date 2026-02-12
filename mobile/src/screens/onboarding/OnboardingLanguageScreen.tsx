@@ -9,27 +9,11 @@ import {
   Alert,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Ionicons } from '@expo/vector-icons';
 import { Language } from '../../types';
 import { userService } from '../../services/api';
-
-interface LanguageOption {
-  value: Language;
-  flag: string;
-  name: string;
-  description: string;
-}
-
-const languages: LanguageOption[] = [
-  { value: 'SPANISH', flag: '🇪🇸', name: 'Spanish', description: 'Español' },
-  { value: 'PORTUGUESE', flag: '🇧🇷', name: 'Portuguese', description: 'Português' },
-  { value: 'FRENCH', flag: '🇫🇷', name: 'French', description: 'Français' },
-  { value: 'GERMAN', flag: '🇩🇪', name: 'German', description: 'Deutsch' },
-  { value: 'ITALIAN', flag: '🇮🇹', name: 'Italian', description: 'Italiano' },
-  { value: 'JAPANESE', flag: '🇯🇵', name: 'Japanese', description: '日本語' },
-  { value: 'KOREAN', flag: '🇰🇷', name: 'Korean', description: '한국어' },
-  { value: 'ENGLISH', flag: '🇺🇸', name: 'English', description: 'English' },
-];
+import { LANGUAGES_LIST } from '../../theme/languages';
+import { colors, spacing, radii, shadows, typography } from '../../theme';
 
 const OnboardingLanguageScreen = () => {
   const navigation = useNavigation();
@@ -48,11 +32,7 @@ const OnboardingLanguageScreen = () => {
 
     try {
       setIsLoading(true);
-
-      // Update user's favorite language
       await userService.updateFavoriteLanguage(selectedLanguage);
-
-      // Navigate to first battle
       navigation.navigate('OnboardingFirstBattle' as never, { language: selectedLanguage } as never);
     } catch (error: any) {
       console.error('Failed to update favorite language:', error);
@@ -64,7 +44,6 @@ const OnboardingLanguageScreen = () => {
 
   return (
     <View style={styles.container}>
-      {/* Header */}
       <View style={styles.header}>
         <Text style={styles.title}>Choose Your Language</Text>
         <Text style={styles.subtitle}>
@@ -72,13 +51,12 @@ const OnboardingLanguageScreen = () => {
         </Text>
       </View>
 
-      {/* Language Grid */}
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.languageGrid}
         showsVerticalScrollIndicator={false}
       >
-        {languages.map((lang) => {
+        {LANGUAGES_LIST.map((lang) => {
           const isSelected = selectedLanguage === lang.value;
 
           return (
@@ -96,11 +74,11 @@ const OnboardingLanguageScreen = () => {
                 {lang.name}
               </Text>
               <Text style={[styles.languageDescription, isSelected && styles.languageDescriptionSelected]}>
-                {lang.description}
+                {lang.nativeName}
               </Text>
               {isSelected && (
                 <View style={styles.checkmark}>
-                  <Text style={styles.checkmarkText}>✓</Text>
+                  <Ionicons name="checkmark" size={16} color={colors.white} />
                 </View>
               )}
             </TouchableOpacity>
@@ -108,7 +86,6 @@ const OnboardingLanguageScreen = () => {
         })}
       </ScrollView>
 
-      {/* Footer */}
       <View style={styles.footer}>
         <TouchableOpacity
           style={[
@@ -121,11 +98,12 @@ const OnboardingLanguageScreen = () => {
           activeOpacity={0.8}
         >
           {isLoading ? (
-            <ActivityIndicator color="white" />
+            <ActivityIndicator color={colors.white} />
           ) : (
-            <Text style={styles.continueButtonText}>
-              Continue to First Battle 🎮
-            </Text>
+            <View style={styles.continueContent}>
+              <Text style={styles.continueButtonText}>Continue to First Battle</Text>
+              <Ionicons name="game-controller" size={18} color={colors.white} style={{ marginLeft: 8 }} />
+            </View>
           )}
         </TouchableOpacity>
         <Text style={styles.footerNote}>
@@ -139,26 +117,23 @@ const OnboardingLanguageScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8f9fa',
+    backgroundColor: colors.background,
   },
   header: {
     paddingHorizontal: 30,
     paddingTop: 60,
-    paddingBottom: 24,
-    backgroundColor: 'white',
+    paddingBottom: spacing.xxl,
+    backgroundColor: colors.surface,
     borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
+    borderBottomColor: colors.border,
   },
   title: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#1a1a1a',
-    marginBottom: 8,
+    ...typography.h1,
+    marginBottom: spacing.sm,
   },
   subtitle: {
-    fontSize: 16,
-    color: '#666',
-    lineHeight: 22,
+    ...typography.body,
+    color: colors.textSecondary,
   },
   scrollView: {
     flex: 1,
@@ -166,100 +141,89 @@ const styles = StyleSheet.create({
   languageGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    padding: 16,
-    gap: 12,
+    padding: spacing.lg,
+    gap: spacing.md,
   },
   languageCard: {
     width: '47%',
-    backgroundColor: 'white',
-    borderRadius: 16,
-    padding: 20,
+    backgroundColor: colors.surface,
+    borderRadius: radii.lg,
+    padding: spacing.xl,
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: '#e0e0e0',
+    borderColor: colors.border,
     position: 'relative',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
+    ...shadows.sm,
   },
   languageCardSelected: {
-    borderColor: '#4A90E2',
-    backgroundColor: '#E3F2FD',
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 4,
+    borderColor: colors.primary,
+    backgroundColor: colors.primaryLight,
+    ...shadows.md,
   },
   languageFlag: {
     fontSize: 48,
-    marginBottom: 12,
+    marginBottom: spacing.md,
   },
   languageName: {
+    ...typography.title,
     fontSize: 18,
-    fontWeight: '700',
-    color: '#1a1a1a',
-    marginBottom: 4,
+    marginBottom: spacing.xs,
   },
   languageNameSelected: {
-    color: '#4A90E2',
+    color: colors.primaryDark,
   },
   languageDescription: {
-    fontSize: 13,
-    color: '#999',
+    ...typography.bodySmall,
+    color: colors.textTertiary,
     fontStyle: 'italic',
   },
   languageDescriptionSelected: {
-    color: '#4A90E2',
+    color: colors.primaryDark,
   },
   checkmark: {
     position: 'absolute',
-    top: 8,
-    right: 8,
+    top: spacing.sm,
+    right: spacing.sm,
     width: 28,
     height: 28,
-    borderRadius: 14,
-    backgroundColor: '#4A90E2',
+    borderRadius: radii.full,
+    backgroundColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  checkmarkText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
   footer: {
-    paddingHorizontal: 20,
-    paddingVertical: 24,
-    backgroundColor: 'white',
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.xxl,
+    backgroundColor: colors.surface,
     borderTopWidth: 1,
-    borderTopColor: '#e0e0e0',
+    borderTopColor: colors.border,
   },
   continueButton: {
-    backgroundColor: '#4A90E2',
+    backgroundColor: colors.primary,
     paddingVertical: 18,
-    borderRadius: 12,
+    borderRadius: radii.md,
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 6,
-    elevation: 4,
-    marginBottom: 12,
+    borderBottomWidth: 4,
+    borderBottomColor: colors.primaryDark,
+    marginBottom: spacing.md,
+    ...shadows.primaryButton,
   },
   continueButtonDisabled: {
-    backgroundColor: '#ccc',
+    backgroundColor: colors.textTertiary,
+    borderBottomColor: colors.textSecondary,
     shadowOpacity: 0,
     elevation: 0,
   },
+  continueContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   continueButtonText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: 'white',
+    ...typography.button,
+    color: colors.textInverse,
   },
   footerNote: {
-    fontSize: 12,
-    color: '#999',
+    ...typography.caption,
     textAlign: 'center',
     fontStyle: 'italic',
   },

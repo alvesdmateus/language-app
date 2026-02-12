@@ -7,6 +7,8 @@ import {
   Animated,
   Dimensions,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { colors, spacing, radii, shadows, typography } from '../theme';
 
 const { width, height } = Dimensions.get('window');
 
@@ -52,7 +54,6 @@ const OnboardingGuide: React.FC<OnboardingGuideProps> = ({
         useNativeDriver: true,
       }).start();
 
-      // Pulse animation for the highlight
       Animated.loop(
         Animated.sequence([
           Animated.timing(pulseAnim, {
@@ -76,7 +77,6 @@ const OnboardingGuide: React.FC<OnboardingGuideProps> = ({
     }
   }, [visible]);
 
-  // Auto-advance if configured
   useEffect(() => {
     const step = steps[currentStep];
     if (step?.autoAdvance && visible) {
@@ -107,10 +107,8 @@ const OnboardingGuide: React.FC<OnboardingGuideProps> = ({
 
   return (
     <Animated.View style={[styles.overlay, { opacity: fadeAnim }]}>
-      {/* Semi-transparent background */}
       <View style={styles.backdrop} />
 
-      {/* Highlight area (if specified) */}
       {step.highlightArea && (
         <Animated.View
           style={[
@@ -126,24 +124,19 @@ const OnboardingGuide: React.FC<OnboardingGuideProps> = ({
         />
       )}
 
-      {/* Tooltip */}
       <View style={[styles.tooltipContainer, getTooltipPosition()]}>
-        {/* Arrow pointing up */}
         {step.arrow === 'up' && <View style={styles.arrowUp} />}
 
         <View style={styles.tooltip}>
-          {/* Step indicator */}
           <View style={styles.stepIndicator}>
             <Text style={styles.stepText}>
               {currentStep + 1} / {steps.length}
             </Text>
           </View>
 
-          {/* Content */}
           <Text style={styles.title}>{step.title}</Text>
           <Text style={styles.description}>{step.description}</Text>
 
-          {/* Buttons */}
           <View style={styles.buttonRow}>
             <TouchableOpacity style={styles.skipButton} onPress={onSkip}>
               <Text style={styles.skipButtonText}>Skip</Text>
@@ -156,15 +149,16 @@ const OnboardingGuide: React.FC<OnboardingGuideProps> = ({
               <Text style={styles.nextButtonText}>
                 {isLastStep ? 'Got it!' : 'Next'}
               </Text>
+              {!isLastStep && (
+                <Ionicons name="arrow-forward" size={16} color={colors.textInverse} style={{ marginLeft: 4 }} />
+              )}
             </TouchableOpacity>
           </View>
         </View>
 
-        {/* Arrow pointing down */}
         {step.arrow === 'down' && <View style={styles.arrowDown} />}
       </View>
 
-      {/* Progress dots */}
       <View style={styles.progressDots}>
         {steps.map((_, index) => (
           <View
@@ -188,35 +182,31 @@ const styles = StyleSheet.create({
   },
   backdrop: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    backgroundColor: colors.overlayDark,
   },
   highlight: {
     position: 'absolute',
     backgroundColor: 'transparent',
     borderWidth: 3,
-    borderColor: '#4A90E2',
-    borderRadius: 12,
-    shadowColor: '#4A90E2',
+    borderColor: colors.secondary,
+    borderRadius: radii.md,
+    shadowColor: colors.secondary,
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.8,
     shadowRadius: 10,
   },
   tooltipContainer: {
     position: 'absolute',
-    left: 20,
-    right: 20,
+    left: spacing.xl,
+    right: spacing.xl,
     alignItems: 'center',
   },
   tooltip: {
-    backgroundColor: 'white',
-    borderRadius: 16,
-    padding: 20,
+    backgroundColor: colors.surface,
+    borderRadius: radii.lg,
+    padding: spacing.xl,
     width: '100%',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 10,
+    ...shadows.xl,
   },
   arrowUp: {
     width: 0,
@@ -226,7 +216,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 12,
     borderLeftColor: 'transparent',
     borderRightColor: 'transparent',
-    borderBottomColor: 'white',
+    borderBottomColor: colors.surface,
     marginBottom: -1,
   },
   arrowDown: {
@@ -237,70 +227,65 @@ const styles = StyleSheet.create({
     borderTopWidth: 12,
     borderLeftColor: 'transparent',
     borderRightColor: 'transparent',
-    borderTopColor: 'white',
+    borderTopColor: colors.surface,
     marginTop: -1,
   },
   stepIndicator: {
     position: 'absolute',
     top: -12,
-    right: 16,
-    backgroundColor: '#4A90E2',
+    right: spacing.lg,
+    backgroundColor: colors.secondary,
     paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
+    paddingVertical: spacing.xs,
+    borderRadius: radii.pill,
   },
   stepText: {
-    color: 'white',
-    fontSize: 12,
-    fontWeight: 'bold',
+    color: colors.textInverse,
+    ...typography.caption,
+    fontWeight: '700',
   },
   title: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#1a1a1a',
-    marginBottom: 8,
-    marginTop: 8,
+    ...typography.h3,
+    marginBottom: spacing.sm,
+    marginTop: spacing.sm,
   },
   description: {
-    fontSize: 15,
-    color: '#666',
-    lineHeight: 22,
-    marginBottom: 20,
+    ...typography.body,
+    color: colors.textSecondary,
+    marginBottom: spacing.xl,
   },
   buttonRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    gap: 12,
+    gap: spacing.md,
   },
   skipButton: {
     flex: 1,
-    paddingVertical: 12,
-    borderRadius: 10,
+    paddingVertical: spacing.md,
+    borderRadius: radii.md,
     borderWidth: 2,
-    borderColor: '#e0e0e0',
+    borderColor: colors.border,
     alignItems: 'center',
   },
   skipButtonText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#999',
+    ...typography.buttonSmall,
+    color: colors.textTertiary,
   },
   nextButton: {
     flex: 2,
-    paddingVertical: 12,
-    borderRadius: 10,
-    backgroundColor: '#4A90E2',
+    paddingVertical: spacing.md,
+    borderRadius: radii.md,
+    backgroundColor: colors.primary,
+    flexDirection: 'row',
     alignItems: 'center',
-    shadowColor: '#4A90E2',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 3,
+    justifyContent: 'center',
+    borderBottomWidth: 3,
+    borderBottomColor: colors.primaryDark,
+    ...shadows.primaryButton,
   },
   nextButtonText: {
-    fontSize: 15,
-    fontWeight: 'bold',
-    color: 'white',
+    ...typography.buttonSmall,
+    color: colors.textInverse,
   },
   progressDots: {
     position: 'absolute',
@@ -309,16 +294,16 @@ const styles = StyleSheet.create({
     right: 0,
     flexDirection: 'row',
     justifyContent: 'center',
-    gap: 8,
+    gap: spacing.sm,
   },
   dot: {
     width: 8,
     height: 8,
-    borderRadius: 4,
+    borderRadius: radii.full,
     backgroundColor: 'rgba(255, 255, 255, 0.3)',
   },
   dotActive: {
-    backgroundColor: '#4A90E2',
+    backgroundColor: colors.primary,
     width: 24,
   },
   dotCompleted: {

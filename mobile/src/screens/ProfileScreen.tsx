@@ -1,24 +1,42 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useAuth } from '../context/AuthContext';
 import { DivisionBadge, DivisionCard } from '../components/DivisionBadge';
+import { colors, gradients, spacing, radii, shadows, typography } from '../theme';
 
 const ProfileScreen = () => {
   const { user, logout } = useAuth();
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Profile</Text>
+    <ScrollView style={styles.container}>
+      {/* Header */}
+      <LinearGradient colors={gradients.header} style={styles.headerGradient}>
+        <View style={styles.headerContent}>
+          <View style={styles.avatarContainer}>
+            <Ionicons name="person-circle" size={72} color={colors.white} />
+          </View>
+          <Text style={styles.displayName}>{user?.displayName || user?.username}</Text>
+          <Text style={styles.usernameText}>@{user?.username}</Text>
+        </View>
+      </LinearGradient>
 
       {user?.divisionInfo && (
-        <DivisionCard
-          division={user.division}
-          divisionInfo={user.divisionInfo}
-          eloRating={user.eloRating}
-        />
+        <View style={styles.divisionCardWrapper}>
+          <DivisionCard
+            division={user.division}
+            divisionInfo={user.divisionInfo}
+            eloRating={user.eloRating}
+          />
+        </View>
       )}
 
       <View style={styles.card}>
+        <View style={styles.cardHeader}>
+          <Ionicons name="person-outline" size={20} color={colors.secondary} />
+          <Text style={styles.cardTitle}>Account Info</Text>
+        </View>
         <View style={styles.row}>
           <Text style={styles.label}>Username</Text>
           <Text style={styles.value}>{user?.username}</Text>
@@ -27,14 +45,17 @@ const ProfileScreen = () => {
           <Text style={styles.label}>Display Name</Text>
           <Text style={styles.value}>{user?.displayName}</Text>
         </View>
-        <View style={styles.row}>
+        <View style={[styles.row, styles.lastRow]}>
           <Text style={styles.label}>Email</Text>
           <Text style={styles.value}>{user?.email}</Text>
         </View>
       </View>
 
       <View style={styles.card}>
-        <Text style={styles.cardTitle}>Statistics</Text>
+        <View style={styles.cardHeader}>
+          <Ionicons name="stats-chart" size={20} color={colors.accent} />
+          <Text style={styles.cardTitle}>Statistics</Text>
+        </View>
         <View style={styles.row}>
           <Text style={styles.label}>Division</Text>
           {user?.division && (
@@ -51,70 +72,122 @@ const ProfileScreen = () => {
         </View>
         <View style={styles.row}>
           <Text style={styles.label}>Current Streak</Text>
-          <Text style={styles.value}>{user?.currentStreak} days</Text>
+          <View style={styles.streakContainer}>
+            <Ionicons name="flame" size={16} color={colors.accent} />
+            <Text style={styles.streakValue}>{user?.currentStreak} days</Text>
+          </View>
         </View>
-        <View style={styles.row}>
+        <View style={[styles.row, styles.lastRow]}>
           <Text style={styles.label}>Longest Streak</Text>
-          <Text style={styles.value}>{user?.longestStreak} days</Text>
+          <View style={styles.streakContainer}>
+            <Ionicons name="trophy" size={16} color={colors.gold} />
+            <Text style={styles.streakValue}>{user?.longestStreak} days</Text>
+          </View>
         </View>
       </View>
 
-      <TouchableOpacity style={styles.logoutButton} onPress={logout}>
+      <TouchableOpacity style={styles.logoutButton} onPress={logout} activeOpacity={0.8}>
+        <Ionicons name="log-out-outline" size={20} color={colors.textInverse} />
         <Text style={styles.logoutButtonText}>Logout</Text>
       </TouchableOpacity>
-    </View>
+
+      <View style={{ height: spacing.xxxl }} />
+    </ScrollView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 20,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: colors.background,
   },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginTop: 40,
-    marginBottom: 20,
+  headerGradient: {
+    paddingTop: 60,
+    paddingBottom: spacing.xxl,
+    paddingHorizontal: spacing.xl,
+    alignItems: 'center',
+  },
+  headerContent: {
+    alignItems: 'center',
+  },
+  avatarContainer: {
+    marginBottom: spacing.sm,
+  },
+  displayName: {
+    ...typography.h2,
+    color: colors.textInverse,
+    marginTop: spacing.sm,
+  },
+  usernameText: {
+    ...typography.subtitle,
+    color: 'rgba(255, 255, 255, 0.8)',
+    marginTop: spacing.xs,
+  },
+  divisionCardWrapper: {
+    paddingHorizontal: spacing.xl,
+    marginTop: -spacing.md,
+    marginBottom: spacing.sm,
   },
   card: {
-    backgroundColor: 'white',
-    padding: 15,
-    borderRadius: 8,
-    marginBottom: 15,
+    backgroundColor: colors.surface,
+    marginHorizontal: spacing.xl,
+    marginBottom: spacing.lg,
+    borderRadius: radii.lg,
+    padding: spacing.lg,
+    ...shadows.md,
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: spacing.md,
+    gap: spacing.sm,
   },
   cardTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 10,
+    ...typography.title,
   },
   row: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingVertical: 10,
+    alignItems: 'center',
+    paddingVertical: spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    borderBottomColor: colors.borderLight,
+  },
+  lastRow: {
+    borderBottomWidth: 0,
   },
   label: {
-    fontSize: 16,
-    color: '#666',
+    ...typography.body,
+    color: colors.textSecondary,
   },
   value: {
-    fontSize: 16,
-    fontWeight: 'bold',
+    ...typography.title,
+    fontSize: 15,
+  },
+  streakContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  streakValue: {
+    ...typography.title,
+    fontSize: 15,
   },
   logoutButton: {
-    backgroundColor: '#FF3B30',
-    padding: 15,
-    borderRadius: 8,
+    backgroundColor: colors.danger,
+    marginHorizontal: spacing.xl,
+    marginTop: spacing.xl,
+    padding: spacing.lg,
+    borderRadius: radii.md,
     alignItems: 'center',
-    marginTop: 20,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    ...shadows.dangerButton,
   },
   logoutButtonText: {
-    color: 'white',
-    fontSize: 18,
-    fontWeight: 'bold',
+    ...typography.button,
+    color: colors.textInverse,
   },
 });
 

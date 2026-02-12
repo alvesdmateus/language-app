@@ -8,9 +8,13 @@ import {
   ActivityIndicator,
   RefreshControl,
 } from 'react-native';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import { Language } from '../types';
 import { api } from '../services/api';
+import { LANGUAGE_INFO } from '../theme/languages';
+import { colors, gradients, spacing, radii, shadows, typography } from '../theme';
 
 const LanguageStatsScreen = () => {
   const navigation = useNavigation();
@@ -18,17 +22,6 @@ const LanguageStatsScreen = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [languageStats, setLanguageStats] = useState<any[]>([]);
   const [selectedLanguage, setSelectedLanguage] = useState<Language | null>(null);
-
-  const LANGUAGE_INFO = {
-    PORTUGUESE: { name: 'Portuguese', flag: '🇧🇷', color: '#009739' },
-    SPANISH: { name: 'Spanish', flag: '🇪🇸', color: '#C60B1E' },
-    ENGLISH: { name: 'English', flag: '🇺🇸', color: '#3C3B6E' },
-    ITALIAN: { name: 'Italian', flag: '🇮🇹', color: '#009246' },
-    FRENCH: { name: 'French', flag: '🇫🇷', color: '#0055A4' },
-    GERMAN: { name: 'German', flag: '🇩🇪', color: '#000000' },
-    JAPANESE: { name: 'Japanese', flag: '🇯🇵', color: '#BC002D' },
-    KOREAN: { name: 'Korean', flag: '🇰🇷', color: '#003478' },
-  };
 
   useEffect(() => {
     loadLanguageStats();
@@ -101,19 +94,19 @@ const LanguageStatsScreen = () => {
               </View>
               <View style={styles.statItem}>
                 <Text style={styles.statLabel}>Wins</Text>
-                <Text style={[styles.statValue, { color: '#34C759' }]}>
+                <Text style={[styles.statValue, { color: colors.primary }]}>
                   {stats.wins}
                 </Text>
               </View>
               <View style={styles.statItem}>
                 <Text style={styles.statLabel}>Losses</Text>
-                <Text style={[styles.statValue, { color: '#FF3B30' }]}>
+                <Text style={[styles.statValue, { color: colors.danger }]}>
                   {stats.losses}
                 </Text>
               </View>
               <View style={styles.statItem}>
                 <Text style={styles.statLabel}>Draws</Text>
-                <Text style={[styles.statValue, { color: '#FF9500' }]}>
+                <Text style={[styles.statValue, { color: colors.accent }]}>
                   {stats.draws}
                 </Text>
               </View>
@@ -129,7 +122,9 @@ const LanguageStatsScreen = () => {
               onPress={() =>
                 navigation.navigate('Leaderboard' as never, { language } as never)
               }
+              activeOpacity={0.8}
             >
+              <Ionicons name="podium-outline" size={16} color={colors.textInverse} />
               <Text style={styles.viewLeaderboardText}>
                 View {info.name} Leaderboard
               </Text>
@@ -143,7 +138,7 @@ const LanguageStatsScreen = () => {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#4A90E2" />
+        <ActivityIndicator size="large" color={colors.secondary} />
         <Text style={styles.loadingText}>Loading language stats...</Text>
       </View>
     );
@@ -158,19 +153,19 @@ const LanguageStatsScreen = () => {
   return (
     <View style={styles.container}>
       {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Text style={styles.backButton}>← Back</Text>
+      <LinearGradient colors={gradients.secondary} style={styles.header}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButtonTouch}>
+          <Ionicons name="arrow-back" size={24} color={colors.textInverse} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Language Stats</Text>
         <Text style={styles.headerSubtitle}>
           Track your progress in each language
         </Text>
-      </View>
+      </LinearGradient>
 
       {/* Info Card */}
       <View style={styles.infoCard}>
-        <Text style={styles.infoIcon}>ℹ️</Text>
+        <Ionicons name="information-circle" size={22} color={colors.secondary} />
         <Text style={styles.infoText}>
           Each language has separate ELO rating and statistics. Tap a card to
           view details and leaderboard.
@@ -188,12 +183,14 @@ const LanguageStatsScreen = () => {
           <View key={lang}>
             {index === 0 && (
               <View style={styles.rankBadge}>
-                <Text style={styles.rankText}>👑 Your Best Language</Text>
+                <Ionicons name="trophy" size={14} color={colors.textPrimary} />
+                <Text style={styles.rankText}>Your Best Language</Text>
               </View>
             )}
             <LanguageCard language={lang as Language} />
           </View>
         ))}
+        <View style={{ height: spacing.xxxl }} />
       </ScrollView>
     </View>
   );
@@ -202,88 +199,79 @@ const LanguageStatsScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: colors.background,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f5f5f5',
+    backgroundColor: colors.background,
   },
   loadingText: {
-    marginTop: 12,
-    fontSize: 16,
-    color: '#666',
+    marginTop: spacing.md,
+    ...typography.body,
+    color: colors.textSecondary,
   },
   header: {
-    backgroundColor: 'white',
     paddingTop: 50,
-    paddingBottom: 20,
-    paddingHorizontal: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
+    paddingBottom: spacing.xl,
+    paddingHorizontal: spacing.xl,
   },
-  backButton: {
-    fontSize: 16,
-    color: '#4A90E2',
-    marginBottom: 12,
+  backButtonTouch: {
+    marginBottom: spacing.md,
+    alignSelf: 'flex-start',
+    padding: spacing.xs,
   },
   headerTitle: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 4,
+    ...typography.h1,
+    color: colors.textInverse,
+    marginBottom: spacing.xs,
   },
   headerSubtitle: {
-    fontSize: 15,
-    color: '#666',
+    ...typography.subtitle,
+    color: 'rgba(255, 255, 255, 0.85)',
   },
   infoCard: {
     flexDirection: 'row',
-    backgroundColor: '#E3F2FD',
-    margin: 16,
-    padding: 12,
-    borderRadius: 8,
+    backgroundColor: colors.secondaryLight,
+    margin: spacing.lg,
+    padding: spacing.md,
+    borderRadius: radii.sm,
     alignItems: 'center',
-  },
-  infoIcon: {
-    fontSize: 20,
-    marginRight: 10,
+    gap: spacing.sm,
   },
   infoText: {
     flex: 1,
-    fontSize: 13,
-    color: '#1976D2',
-    lineHeight: 18,
+    ...typography.bodySmall,
+    color: colors.secondary,
   },
   languageList: {
     flex: 1,
-    paddingHorizontal: 16,
+    paddingHorizontal: spacing.lg,
   },
   rankBadge: {
-    backgroundColor: '#FFD700',
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 12,
+    backgroundColor: colors.gold,
+    paddingVertical: spacing.xs + 2,
+    paddingHorizontal: spacing.md,
+    borderRadius: radii.md,
     alignSelf: 'flex-start',
-    marginBottom: 8,
+    marginBottom: spacing.sm,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
   },
   rankText: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    color: '#333',
+    ...typography.caption,
+    fontWeight: '700',
+    color: colors.textPrimary,
   },
   languageCard: {
-    backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
+    backgroundColor: colors.surface,
+    borderRadius: radii.md,
+    padding: spacing.lg,
+    marginBottom: spacing.md,
     borderLeftWidth: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    ...shadows.md,
   },
   languageHeader: {
     flexDirection: 'row',
@@ -291,85 +279,79 @@ const styles = StyleSheet.create({
   },
   languageFlag: {
     fontSize: 36,
-    marginRight: 12,
+    marginRight: spacing.md,
   },
   languageInfo: {
     flex: 1,
   },
   languageName: {
+    ...typography.title,
     fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
   },
   division: {
-    fontSize: 13,
-    color: '#666',
+    ...typography.bodySmall,
     marginTop: 2,
   },
   eloContainer: {
     alignItems: 'flex-end',
   },
   eloLabel: {
-    fontSize: 11,
-    color: '#999',
+    ...typography.label,
     marginBottom: 2,
   },
   eloValue: {
-    fontSize: 24,
-    fontWeight: 'bold',
+    ...typography.stat,
   },
   expandedStats: {
-    marginTop: 16,
-    paddingTop: 16,
+    marginTop: spacing.lg,
+    paddingTop: spacing.lg,
     borderTopWidth: 1,
-    borderTopColor: '#f0f0f0',
+    borderTopColor: colors.borderLight,
   },
   statRow: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    marginBottom: 16,
+    marginBottom: spacing.lg,
   },
   statItem: {
     alignItems: 'center',
   },
   statLabel: {
-    fontSize: 12,
-    color: '#999',
-    marginBottom: 4,
+    ...typography.caption,
+    marginBottom: spacing.xs,
   },
   statValue: {
+    ...typography.title,
     fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
+    color: colors.textPrimary,
   },
   winRateContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: '#f5f5f5',
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 12,
+    backgroundColor: colors.background,
+    padding: spacing.md,
+    borderRadius: radii.sm,
+    marginBottom: spacing.md,
   },
   winRateLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#666',
+    ...typography.subtitle,
   },
   winRateValue: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#4A90E2',
+    ...typography.h3,
+    color: colors.secondary,
   },
   viewLeaderboardButton: {
-    padding: 12,
-    borderRadius: 8,
+    padding: spacing.md,
+    borderRadius: radii.sm,
     alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: spacing.sm,
   },
   viewLeaderboardText: {
-    color: 'white',
-    fontSize: 14,
-    fontWeight: 'bold',
+    ...typography.buttonSmall,
+    color: colors.textInverse,
   },
 });
 

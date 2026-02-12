@@ -10,8 +10,12 @@ import {
   ScrollView,
   Modal,
 } from 'react-native';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { flashcardService } from '../services/api';
 import { useNavigation } from '@react-navigation/native';
+import { LANGUAGE_INFO } from '../theme/languages';
+import { colors, gradients, spacing, radii, shadows, typography } from '../theme';
 
 interface Flashcard {
   id: string;
@@ -147,35 +151,16 @@ const FlashcardsScreen = () => {
   });
 
   const getLanguageFlag = (lang: Language) => {
-    const flags = {
-      SPANISH: '🇪🇸',
-      PORTUGUESE: '🇧🇷',
-      FRENCH: '🇫🇷',
-      GERMAN: '🇩🇪',
-      ITALIAN: '🇮🇹',
-      JAPANESE: '🇯🇵',
-      KOREAN: '🇰🇷',
-    };
-    return flags[lang] || '🌍';
+    return (LANGUAGE_INFO as any)[lang]?.flag || '';
   };
 
   const getLanguageName = (lang: Language) => {
-    const names = {
-      SPANISH: 'Spanish',
-      PORTUGUESE: 'Portuguese',
-      FRENCH: 'French',
-      GERMAN: 'German',
-      ITALIAN: 'Italian',
-      JAPANESE: 'Japanese',
-      KOREAN: 'Korean',
-    };
-    return names[lang] || lang;
+    return (LANGUAGE_INFO as any)[lang]?.name || lang;
   };
 
   const renderHighlightedText = (text: string, keyword: string) => {
     if (!text || !keyword) return <Text style={styles.contextText}>"{text}"</Text>;
 
-    // Find the keyword in the text (case-insensitive)
     const lowerText = text.toLowerCase();
     const lowerKeyword = keyword.toLowerCase();
     const startIndex = lowerText.indexOf(lowerKeyword);
@@ -205,7 +190,7 @@ const FlashcardsScreen = () => {
   if (loading) {
     return (
       <View style={styles.centerContainer}>
-        <ActivityIndicator size="large" color="#4A90E2" />
+        <ActivityIndicator size="large" color={colors.secondary} />
         <Text style={styles.loadingText}>Loading flashcards...</Text>
       </View>
     );
@@ -214,7 +199,7 @@ const FlashcardsScreen = () => {
   if (flashcards.length === 0) {
     return (
       <View style={styles.centerContainer}>
-        <Text style={styles.emptyIcon}>📚</Text>
+        <Ionicons name="book-outline" size={64} color={colors.textTertiary} />
         <Text style={styles.emptyTitle}>No Flashcards Available</Text>
         <Text style={styles.emptyText}>
           Try changing your filters or check back later
@@ -223,7 +208,8 @@ const FlashcardsScreen = () => {
           style={styles.settingsButton}
           onPress={() => setShowSettings(true)}
         >
-          <Text style={styles.settingsButtonText}>⚙️ Change Settings</Text>
+          <Ionicons name="settings-outline" size={18} color={colors.textPrimary} />
+          <Text style={styles.settingsButtonText}>Change Settings</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
           <Text style={styles.backButtonText}>Go Back</Text>
@@ -239,7 +225,7 @@ const FlashcardsScreen = () => {
     return (
       <View style={styles.container}>
         <View style={styles.resultsContainer}>
-          <Text style={styles.resultsIcon}>🎉</Text>
+          <Ionicons name="ribbon" size={72} color={colors.primary} />
           <Text style={styles.resultsTitle}>Session Complete!</Text>
 
           <View style={styles.statsGrid}>
@@ -248,11 +234,11 @@ const FlashcardsScreen = () => {
               <Text style={styles.statLabel}>Cards Reviewed</Text>
             </View>
             <View style={styles.statBox}>
-              <Text style={[styles.statValue, { color: '#34C759' }]}>{knownCount}</Text>
+              <Text style={[styles.statValue, { color: colors.primary }]}>{knownCount}</Text>
               <Text style={styles.statLabel}>Known</Text>
             </View>
             <View style={styles.statBox}>
-              <Text style={[styles.statValue, { color: '#FF3B30' }]}>{unknownCount}</Text>
+              <Text style={[styles.statValue, { color: colors.danger }]}>{unknownCount}</Text>
               <Text style={styles.statLabel}>Need Practice</Text>
             </View>
           </View>
@@ -262,7 +248,8 @@ const FlashcardsScreen = () => {
             <Text style={styles.percentageLabel}>Accuracy</Text>
           </View>
 
-          <TouchableOpacity style={styles.resetButton} onPress={resetSession}>
+          <TouchableOpacity style={styles.resetButton} onPress={resetSession} activeOpacity={0.8}>
+            <Ionicons name="refresh" size={20} color={colors.textInverse} />
             <Text style={styles.resetButtonText}>Study More Cards</Text>
           </TouchableOpacity>
 
@@ -281,7 +268,7 @@ const FlashcardsScreen = () => {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Text style={styles.backIcon}>←</Text>
+          <Ionicons name="arrow-back" size={26} color={colors.secondary} />
         </TouchableOpacity>
         <View style={styles.headerCenter}>
           <Text style={styles.headerTitle}>
@@ -289,7 +276,7 @@ const FlashcardsScreen = () => {
           </Text>
         </View>
         <TouchableOpacity onPress={() => setShowSettings(true)}>
-          <Text style={styles.settingsIcon}>⚙️</Text>
+          <Ionicons name="settings-outline" size={22} color={colors.textSecondary} />
         </TouchableOpacity>
       </View>
 
@@ -311,12 +298,18 @@ const FlashcardsScreen = () => {
       {/* Score */}
       <View style={styles.scoreContainer}>
         <View style={styles.scoreBox}>
-          <Text style={[styles.scoreValue, { color: '#34C759' }]}>{knownCount}</Text>
-          <Text style={styles.scoreLabel}>✓ Known</Text>
+          <Text style={[styles.scoreValue, { color: colors.primary }]}>{knownCount}</Text>
+          <View style={styles.scoreLabelRow}>
+            <Ionicons name="checkmark" size={12} color={colors.primary} />
+            <Text style={styles.scoreLabel}>Known</Text>
+          </View>
         </View>
         <View style={styles.scoreBox}>
-          <Text style={[styles.scoreValue, { color: '#FF3B30' }]}>{unknownCount}</Text>
-          <Text style={styles.scoreLabel}>✗ Learning</Text>
+          <Text style={[styles.scoreValue, { color: colors.danger }]}>{unknownCount}</Text>
+          <View style={styles.scoreLabelRow}>
+            <Ionicons name="close" size={12} color={colors.danger} />
+            <Text style={styles.scoreLabel}>Learning</Text>
+          </View>
         </View>
       </View>
 
@@ -343,7 +336,10 @@ const FlashcardsScreen = () => {
                 ) : (
                   <Text style={styles.wordText}>{currentCard.frontText}</Text>
                 )}
-                <Text style={styles.tapHint}>👆 Tap to see translation</Text>
+                <View style={styles.tapHintRow}>
+                  <Ionicons name="hand-left-outline" size={14} color={colors.textTertiary} />
+                  <Text style={styles.tapHint}>Tap to see translation</Text>
+                </View>
               </View>
             </Animated.View>
 
@@ -374,13 +370,13 @@ const FlashcardsScreen = () => {
 
       {/* Action Buttons */}
       <View style={styles.actionButtons}>
-        <TouchableOpacity style={[styles.actionButton, styles.unknownButton]} onPress={handleUnknown}>
-          <Text style={styles.actionButtonIcon}>✗</Text>
+        <TouchableOpacity style={[styles.actionButton, styles.unknownButton]} onPress={handleUnknown} activeOpacity={0.8}>
+          <Ionicons name="close" size={22} color={colors.textInverse} />
           <Text style={styles.actionButtonLabel}>Don't Know</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={[styles.actionButton, styles.knownButton]} onPress={handleKnown}>
-          <Text style={styles.actionButtonIcon}>✓</Text>
+        <TouchableOpacity style={[styles.actionButton, styles.knownButton]} onPress={handleKnown} activeOpacity={0.8}>
+          <Ionicons name="checkmark" size={22} color={colors.textInverse} />
           <Text style={styles.actionButtonLabel}>Know It</Text>
         </TouchableOpacity>
       </View>
@@ -401,7 +397,7 @@ const FlashcardsScreen = () => {
             <View style={styles.explanationHeader}>
               <Text style={styles.explanationKeyword}>{currentCard.frontText}</Text>
               <TouchableOpacity onPress={() => setShowExplanation(false)}>
-                <Text style={styles.explanationClose}>✕</Text>
+                <Ionicons name="close" size={24} color={colors.textTertiary} />
               </TouchableOpacity>
             </View>
             <Text style={styles.explanationMeaning}>
@@ -430,7 +426,7 @@ const FlashcardsScreen = () => {
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Settings</Text>
               <TouchableOpacity onPress={() => setShowSettings(false)}>
-                <Text style={styles.modalClose}>✕</Text>
+                <Ionicons name="close" size={26} color={colors.textTertiary} />
               </TouchableOpacity>
             </View>
 
@@ -571,6 +567,7 @@ const FlashcardsScreen = () => {
                 setShowSettings(false);
                 loadFlashcards();
               }}
+              activeOpacity={0.8}
             >
               <Text style={styles.applyButtonText}>Apply</Text>
             </TouchableOpacity>
@@ -581,26 +578,6 @@ const FlashcardsScreen = () => {
   );
 };
 
-const getDifficultyColor = (difficulty: string) => {
-  if (difficulty === 'EASY') return { backgroundColor: '#34C759' };
-  if (difficulty === 'MEDIUM') return { backgroundColor: '#FF9500' };
-  return { backgroundColor: '#FF3B30' };
-};
-
-const getSourceColor = (source: string) => {
-  if (source === 'CURATED') return { backgroundColor: '#5856D6' };
-  if (source === 'NEWS_API') return { backgroundColor: '#FF2D55' };
-  if (source === 'TRENDING') return { backgroundColor: '#FF9500' };
-  return { backgroundColor: '#8E8E93' };
-};
-
-const getSourceLabel = (source: string) => {
-  if (source === 'CURATED') return '✨';
-  if (source === 'NEWS_API') return '📰';
-  if (source === 'TRENDING') return '🔥';
-  return '•';
-};
-
 const formatCategory = (category: string) => {
   return category.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, l => l.toUpperCase());
 };
@@ -608,110 +585,106 @@ const formatCategory = (category: string) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8f9fa',
+    backgroundColor: colors.background,
   },
   centerContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f8f9fa',
-    padding: 20,
+    backgroundColor: colors.background,
+    padding: spacing.xl,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
+    paddingHorizontal: spacing.xl,
     paddingTop: 60,
-    paddingBottom: 16,
-    backgroundColor: 'white',
+    paddingBottom: spacing.lg,
+    backgroundColor: colors.surface,
     borderBottomWidth: 1,
-    borderBottomColor: '#e8e8e8',
-  },
-  backIcon: {
-    fontSize: 26,
-    color: '#4A90E2',
+    borderBottomColor: colors.border,
   },
   headerCenter: {
     alignItems: 'center',
   },
   headerTitle: {
+    ...typography.title,
     fontSize: 18,
-    fontWeight: '700',
-    color: '#1a1a1a',
-  },
-  settingsIcon: {
-    fontSize: 22,
   },
   settingsButton: {
-    marginTop: 20,
-    backgroundColor: '#fff',
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 12,
+    marginTop: spacing.xl,
+    backgroundColor: colors.surface,
+    paddingHorizontal: spacing.xxl,
+    paddingVertical: spacing.md,
+    borderRadius: radii.md,
     borderWidth: 1,
-    borderColor: '#e8e8e8',
+    borderColor: colors.border,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
   },
   settingsButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
+    ...typography.subtitle,
+    color: colors.textPrimary,
   },
   progressContainer: {
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    backgroundColor: 'white',
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.md,
+    backgroundColor: colors.surface,
   },
   progressText: {
-    fontSize: 13,
-    color: '#666',
-    marginBottom: 8,
-    textAlign: 'center',
+    ...typography.bodySmall,
     fontWeight: '600',
+    marginBottom: spacing.sm,
+    textAlign: 'center',
   },
   progressBar: {
     height: 6,
-    backgroundColor: '#e8e8e8',
+    backgroundColor: colors.border,
     borderRadius: 3,
     overflow: 'hidden',
   },
   progressFill: {
     height: '100%',
-    backgroundColor: '#4A90E2',
+    backgroundColor: colors.secondary,
     borderRadius: 3,
   },
   scoreContainer: {
     flexDirection: 'row',
-    paddingHorizontal: 20,
-    paddingTop: 16,
-    paddingBottom: 12,
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.md,
     gap: 10,
   },
   scoreBox: {
     flex: 1,
-    backgroundColor: 'white',
-    borderRadius: 10,
-    paddingVertical: 12,
-    paddingHorizontal: 8,
+    backgroundColor: colors.surface,
+    borderRadius: radii.sm,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.sm,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#e8e8e8',
+    borderColor: colors.border,
   },
   scoreValue: {
-    fontSize: 24,
-    fontWeight: '700',
+    ...typography.stat,
+  },
+  scoreLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs / 2,
+    marginTop: 2,
   },
   scoreLabel: {
+    ...typography.label,
     fontSize: 11,
-    color: '#666',
-    marginTop: 2,
-    fontWeight: '600',
   },
   cardContainer: {
     flex: 1,
     justifyContent: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.md,
   },
   cardWrapper: {
     width: '100%',
@@ -722,105 +695,76 @@ const styles = StyleSheet.create({
     position: 'absolute',
     width: '100%',
     height: '100%',
-    backgroundColor: 'white',
-    borderRadius: 16,
-    padding: 20,
+    backgroundColor: colors.surface,
+    borderRadius: radii.lg,
+    padding: spacing.xl,
     justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.15,
-    shadowRadius: 6,
-    elevation: 4,
+    ...shadows.lg,
     backfaceVisibility: 'hidden',
     borderWidth: 1,
-    borderColor: '#e8e8e8',
+    borderColor: colors.border,
   },
   cardBack: {
-    backgroundColor: '#4A90E2',
-    borderColor: '#4A90E2',
-  },
-  cardBadges: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  badge: {
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 8,
-  },
-  badgeText: {
-    color: 'white',
-    fontSize: 10,
-    fontWeight: '700',
+    backgroundColor: colors.secondary,
+    borderColor: colors.secondary,
   },
   cardContent: {
     flex: 1,
     justifyContent: 'center',
   },
   categoryLabel: {
-    fontSize: 11,
-    color: '#999',
+    ...typography.label,
     textAlign: 'center',
-    marginBottom: 12,
-    textTransform: 'uppercase',
-    letterSpacing: 1.2,
-    fontWeight: '600',
+    marginBottom: spacing.md,
   },
   wordText: {
     fontSize: 28,
     fontWeight: '700',
-    color: '#1a1a1a',
+    color: colors.textPrimary,
     textAlign: 'center',
   },
   contextBox: {
-    padding: 14,
-    backgroundColor: '#f8f9fa',
-    borderRadius: 10,
+    padding: spacing.md + 2,
+    backgroundColor: colors.background,
+    borderRadius: radii.sm,
     borderLeftWidth: 3,
-    borderLeftColor: '#4A90E2',
+    borderLeftColor: colors.secondary,
   },
   contextText: {
-    fontSize: 16,
-    color: '#333',
+    ...typography.body,
     lineHeight: 24,
   },
   highlightedKeyword: {
     fontWeight: 'bold',
-    color: '#4A90E2',
-    backgroundColor: '#E3F2FD',
-    paddingHorizontal: 4,
+    color: colors.secondary,
+    backgroundColor: colors.secondaryLight,
+    paddingHorizontal: spacing.xs,
     paddingVertical: 2,
-    borderRadius: 4,
+    borderRadius: radii.sm / 2,
   },
   translationLabel: {
-    fontSize: 11,
+    ...typography.label,
     color: 'rgba(255, 255, 255, 0.8)',
     textAlign: 'center',
-    marginBottom: 8,
-    textTransform: 'uppercase',
-    letterSpacing: 1.2,
-    fontWeight: '600',
+    marginBottom: spacing.sm,
   },
   translationText: {
     fontSize: 30,
     fontWeight: '700',
-    color: 'white',
+    color: colors.textInverse,
     textAlign: 'center',
-    marginBottom: 16,
+    marginBottom: spacing.lg,
   },
   divider: {
     height: 1,
     backgroundColor: 'rgba(255, 255, 255, 0.3)',
-    marginVertical: 14,
+    marginVertical: spacing.md + 2,
   },
   originalLabel: {
-    fontSize: 11,
+    ...typography.label,
     color: 'rgba(255, 255, 255, 0.8)',
     textAlign: 'center',
-    marginBottom: 8,
-    textTransform: 'uppercase',
-    letterSpacing: 1.2,
-    fontWeight: '600',
+    marginBottom: spacing.sm,
   },
   originalText: {
     fontSize: 18,
@@ -828,320 +772,275 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 26,
   },
-  sourceInfo: {
-    marginTop: 14,
-    paddingTop: 14,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.3)',
-  },
-  sourceInfoText: {
-    fontSize: 11,
-    color: 'rgba(255, 255, 255, 0.9)',
-    textAlign: 'center',
-    fontStyle: 'italic',
+  tapHintRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: spacing.md + 2,
+    gap: spacing.xs,
   },
   tapHint: {
-    fontSize: 12,
-    color: '#999',
-    textAlign: 'center',
+    ...typography.caption,
     fontWeight: '500',
-    marginTop: 14,
   },
   actionButtons: {
     flexDirection: 'row',
-    paddingHorizontal: 20,
-    paddingBottom: 24,
+    paddingHorizontal: spacing.xl,
+    paddingBottom: spacing.xxl,
     gap: 10,
   },
   actionButton: {
     flex: 1,
-    borderRadius: 12,
-    paddingVertical: 14,
+    borderRadius: radii.md,
+    paddingVertical: spacing.md + 2,
     alignItems: 'center',
     flexDirection: 'row',
     justifyContent: 'center',
-    gap: 6,
+    gap: spacing.xs + 2,
   },
   unknownButton: {
-    backgroundColor: '#FF3B30',
+    backgroundColor: colors.danger,
+    ...shadows.dangerButton,
   },
   knownButton: {
-    backgroundColor: '#34C759',
-  },
-  actionButtonIcon: {
-    fontSize: 18,
-    color: 'white',
+    backgroundColor: colors.primary,
+    ...shadows.primaryButton,
   },
   actionButtonLabel: {
-    fontSize: 14,
-    color: 'white',
-    fontWeight: '600',
+    ...typography.buttonSmall,
+    color: colors.textInverse,
   },
   loadingText: {
-    marginTop: 16,
-    fontSize: 16,
-    color: '#666',
-  },
-  emptyIcon: {
-    fontSize: 64,
-    marginBottom: 16,
+    marginTop: spacing.lg,
+    ...typography.body,
+    color: colors.textSecondary,
   },
   emptyTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 8,
+    ...typography.h2,
+    marginTop: spacing.lg,
+    marginBottom: spacing.sm,
   },
   emptyText: {
-    fontSize: 16,
-    color: '#666',
+    ...typography.body,
+    color: colors.textSecondary,
     textAlign: 'center',
     paddingHorizontal: 40,
   },
   backButton: {
-    marginTop: 16,
-    backgroundColor: '#4A90E2',
-    paddingHorizontal: 32,
-    paddingVertical: 12,
-    borderRadius: 12,
+    marginTop: spacing.lg,
+    backgroundColor: colors.secondary,
+    paddingHorizontal: spacing.xxxl,
+    paddingVertical: spacing.md,
+    borderRadius: radii.md,
+    ...shadows.secondaryButton,
   },
   backButtonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: '600',
+    ...typography.button,
+    color: colors.textInverse,
   },
   resultsContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
-  },
-  resultsIcon: {
-    fontSize: 72,
-    marginBottom: 20,
+    padding: spacing.xl,
   },
   resultsTitle: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 32,
+    ...typography.h2,
+    marginTop: spacing.xl,
+    marginBottom: spacing.xxxl,
   },
   statsGrid: {
     flexDirection: 'row',
-    gap: 12,
-    marginBottom: 32,
+    gap: spacing.md,
+    marginBottom: spacing.xxxl,
     width: '100%',
   },
   statBox: {
     flex: 1,
-    backgroundColor: 'white',
-    borderRadius: 16,
-    padding: 20,
+    backgroundColor: colors.surface,
+    borderRadius: radii.lg,
+    padding: spacing.xl,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#e8e8e8',
+    borderColor: colors.border,
   },
   statValue: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#4A90E2',
+    ...typography.h1,
+    color: colors.secondary,
   },
   statLabel: {
-    fontSize: 12,
-    color: '#666',
-    marginTop: 8,
+    ...typography.caption,
+    marginTop: spacing.sm,
     textAlign: 'center',
   },
   percentageContainer: {
-    backgroundColor: 'white',
-    borderRadius: 20,
-    padding: 32,
+    backgroundColor: colors.surface,
+    borderRadius: radii.xl,
+    padding: spacing.xxxl,
     alignItems: 'center',
-    marginBottom: 32,
+    marginBottom: spacing.xxxl,
     borderWidth: 1,
-    borderColor: '#e8e8e8',
+    borderColor: colors.border,
   },
   percentageText: {
     fontSize: 56,
     fontWeight: 'bold',
-    color: '#34C759',
+    color: colors.primary,
   },
   percentageLabel: {
-    fontSize: 16,
-    color: '#666',
-    marginTop: 8,
+    ...typography.body,
+    color: colors.textSecondary,
+    marginTop: spacing.sm,
   },
   resetButton: {
-    backgroundColor: '#4A90E2',
+    backgroundColor: colors.secondary,
     paddingHorizontal: 40,
-    paddingVertical: 16,
-    borderRadius: 12,
-    marginBottom: 12,
+    paddingVertical: spacing.lg,
+    borderRadius: radii.md,
+    marginBottom: spacing.md,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    ...shadows.secondaryButton,
   },
   resetButtonText: {
-    color: 'white',
-    fontSize: 18,
-    fontWeight: 'bold',
+    ...typography.button,
+    color: colors.textInverse,
   },
   homeButton: {
     paddingHorizontal: 40,
-    paddingVertical: 16,
+    paddingVertical: spacing.lg,
   },
   homeButtonText: {
-    color: '#4A90E2',
-    fontSize: 16,
-    fontWeight: '600',
+    ...typography.subtitle,
+    color: colors.secondary,
   },
   // Modal styles
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: colors.overlay,
     justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: 'white',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    paddingTop: 20,
+    backgroundColor: colors.surface,
+    borderTopLeftRadius: radii.pill,
+    borderTopRightRadius: radii.pill,
+    paddingTop: spacing.xl,
     maxHeight: '80%',
   },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 24,
-    paddingBottom: 16,
+    paddingHorizontal: spacing.xxl,
+    paddingBottom: spacing.lg,
     borderBottomWidth: 1,
-    borderBottomColor: '#e8e8e8',
+    borderBottomColor: colors.border,
   },
   modalTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#1a1a1a',
-  },
-  modalClose: {
-    fontSize: 26,
-    color: '#999',
-    fontWeight: '300',
+    ...typography.h3,
   },
   modalScroll: {
-    paddingHorizontal: 24,
-    paddingTop: 20,
+    paddingHorizontal: spacing.xxl,
+    paddingTop: spacing.xl,
   },
   sectionTitle: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#1a1a1a',
-    marginBottom: 12,
-    marginTop: 8,
+    ...typography.title,
+    marginBottom: spacing.md,
+    marginTop: spacing.sm,
   },
   optionsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
-    marginBottom: 20,
+    gap: spacing.sm,
+    marginBottom: spacing.xl,
   },
   optionButton: {
-    backgroundColor: '#f8f9fa',
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 10,
+    backgroundColor: colors.background,
+    paddingHorizontal: spacing.md + 2,
+    paddingVertical: spacing.sm + 2,
+    borderRadius: radii.sm,
     borderWidth: 1.5,
-    borderColor: '#e8e8e8',
+    borderColor: colors.border,
     alignItems: 'center',
   },
   optionButtonActive: {
-    backgroundColor: '#E3F2FD',
-    borderColor: '#4A90E2',
+    backgroundColor: colors.secondaryLight,
+    borderColor: colors.secondary,
   },
   optionFlag: {
     fontSize: 20,
     marginBottom: 3,
   },
   optionText: {
-    fontSize: 13,
+    ...typography.bodySmall,
     fontWeight: '600',
-    color: '#666',
   },
   optionTextActive: {
-    color: '#4A90E2',
+    color: colors.secondary,
   },
   applyButton: {
-    backgroundColor: '#4A90E2',
-    marginHorizontal: 24,
-    marginVertical: 20,
-    paddingVertical: 16,
-    borderRadius: 12,
+    backgroundColor: colors.secondary,
+    marginHorizontal: spacing.xxl,
+    marginVertical: spacing.xl,
+    paddingVertical: spacing.lg,
+    borderRadius: radii.md,
     alignItems: 'center',
+    ...shadows.secondaryButton,
   },
   applyButtonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: '700',
+    ...typography.button,
+    color: colors.textInverse,
   },
   // Explanation Modal styles
   explanationOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    backgroundColor: colors.overlayDark,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
+    padding: spacing.xl,
   },
   explanationBox: {
-    backgroundColor: 'white',
-    borderRadius: 16,
-    padding: 20,
+    backgroundColor: colors.surface,
+    borderRadius: radii.lg,
+    padding: spacing.xl,
     width: '100%',
     maxWidth: 400,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
+    ...shadows.xl,
   },
   explanationHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: spacing.lg,
   },
   explanationKeyword: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#4A90E2',
+    ...typography.h2,
+    color: colors.secondary,
     flex: 1,
   },
-  explanationClose: {
-    fontSize: 24,
-    color: '#999',
-    fontWeight: '300',
-    paddingLeft: 10,
-  },
   explanationLabel: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#666',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    ...typography.label,
+    color: colors.textSecondary,
   },
   explanationMeaning: {
     fontSize: 18,
-    color: '#333',
-    marginBottom: 16,
+    color: colors.textPrimary,
+    marginBottom: spacing.lg,
     lineHeight: 26,
   },
   explanationContext: {
-    backgroundColor: '#f8f9fa',
-    padding: 14,
-    borderRadius: 10,
+    backgroundColor: colors.background,
+    padding: spacing.md + 2,
+    borderRadius: radii.sm,
     borderLeftWidth: 3,
-    borderLeftColor: '#4A90E2',
+    borderLeftColor: colors.secondary,
   },
   explanationContextText: {
-    fontSize: 15,
-    color: '#555',
+    ...typography.body,
+    color: colors.textSecondary,
     fontStyle: 'italic',
-    marginTop: 8,
+    marginTop: spacing.sm,
     lineHeight: 22,
   },
 });

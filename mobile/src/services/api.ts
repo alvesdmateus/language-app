@@ -1,7 +1,7 @@
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const API_URL = 'http://192.168.0.126:3000/api';
+const API_URL = 'http://localhost:3000/api';
 
 // Callback to handle logout when token is invalid
 let onUnauthorized: (() => void) | null = null;

@@ -1,9 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, RefreshControl } from 'react-native';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useAuth } from '../context/AuthContext';
 import { useNavigation } from '@react-navigation/native';
 import { DivisionBadge } from '../components/DivisionBadge';
 import { userService } from '../services/api';
+import { colors, gradients, spacing, radii, shadows, typography } from '../theme';
 
 const HomeScreen = () => {
   const { user } = useAuth();
@@ -30,14 +33,28 @@ const HomeScreen = () => {
     setRefreshing(false);
   };
 
-  const MenuCard = ({ icon, title, subtitle, color, onPress, badge }: any) => (
+  const MenuCard = ({ iconName, iconLib = 'ion', title, subtitle, color, onPress, badge }: {
+    iconName: string;
+    iconLib?: 'ion' | 'mci';
+    title: string;
+    subtitle: string;
+    color: string;
+    onPress: () => void;
+    badge?: string;
+  }) => (
     <TouchableOpacity
       style={[styles.card, { borderLeftColor: color }]}
       onPress={onPress}
       activeOpacity={0.7}
     >
       <View style={styles.cardContent}>
-        <Text style={styles.cardIcon}>{icon}</Text>
+        <View style={[styles.cardIconContainer, { backgroundColor: color + '15' }]}>
+          {iconLib === 'ion' ? (
+            <Ionicons name={iconName as any} size={24} color={color} />
+          ) : (
+            <MaterialCommunityIcons name={iconName as any} size={24} color={color} />
+          )}
+        </View>
         <View style={styles.cardText}>
           <Text style={styles.cardTitle}>{title}</Text>
           <Text style={styles.cardSubtitle}>{subtitle}</Text>
@@ -47,7 +64,7 @@ const HomeScreen = () => {
             <Text style={styles.badgeText}>{badge}</Text>
           </View>
         )}
-        <Text style={styles.cardArrow}>›</Text>
+        <Ionicons name="chevron-forward" size={20} color={colors.textTertiary} />
       </View>
     </TouchableOpacity>
   );
@@ -60,7 +77,7 @@ const HomeScreen = () => {
       }
     >
       {/* Header */}
-      <View style={styles.header}>
+      <LinearGradient colors={gradients.header} style={styles.header}>
         <View>
           <Text style={styles.greeting}>Welcome back,</Text>
           <Text style={styles.username}>{user?.displayName || user?.username}!</Text>
@@ -72,22 +89,22 @@ const HomeScreen = () => {
             size="small"
           />
         )}
-      </View>
+      </LinearGradient>
 
       {/* Stats Cards */}
       <View style={styles.statsContainer}>
         <View style={styles.statCard}>
-          <Text style={styles.statIcon}>🔥</Text>
+          <Ionicons name="flame" size={28} color={colors.accent} />
           <Text style={styles.statValue}>{user?.currentStreak || 0}</Text>
           <Text style={styles.statLabel}>Day Streak</Text>
         </View>
         <View style={styles.statCard}>
-          <Text style={styles.statIcon}>⭐</Text>
+          <Ionicons name="star" size={28} color={colors.gold} />
           <Text style={styles.statValue}>{user?.totalPoints || 0}</Text>
           <Text style={styles.statLabel}>Points</Text>
         </View>
         <View style={styles.statCard}>
-          <Text style={styles.statIcon}>🏆</Text>
+          <Ionicons name="trophy" size={28} color={colors.secondary} />
           <Text style={styles.statValue}>{user?.eloRating || 1000}</Text>
           <Text style={styles.statLabel}>ELO</Text>
         </View>
@@ -98,18 +115,19 @@ const HomeScreen = () => {
         <Text style={styles.sectionTitle}>Battle Modes</Text>
 
         <MenuCard
-          icon="⚔️"
+          iconName="sword-cross"
+          iconLib="mci"
           title="Ranked Battle"
-          subtitle="5 questions • 45s each • Earn ELO"
-          color="#FF3B30"
+          subtitle="5 questions - 45s each - Earn ELO"
+          color={colors.ranked}
           onPress={() => navigation.navigate('BattleMode' as never, { mode: 'RANKED' } as never)}
         />
 
         <MenuCard
-          icon="🎮"
+          iconName="game-controller"
           title="Casual Battle"
-          subtitle="5 questions • 45s each • Practice"
-          color="#34C759"
+          subtitle="5 questions - 45s each - Practice"
+          color={colors.primary}
           onPress={() => navigation.navigate('BattleMode' as never, { mode: 'CASUAL' } as never)}
         />
       </View>
@@ -118,19 +136,19 @@ const HomeScreen = () => {
         <Text style={styles.sectionTitle}>Challenges</Text>
 
         <MenuCard
-          icon="📝"
+          iconName="document-text-outline"
           title="Daily Challenge"
           subtitle="Complete today's quiz"
-          color="#4A90E2"
+          color={colors.secondary}
           onPress={() => navigation.navigate('DailyQuiz' as never)}
           badge="TODAY"
         />
 
         <MenuCard
-          icon="🏆"
+          iconName="trophy-outline"
           title="Achievements"
           subtitle="View your badges & milestones"
-          color="#FFD700"
+          color={colors.gold}
           onPress={() => navigation.navigate('Achievements' as never)}
         />
       </View>
@@ -139,10 +157,10 @@ const HomeScreen = () => {
         <Text style={styles.sectionTitle}>Learn</Text>
 
         <MenuCard
-          icon="📚"
+          iconName="book-outline"
           title="Flashcards"
           subtitle="Study and improve skills"
-          color="#FF9500"
+          color={colors.accent}
           onPress={() => navigation.navigate('Flashcards' as never)}
         />
       </View>
@@ -151,26 +169,26 @@ const HomeScreen = () => {
         <Text style={styles.sectionTitle}>Your Stats</Text>
 
         <MenuCard
-          icon="👤"
+          iconName="person-outline"
           title="Profile"
           subtitle="View your statistics & history"
-          color="#8E8E93"
+          color={colors.textSecondary}
           onPress={() => navigation.navigate('Profile' as never)}
         />
 
         <MenuCard
-          icon="🏅"
+          iconName="podium-outline"
           title="Leaderboard"
           subtitle="Rankings by language"
-          color="#5856D6"
+          color={colors.purple}
           onPress={() => navigation.navigate('LanguageStats' as never)}
         />
 
         <MenuCard
-          icon="⚙️"
+          iconName="settings-outline"
           title="Settings"
           subtitle="Account & preferences"
-          color="#666"
+          color={colors.textSecondary}
           onPress={() => navigation.navigate('Settings' as never)}
         />
       </View>
@@ -178,7 +196,10 @@ const HomeScreen = () => {
       {/* Stats Summary */}
       {userStats?.stats && (
         <View style={styles.summaryCard}>
-          <Text style={styles.summaryTitle}>Your Performance</Text>
+          <View style={styles.summaryHeader}>
+            <Ionicons name="analytics" size={20} color={colors.secondary} />
+            <Text style={styles.summaryTitle}>Your Performance</Text>
+          </View>
           <View style={styles.summaryRow}>
             <Text style={styles.summaryLabel}>Total Quizzes:</Text>
             <Text style={styles.summaryValue}>{userStats.stats.totalQuizzes}</Text>
@@ -187,7 +208,7 @@ const HomeScreen = () => {
             <Text style={styles.summaryLabel}>Total Matches:</Text>
             <Text style={styles.summaryValue}>{userStats.stats.totalMatches}</Text>
           </View>
-          <View style={styles.summaryRow}>
+          <View style={[styles.summaryRow, { borderBottomWidth: 0 }]}>
             <Text style={styles.summaryLabel}>Win Rate:</Text>
             <Text style={styles.summaryValue}>
               {userStats.stats.winRate.toFixed(1)}%
@@ -195,6 +216,8 @@ const HomeScreen = () => {
           </View>
         </View>
       )}
+
+      <View style={{ height: spacing.xxxl }} />
     </ScrollView>
   );
 };
@@ -202,150 +225,127 @@ const HomeScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: colors.background,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 20,
+    padding: spacing.xl,
     paddingTop: 60,
-    backgroundColor: 'white',
   },
   greeting: {
-    fontSize: 16,
-    color: '#666',
+    ...typography.subtitle,
+    color: 'rgba(255, 255, 255, 0.85)',
   },
   username: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#333',
-    marginTop: 4,
+    ...typography.h2,
+    color: colors.textInverse,
+    marginTop: spacing.xs,
   },
   statsContainer: {
     flexDirection: 'row',
-    padding: 20,
-    gap: 12,
+    padding: spacing.xl,
+    gap: spacing.md,
   },
   statCard: {
     flex: 1,
-    backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 16,
+    backgroundColor: colors.surface,
+    borderRadius: radii.md,
+    padding: spacing.lg,
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  statIcon: {
-    fontSize: 28,
-    marginBottom: 8,
+    ...shadows.md,
   },
   statValue: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#333',
+    ...typography.stat,
+    marginTop: spacing.sm,
   },
   statLabel: {
-    fontSize: 12,
-    color: '#666',
-    marginTop: 4,
+    ...typography.caption,
+    marginTop: spacing.xs,
   },
   menuSection: {
-    padding: 20,
+    padding: spacing.xl,
     paddingTop: 0,
   },
   sectionTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 12,
-    marginTop: 12,
+    ...typography.h3,
+    marginBottom: spacing.md,
+    marginTop: spacing.md,
   },
   card: {
-    backgroundColor: 'white',
-    borderRadius: 12,
-    marginBottom: 12,
+    backgroundColor: colors.surface,
+    borderRadius: radii.md,
+    marginBottom: spacing.md,
     borderLeftWidth: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    ...shadows.md,
   },
   cardContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 16,
+    padding: spacing.lg,
   },
-  cardIcon: {
-    fontSize: 32,
-    marginRight: 16,
+  cardIconContainer: {
+    width: 44,
+    height: 44,
+    borderRadius: radii.md,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: spacing.lg,
   },
   cardText: {
     flex: 1,
   },
   cardTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
+    ...typography.title,
+    fontSize: 16,
   },
   cardSubtitle: {
-    fontSize: 14,
-    color: '#666',
+    ...typography.bodySmall,
     marginTop: 2,
   },
   badge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-    marginRight: 8,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderRadius: radii.md,
+    marginRight: spacing.sm,
   },
   badgeText: {
-    color: 'white',
+    ...typography.label,
     fontSize: 11,
-    fontWeight: 'bold',
-  },
-  cardArrow: {
-    fontSize: 32,
-    color: '#ccc',
-    fontWeight: '300',
+    color: colors.textInverse,
   },
   summaryCard: {
-    backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 20,
-    margin: 20,
+    backgroundColor: colors.surface,
+    borderRadius: radii.md,
+    padding: spacing.xl,
+    margin: spacing.xl,
     marginTop: 0,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    ...shadows.md,
+  },
+  summaryHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: spacing.md,
+    gap: spacing.sm,
   },
   summaryTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 12,
+    ...typography.title,
   },
   summaryRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingVertical: 8,
+    paddingVertical: spacing.sm,
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    borderBottomColor: colors.borderLight,
   },
   summaryLabel: {
-    fontSize: 15,
-    color: '#666',
+    ...typography.body,
+    color: colors.textSecondary,
   },
   summaryValue: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#333',
+    ...typography.subtitle,
+    color: colors.textPrimary,
   },
 });
 

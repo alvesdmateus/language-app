@@ -2,6 +2,7 @@ import React from 'react';
 import { TouchableOpacity, Text, View, ActivityIndicator } from 'react-native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
 import LoginScreen from '../screens/LoginScreen';
 import RegisterScreen from '../screens/RegisterScreen';
@@ -23,6 +24,7 @@ import OnboardingLanguageScreen from '../screens/onboarding/OnboardingLanguageSc
 import OnboardingFirstBattleScreen from '../screens/onboarding/OnboardingFirstBattleScreen';
 import OnboardingCelebrationScreen from '../screens/onboarding/OnboardingCelebrationScreen';
 import { RootStackParamList } from '../types';
+import { colors, spacing } from '../theme';
 
 // Tab Screens
 import BattleModeTab from '../screens/tabs/BattleModeTab';
@@ -38,16 +40,16 @@ const MainTabs = ({ navigation }: any) => {
     <Tab.Navigator
       initialRouteName="BattleTab"
       screenOptions={{
-        tabBarActiveTintColor: '#FF3B30',
-        tabBarInactiveTintColor: '#8E8E93',
+        tabBarActiveTintColor: colors.primary,
+        tabBarInactiveTintColor: colors.textTertiary,
         tabBarLabelStyle: {
           fontSize: 11,
           fontWeight: '600',
         },
         tabBarStyle: {
-          backgroundColor: 'white',
+          backgroundColor: colors.surface,
           borderTopWidth: 1,
-          borderTopColor: '#e0e0e0',
+          borderTopColor: colors.border,
           height: 70,
           paddingBottom: 10,
           paddingTop: 8,
@@ -63,14 +65,16 @@ const MainTabs = ({ navigation }: any) => {
         component={BattleModeTab}
         options={{
           title: 'Battle',
-          tabBarIcon: ({ color }) => <Text style={{ fontSize: 24 }}>⚔️</Text>,
+          tabBarIcon: ({ color, size }) => (
+            <MaterialCommunityIcons name="sword-cross" size={size} color={color} />
+          ),
           headerTitle: 'Battle',
           headerRight: () => (
             <TouchableOpacity
               onPress={() => navigation.navigate('Settings')}
-              style={{ marginRight: 16 }}
+              style={{ marginRight: spacing.lg }}
             >
-              <Text style={{ fontSize: 24 }}>⚙️</Text>
+              <Ionicons name="settings-outline" size={24} color={colors.textSecondary} />
             </TouchableOpacity>
           ),
         }}
@@ -80,14 +84,16 @@ const MainTabs = ({ navigation }: any) => {
         component={ChallengesTab}
         options={{
           title: 'Challenges',
-          tabBarIcon: ({ color }) => <Text style={{ fontSize: 24 }}>🏆</Text>,
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="trophy" size={size} color={color} />
+          ),
           headerTitle: 'Challenges',
           headerRight: () => (
             <TouchableOpacity
               onPress={() => navigation.navigate('Settings')}
-              style={{ marginRight: 16 }}
+              style={{ marginRight: spacing.lg }}
             >
-              <Text style={{ fontSize: 24 }}>⚙️</Text>
+              <Ionicons name="settings-outline" size={24} color={colors.textSecondary} />
             </TouchableOpacity>
           ),
         }}
@@ -97,14 +103,16 @@ const MainTabs = ({ navigation }: any) => {
         component={LearnTab}
         options={{
           title: 'Learn',
-          tabBarIcon: ({ color }) => <Text style={{ fontSize: 24 }}>📚</Text>,
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="book" size={size} color={color} />
+          ),
           headerTitle: 'Learn',
           headerRight: () => (
             <TouchableOpacity
               onPress={() => navigation.navigate('Settings')}
-              style={{ marginRight: 16 }}
+              style={{ marginRight: spacing.lg }}
             >
-              <Text style={{ fontSize: 24 }}>⚙️</Text>
+              <Ionicons name="settings-outline" size={24} color={colors.textSecondary} />
             </TouchableOpacity>
           ),
         }}
@@ -114,14 +122,16 @@ const MainTabs = ({ navigation }: any) => {
         component={ProfileTab}
         options={{
           title: 'Profile',
-          tabBarIcon: ({ color }) => <Text style={{ fontSize: 24 }}>👤</Text>,
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="person" size={size} color={color} />
+          ),
           headerTitle: 'Profile',
           headerRight: () => (
             <TouchableOpacity
               onPress={() => navigation.navigate('Settings')}
-              style={{ marginRight: 16 }}
+              style={{ marginRight: spacing.lg }}
             >
-              <Text style={{ fontSize: 24 }}>⚙️</Text>
+              <Ionicons name="settings-outline" size={24} color={colors.textSecondary} />
             </TouchableOpacity>
           ),
         }}
@@ -135,8 +145,8 @@ const RootNavigator = () => {
 
   if (loading) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-        <ActivityIndicator size="large" color="#FF3B30" />
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background }}>
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }

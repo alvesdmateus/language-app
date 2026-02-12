@@ -1,7 +1,10 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useAuth } from '../context/AuthContext';
 import { useNavigation } from '@react-navigation/native';
+import { colors, spacing, radii, shadows, typography } from '../theme';
 
 const RegisterScreen = () => {
   const [email, setEmail] = useState('');
@@ -34,155 +37,149 @@ const RegisterScreen = () => {
   };
 
   return (
-    <KeyboardAvoidingView
+    <LinearGradient
+      colors={['#CE82FF', '#A855F7']}
       style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
-        <View style={styles.header}>
-          <Text style={styles.icon}>🚀</Text>
-          <Text style={styles.title}>Join Language Quest</Text>
-          <Text style={styles.subtitle}>Start your learning journey</Text>
-        </View>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
+        <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+          <View style={styles.header}>
+            <Ionicons name="rocket" size={64} color={colors.white} />
+            <Text style={styles.title}>Join Language Quest</Text>
+            <Text style={styles.subtitle}>Start your learning journey</Text>
+          </View>
 
-        <View style={styles.form}>
-          <TextInput
-            style={styles.input}
-            placeholder="Email"
-            placeholderTextColor="#999"
-            value={email}
-            onChangeText={setEmail}
-            autoCapitalize="none"
-            keyboardType="email-address"
-            autoCorrect={false}
-            editable={!loading}
-          />
-          <TextInput
-            style={styles.input}
-            placeholder="Username"
-            placeholderTextColor="#999"
-            value={username}
-            onChangeText={setUsername}
-            autoCapitalize="none"
-            autoCorrect={false}
-            editable={!loading}
-          />
-          <TextInput
-            style={styles.input}
-            placeholder="Display Name (Optional)"
-            placeholderTextColor="#999"
-            value={displayName}
-            onChangeText={setDisplayName}
-            editable={!loading}
-          />
-          <TextInput
-            style={styles.input}
-            placeholder="Password (min 6 characters)"
-            placeholderTextColor="#999"
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-            editable={!loading}
-            onSubmitEditing={handleRegister}
-          />
+          <View style={styles.form}>
+            <TextInput
+              style={styles.input}
+              placeholder="Email"
+              placeholderTextColor={colors.textTertiary}
+              value={email}
+              onChangeText={setEmail}
+              autoCapitalize="none"
+              keyboardType="email-address"
+              autoCorrect={false}
+              editable={!loading}
+            />
+            <TextInput
+              style={styles.input}
+              placeholder="Username"
+              placeholderTextColor={colors.textTertiary}
+              value={username}
+              onChangeText={setUsername}
+              autoCapitalize="none"
+              autoCorrect={false}
+              editable={!loading}
+            />
+            <TextInput
+              style={styles.input}
+              placeholder="Display Name (Optional)"
+              placeholderTextColor={colors.textTertiary}
+              value={displayName}
+              onChangeText={setDisplayName}
+              editable={!loading}
+            />
+            <TextInput
+              style={styles.input}
+              placeholder="Password (min 6 characters)"
+              placeholderTextColor={colors.textTertiary}
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry
+              editable={!loading}
+              onSubmitEditing={handleRegister}
+            />
 
-          <TouchableOpacity
-            style={[styles.button, loading && styles.buttonDisabled]}
-            onPress={handleRegister}
-            disabled={loading}
-          >
-            {loading ? (
-              <ActivityIndicator color="white" />
-            ) : (
-              <Text style={styles.buttonText}>Create Account</Text>
-            )}
-          </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.button, loading && styles.buttonDisabled]}
+              onPress={handleRegister}
+              disabled={loading}
+            >
+              {loading ? (
+                <ActivityIndicator color={colors.white} />
+              ) : (
+                <Text style={styles.buttonText}>Create Account</Text>
+              )}
+            </TouchableOpacity>
 
-          <TouchableOpacity
-            onPress={() => navigation.goBack()}
-            disabled={loading}
-          >
-            <Text style={styles.linkText}>
-              Already have an account? <Text style={styles.linkTextBold}>Sign In</Text>
-            </Text>
-          </TouchableOpacity>
-        </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+            <TouchableOpacity
+              onPress={() => navigation.goBack()}
+              disabled={loading}
+            >
+              <Text style={styles.linkText}>
+                Already have an account? <Text style={styles.linkTextBold}>Sign In</Text>
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </LinearGradient>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#5856D6',
   },
   scrollContent: {
     flexGrow: 1,
     justifyContent: 'space-between',
-    padding: 20,
+    padding: spacing.xl,
   },
   header: {
     alignItems: 'center',
     marginTop: 60,
-    marginBottom: 20,
-  },
-  icon: {
-    fontSize: 64,
-    marginBottom: 16,
+    marginBottom: spacing.xl,
   },
   title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: 'white',
-    marginBottom: 8,
+    ...typography.h2,
+    color: colors.textInverse,
+    marginTop: spacing.lg,
+    marginBottom: spacing.sm,
     textAlign: 'center',
   },
   subtitle: {
-    fontSize: 16,
+    ...typography.subtitle,
     color: 'rgba(255, 255, 255, 0.9)',
     textAlign: 'center',
   },
   form: {
-    marginTop: 20,
+    marginTop: spacing.xl,
     marginBottom: 40,
   },
   input: {
-    backgroundColor: 'white',
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 16,
+    backgroundColor: colors.surface,
+    padding: spacing.lg,
+    borderRadius: radii.md,
+    marginBottom: spacing.lg,
     fontSize: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    color: colors.textPrimary,
+    ...shadows.md,
   },
   button: {
-    backgroundColor: '#FF9500',
-    padding: 16,
-    borderRadius: 12,
+    backgroundColor: colors.accent,
+    padding: spacing.lg,
+    borderRadius: radii.md,
     alignItems: 'center',
-    marginTop: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 6,
-    elevation: 4,
+    marginTop: spacing.sm,
+    borderBottomWidth: 4,
+    borderBottomColor: colors.accentDark,
+    ...shadows.lg,
   },
   buttonDisabled: {
     opacity: 0.7,
   },
   buttonText: {
-    color: 'white',
-    fontSize: 18,
-    fontWeight: 'bold',
+    ...typography.button,
+    color: colors.textInverse,
   },
   linkText: {
-    color: 'white',
+    color: colors.textInverse,
     textAlign: 'center',
-    marginTop: 24,
+    marginTop: spacing.xxl,
     fontSize: 15,
   },
   linkTextBold: {

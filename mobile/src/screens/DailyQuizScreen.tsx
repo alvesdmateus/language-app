@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, ActivityIndicator } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { quizService } from '../services/api';
+import { colors, gradients, spacing, radii, shadows, typography } from '../theme';
 
 const DailyQuizScreen = () => {
   const [quiz, setQuiz] = useState<any>(null);
@@ -33,46 +36,74 @@ const DailyQuizScreen = () => {
 
   if (loading) {
     return (
-      <View style={styles.container}>
-        <Text>Loading...</Text>
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={colors.secondary} />
+        <Text style={styles.loadingText}>Loading quiz...</Text>
       </View>
     );
   }
 
   if (quiz?.completed) {
     return (
-      <View style={styles.container}>
-        <Text style={styles.title}>Daily Quiz Completed!</Text>
-        <Text style={styles.subtitle}>Come back tomorrow for a new quiz</Text>
+      <View style={styles.completedContainer}>
+        <Ionicons name="checkmark-circle" size={72} color={colors.primary} />
+        <Text style={styles.completedTitle}>Daily Quiz Completed!</Text>
+        <Text style={styles.completedSubtitle}>Come back tomorrow for a new quiz</Text>
       </View>
     );
   }
 
   return (
     <ScrollView style={styles.container}>
-      <Text style={styles.title}>Daily Quiz</Text>
-      {quiz?.questions.map((question: any, index: number) => (
-        <View key={question.id} style={styles.questionCard}>
-          <Text style={styles.questionText}>
-            {index + 1}. {question.question}
-          </Text>
-          {question.options.map((option: string, optionIndex: number) => (
-            <TouchableOpacity
-              key={optionIndex}
-              style={[
-                styles.option,
-                answers[question.id] === option && styles.selectedOption,
-              ]}
-              onPress={() => setAnswers({ ...answers, [question.id]: option })}
-            >
-              <Text style={styles.optionText}>{option}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      ))}
-      <TouchableOpacity style={styles.submitButton} onPress={handleSubmit}>
-        <Text style={styles.submitButtonText}>Submit Quiz</Text>
-      </TouchableOpacity>
+      {/* Header */}
+      <LinearGradient colors={gradients.secondary} style={styles.headerGradient}>
+        <Ionicons name="calendar" size={32} color={colors.white} />
+        <Text style={styles.title}>Daily Quiz</Text>
+        <Text style={styles.subtitle}>Test your knowledge today</Text>
+      </LinearGradient>
+
+      <View style={styles.content}>
+        {quiz?.questions.map((question: any, index: number) => (
+          <View key={question.id} style={styles.questionCard}>
+            <View style={styles.questionHeader}>
+              <View style={styles.questionBadge}>
+                <Text style={styles.questionBadgeText}>{index + 1}</Text>
+              </View>
+              <Text style={styles.questionText}>{question.question}</Text>
+            </View>
+            {question.options.map((option: string, optionIndex: number) => (
+              <TouchableOpacity
+                key={optionIndex}
+                style={[
+                  styles.option,
+                  answers[question.id] === option && styles.selectedOption,
+                ]}
+                onPress={() => setAnswers({ ...answers, [question.id]: option })}
+                activeOpacity={0.7}
+              >
+                <Text
+                  style={[
+                    styles.optionText,
+                    answers[question.id] === option && styles.selectedOptionText,
+                  ]}
+                >
+                  {option}
+                </Text>
+                {answers[question.id] === option && (
+                  <Ionicons name="checkmark-circle" size={20} color={colors.textInverse} />
+                )}
+              </TouchableOpacity>
+            ))}
+          </View>
+        ))}
+
+        <TouchableOpacity style={styles.submitButton} onPress={handleSubmit} activeOpacity={0.8}>
+          <Ionicons name="send" size={20} color={colors.textInverse} />
+          <Text style={styles.submitButtonText}>Submit Quiz</Text>
+        </TouchableOpacity>
+
+        <View style={{ height: spacing.xxxl }} />
+      </View>
     </ScrollView>
   );
 };
@@ -80,52 +111,119 @@ const DailyQuizScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 20,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: colors.background,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: colors.background,
+  },
+  loadingText: {
+    marginTop: spacing.md,
+    ...typography.body,
+    color: colors.textSecondary,
+  },
+  completedContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: colors.background,
+    padding: spacing.xl,
+  },
+  completedTitle: {
+    ...typography.h2,
+    marginTop: spacing.lg,
+    marginBottom: spacing.sm,
+  },
+  completedSubtitle: {
+    ...typography.subtitle,
+  },
+  headerGradient: {
+    paddingTop: 60,
+    paddingBottom: spacing.xxl,
+    paddingHorizontal: spacing.xl,
+    alignItems: 'center',
   },
   title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 10,
+    ...typography.h2,
+    color: colors.textInverse,
+    marginTop: spacing.sm,
   },
   subtitle: {
-    fontSize: 16,
-    color: '#666',
+    ...typography.subtitle,
+    color: 'rgba(255, 255, 255, 0.85)',
+    marginTop: spacing.xs,
+  },
+  content: {
+    padding: spacing.xl,
   },
   questionCard: {
-    backgroundColor: 'white',
-    padding: 15,
-    borderRadius: 8,
-    marginBottom: 15,
+    backgroundColor: colors.surface,
+    padding: spacing.lg,
+    borderRadius: radii.md,
+    marginBottom: spacing.lg,
+    ...shadows.md,
+  },
+  questionHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: spacing.md,
+    gap: spacing.md,
+  },
+  questionBadge: {
+    width: 28,
+    height: 28,
+    borderRadius: radii.full,
+    backgroundColor: colors.secondary,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  questionBadgeText: {
+    ...typography.buttonSmall,
+    color: colors.textInverse,
   },
   questionText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: 10,
+    ...typography.title,
+    flex: 1,
   },
   option: {
-    padding: 12,
-    borderRadius: 6,
-    backgroundColor: '#f0f0f0',
-    marginBottom: 8,
+    padding: spacing.md,
+    borderRadius: radii.sm,
+    backgroundColor: colors.surfaceSecondary,
+    marginBottom: spacing.sm,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderWidth: 2,
+    borderColor: 'transparent',
   },
   selectedOption: {
-    backgroundColor: '#007AFF',
+    backgroundColor: colors.secondary,
+    borderColor: colors.secondaryDark,
   },
   optionText: {
-    fontSize: 14,
+    ...typography.body,
+    flex: 1,
+  },
+  selectedOptionText: {
+    color: colors.textInverse,
+    fontWeight: '600',
   },
   submitButton: {
-    backgroundColor: '#34C759',
-    padding: 15,
-    borderRadius: 8,
+    backgroundColor: colors.primary,
+    padding: spacing.lg,
+    borderRadius: radii.md,
     alignItems: 'center',
-    marginVertical: 20,
+    marginTop: spacing.xl,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    ...shadows.primaryButton,
   },
   submitButtonText: {
-    color: 'white',
-    fontSize: 18,
-    fontWeight: 'bold',
+    ...typography.button,
+    color: colors.textInverse,
   },
 });
 

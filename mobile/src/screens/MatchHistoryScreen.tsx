@@ -8,10 +8,14 @@ import {
   ActivityIndicator,
   RefreshControl,
 } from 'react-native';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import { matchService } from '../services/api';
 import { Match, MatchResult, User, Language, MatchType } from '../types';
 import { useAuth } from '../context/AuthContext';
+import { LANGUAGE_INFO } from '../theme/languages';
+import { colors, gradients, spacing, radii, shadows, typography } from '../theme';
 
 interface MatchWithResults extends Match {
   results: (MatchResult & { user: User })[];
@@ -89,58 +93,47 @@ const MatchHistoryScreen = () => {
   const getMatchTypeColor = (type: MatchType) => {
     switch (type) {
       case 'RANKED':
-        return '#FF3B30';
+        return colors.ranked;
       case 'BATTLE':
-        return '#FF9500';
+        return colors.battle;
       case 'CASUAL':
-        return '#34C759';
+        return colors.casual;
       case 'CUSTOM':
-        return '#5856D6';
+        return colors.purple;
       default:
-        return '#8E8E93';
+        return colors.textTertiary;
     }
   };
 
-  const getMatchTypeIcon = (type: MatchType) => {
+  const getMatchTypeIconName = (type: MatchType): { name: string; lib: 'ion' | 'mci' } => {
     switch (type) {
       case 'RANKED':
-        return '🏆';
+        return { name: 'trophy', lib: 'ion' };
       case 'BATTLE':
-        return '⚔️';
+        return { name: 'sword-cross', lib: 'mci' };
       case 'CASUAL':
-        return '🎮';
+        return { name: 'game-controller', lib: 'ion' };
       case 'CUSTOM':
-        return '⚙️';
+        return { name: 'settings', lib: 'ion' };
       default:
-        return '🎯';
+        return { name: 'ellipse', lib: 'ion' };
     }
   };
 
   const getLanguageFlag = (language: Language) => {
-    const flags: Record<Language, string> = {
-      PORTUGUESE: '🇧🇷',
-      SPANISH: '🇪🇸',
-      ENGLISH: '🇬🇧',
-      ITALIAN: '🇮🇹',
-      FRENCH: '🇫🇷',
-      GERMAN: '🇩🇪',
-      JAPANESE: '🇯🇵',
-      KOREAN: '🇰🇷',
-    };
-    return flags[language] || '🌍';
+    return LANGUAGE_INFO[language]?.flag || '';
   };
 
   const getMatchOutcome = (match: MatchWithResults) => {
     if (match.status !== 'COMPLETED') {
-      return { text: 'In Progress', color: '#FF9500', icon: '⏳' };
+      return { text: 'In Progress', color: colors.accent, iconName: 'time-outline' as const };
     }
 
     const userResult = match.results.find((r) => r.userId === user?.id);
     if (!userResult) {
-      return { text: 'Unknown', color: '#8E8E93', icon: '❓' };
+      return { text: 'Unknown', color: colors.textTertiary, iconName: 'help-circle-outline' as const };
     }
 
-    // Sort results by score, then by time
     const sortedResults = [...match.results].sort((a, b) => {
       if (b.correctAnswers !== a.correctAnswers) {
         return b.correctAnswers - a.correctAnswers;
@@ -155,14 +148,14 @@ const MatchHistoryScreen = () => {
       sortedResults[0].totalTimeMs === sortedResults[1].totalTimeMs;
 
     if (isDraw) {
-      return { text: 'Draw', color: '#FF9500', icon: '🤝' };
+      return { text: 'Draw', color: colors.accent, iconName: 'handshake' as const };
     }
 
     if (winnerResult.userId === user?.id) {
-      return { text: 'Victory', color: '#34C759', icon: '🏆' };
+      return { text: 'Victory', color: colors.primary, iconName: 'trophy' as const };
     }
 
-    return { text: 'Defeat', color: '#FF3B30', icon: '😔' };
+    return { text: 'Defeat', color: colors.danger, iconName: 'sad-outline' as const };
   };
 
   const renderMatchCard = (match: MatchWithResults) => {
@@ -170,6 +163,7 @@ const MatchHistoryScreen = () => {
     const opponent = match.participants.find((p) => p.id !== user?.id);
     const userResult = match.results.find((r) => r.userId === user?.id);
     const opponentResult = match.results.find((r) => r.userId !== user?.id);
+    const matchTypeIcon = getMatchTypeIconName(match.type);
 
     return (
       <TouchableOpacity
@@ -180,16 +174,19 @@ const MatchHistoryScreen = () => {
         ]}
         onPress={() => {
           if (match.status === 'IN_PROGRESS' && match.isAsync && !userResult) {
-            // Navigate to game screen for async matches
             navigation.navigate('GameScreen' as never, { matchId: match.id, match } as never);
           }
-          // For completed matches, could navigate to detailed view if needed
         }}
+        activeOpacity={0.7}
       >
         {/* Match Header */}
         <View style={styles.matchHeader}>
           <View style={styles.matchTypeContainer}>
-            <Text style={styles.matchTypeIcon}>{getMatchTypeIcon(match.type)}</Text>
+            {matchTypeIcon.lib === 'ion' ? (
+              <Ionicons name={matchTypeIcon.name as any} size={18} color={getMatchTypeColor(match.type)} />
+            ) : (
+              <MaterialCommunityIcons name={matchTypeIcon.name as any} size={18} color={getMatchTypeColor(match.type)} />
+            )}
             <Text
               style={[styles.matchType, { color: getMatchTypeColor(match.type) }]}
             >
@@ -206,7 +203,11 @@ const MatchHistoryScreen = () => {
 
         {/* Match Outcome */}
         <View style={styles.outcomeContainer}>
-          <Text style={styles.outcomeIcon}>{outcome.icon}</Text>
+          {outcome.iconName === 'handshake' ? (
+            <MaterialCommunityIcons name="handshake" size={24} color={outcome.color} />
+          ) : (
+            <Ionicons name={outcome.iconName as any} size={24} color={outcome.color} />
+          )}
           <Text style={[styles.outcomeText, { color: outcome.color }]}>
             {outcome.text}
           </Text>
@@ -241,17 +242,24 @@ const MatchHistoryScreen = () => {
           userResult?.eloChange !== undefined && (
             <View style={styles.eloContainer}>
               <Text style={styles.eloLabel}>ELO Change:</Text>
-              <Text
-                style={[
-                  styles.eloChange,
-                  {
-                    color: userResult.eloChange >= 0 ? '#34C759' : '#FF3B30',
-                  },
-                ]}
-              >
-                {userResult.eloChange >= 0 ? '+' : ''}
-                {userResult.eloChange}
-              </Text>
+              <View style={styles.eloChangeRow}>
+                <Ionicons
+                  name={userResult.eloChange >= 0 ? 'arrow-up' : 'arrow-down'}
+                  size={16}
+                  color={userResult.eloChange >= 0 ? colors.primary : colors.danger}
+                />
+                <Text
+                  style={[
+                    styles.eloChange,
+                    {
+                      color: userResult.eloChange >= 0 ? colors.primary : colors.danger,
+                    },
+                  ]}
+                >
+                  {userResult.eloChange >= 0 ? '+' : ''}
+                  {userResult.eloChange}
+                </Text>
+              </View>
             </View>
           )}
 
@@ -265,6 +273,7 @@ const MatchHistoryScreen = () => {
         {/* Action prompt for async matches */}
         {match.status === 'IN_PROGRESS' && match.isAsync && !userResult && (
           <View style={styles.actionPrompt}>
+            <Ionicons name="play-circle" size={16} color={colors.accent} />
             <Text style={styles.actionPromptText}>Tap to play your turn</Text>
           </View>
         )}
@@ -275,7 +284,7 @@ const MatchHistoryScreen = () => {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#FF3B30" />
+        <ActivityIndicator size="large" color={colors.danger} />
         <Text style={styles.loadingText}>Loading match history...</Text>
       </View>
     );
@@ -286,16 +295,16 @@ const MatchHistoryScreen = () => {
   return (
     <View style={styles.container}>
       {/* Header */}
-      <View style={styles.header}>
+      <LinearGradient colors={gradients.ranked} style={styles.header}>
         <TouchableOpacity
           style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
-          <Text style={styles.backButtonText}>← Back</Text>
+          <Ionicons name="arrow-back" size={24} color={colors.textInverse} />
         </TouchableOpacity>
         <Text style={styles.title}>Match History</Text>
         <View style={styles.placeholder} />
-      </View>
+      </LinearGradient>
 
       {/* Tabs */}
       <View style={styles.tabContainer}>
@@ -342,9 +351,11 @@ const MatchHistoryScreen = () => {
       >
         {displayedMatches.length === 0 ? (
           <View style={styles.emptyContainer}>
-            <Text style={styles.emptyIcon}>
-              {activeTab === 'active' ? '⏳' : '📊'}
-            </Text>
+            <Ionicons
+              name={activeTab === 'active' ? 'time-outline' : 'bar-chart-outline'}
+              size={64}
+              color={colors.textTertiary}
+            />
             <Text style={styles.emptyTitle}>No matches found</Text>
             <Text style={styles.emptyText}>
               {activeTab === 'active'
@@ -365,123 +376,105 @@ const MatchHistoryScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: colors.background,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f5f5f5',
+    backgroundColor: colors.background,
   },
   loadingText: {
-    marginTop: 12,
-    fontSize: 16,
-    color: '#666',
+    marginTop: spacing.md,
+    ...typography.body,
+    color: colors.textSecondary,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
+    paddingHorizontal: spacing.xl,
     paddingTop: 60,
-    paddingBottom: 20,
-    backgroundColor: 'white',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
+    paddingBottom: spacing.xl,
   },
   backButton: {
-    padding: 8,
-  },
-  backButtonText: {
-    fontSize: 16,
-    color: '#FF3B30',
-    fontWeight: '600',
+    padding: spacing.sm,
   },
   title: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#333',
+    ...typography.h3,
+    color: colors.textInverse,
   },
   placeholder: {
     width: 60,
   },
   tabContainer: {
     flexDirection: 'row',
-    backgroundColor: 'white',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
+    backgroundColor: colors.surface,
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
+    borderBottomColor: colors.border,
   },
   tab: {
     flex: 1,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-    marginHorizontal: 4,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderRadius: radii.sm,
+    marginHorizontal: spacing.xs,
     alignItems: 'center',
   },
   activeTab: {
-    backgroundColor: '#FF3B30',
+    backgroundColor: colors.danger,
   },
   tabText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#666',
+    ...typography.buttonSmall,
+    color: colors.textSecondary,
   },
   activeTabText: {
-    color: 'white',
+    color: colors.textInverse,
   },
   scrollView: {
     flex: 1,
   },
   scrollContent: {
-    padding: 16,
+    padding: spacing.lg,
   },
   matchCard: {
-    backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    backgroundColor: colors.surface,
+    borderRadius: radii.md,
+    padding: spacing.lg,
+    marginBottom: spacing.md,
+    ...shadows.md,
   },
   activeMatchCard: {
     borderWidth: 2,
-    borderColor: '#FF9500',
+    borderColor: colors.accent,
   },
   matchHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: spacing.md,
   },
   matchTypeContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-  },
-  matchTypeIcon: {
-    fontSize: 20,
-    marginRight: 6,
+    gap: spacing.xs + 2,
   },
   matchType: {
-    fontSize: 14,
-    fontWeight: 'bold',
+    ...typography.buttonSmall,
   },
   asyncBadge: {
-    marginLeft: 8,
-    backgroundColor: '#FF9500',
-    paddingHorizontal: 6,
+    marginLeft: spacing.sm,
+    backgroundColor: colors.accent,
+    paddingHorizontal: spacing.xs + 2,
     paddingVertical: 2,
-    borderRadius: 4,
+    borderRadius: radii.sm / 2,
   },
   asyncText: {
+    ...typography.label,
     fontSize: 10,
-    fontWeight: 'bold',
-    color: 'white',
+    color: colors.textInverse,
   },
   languageFlag: {
     fontSize: 24,
@@ -490,86 +483,87 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 12,
-  },
-  outcomeIcon: {
-    fontSize: 24,
-    marginRight: 8,
+    marginBottom: spacing.md,
+    gap: spacing.sm,
   },
   outcomeText: {
+    ...typography.title,
     fontSize: 18,
-    fontWeight: 'bold',
   },
   matchDetails: {
-    marginBottom: 12,
+    marginBottom: spacing.md,
   },
   playerRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 8,
+    paddingVertical: spacing.sm,
   },
   playerName: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#333',
+    ...typography.subtitle,
+    color: colors.textPrimary,
   },
   playerScore: {
-    fontSize: 14,
-    color: '#666',
+    ...typography.bodySmall,
   },
   vsLine: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: 4,
+    marginVertical: spacing.xs,
   },
   vsDivider: {
     flex: 1,
     height: 1,
-    backgroundColor: '#e0e0e0',
+    backgroundColor: colors.border,
   },
   vsText: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    color: '#999',
-    marginHorizontal: 8,
+    ...typography.caption,
+    fontWeight: '700',
+    color: colors.textTertiary,
+    marginHorizontal: spacing.sm,
   },
   eloContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 8,
+    paddingVertical: spacing.sm,
     borderTopWidth: 1,
-    borderTopColor: '#e0e0e0',
-    marginBottom: 8,
+    borderTopColor: colors.border,
+    marginBottom: spacing.sm,
   },
   eloLabel: {
-    fontSize: 13,
-    color: '#666',
-    marginRight: 8,
+    ...typography.bodySmall,
+    marginRight: spacing.sm,
+  },
+  eloChangeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs / 2,
   },
   eloChange: {
-    fontSize: 16,
-    fontWeight: 'bold',
+    ...typography.title,
   },
   matchDate: {
-    fontSize: 12,
-    color: '#999',
+    ...typography.caption,
     textAlign: 'center',
   },
   actionPrompt: {
-    marginTop: 12,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    backgroundColor: '#FFF3CD',
-    borderRadius: 8,
+    marginTop: spacing.md,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    backgroundColor: colors.accentLight,
+    borderRadius: radii.sm,
     borderWidth: 1,
-    borderColor: '#FF9500',
+    borderColor: colors.accent,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
   },
   actionPromptText: {
-    fontSize: 13,
+    ...typography.bodySmall,
     fontWeight: '600',
-    color: '#FF9500',
+    color: colors.accent,
     textAlign: 'center',
   },
   emptyContainer: {
@@ -579,19 +573,14 @@ const styles = StyleSheet.create({
     paddingVertical: 60,
     paddingHorizontal: 40,
   },
-  emptyIcon: {
-    fontSize: 64,
-    marginBottom: 16,
-  },
   emptyTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 8,
+    ...typography.h3,
+    marginTop: spacing.lg,
+    marginBottom: spacing.sm,
   },
   emptyText: {
-    fontSize: 14,
-    color: '#666',
+    ...typography.body,
+    color: colors.textSecondary,
     textAlign: 'center',
     lineHeight: 20,
   },

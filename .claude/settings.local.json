@@ -32,7 +32,24 @@
       "Bash(npm run prisma:migrate:*)",
       "Bash(tasklist:*)",
       "Bash(PGPASSWORD=314159 psql:*)",
-      "Bash(pkill:*)"
+      "Bash(pkill:*)",
+      "Bash(for file in mobile/src/screens/DailyQuizScreen.tsx mobile/src/screens/FlashcardsScreen.tsx mobile/src/screens/MatchmakingScreen.tsx mobile/src/screens/PowerUpSelectionScreen.tsx mobile/src/screens/MatchResultsScreen.tsx)",
+      "Bash(do echo \"=== $file ===\")",
+      "Bash(done)",
+      "Bash(git -C \"C:\\\\Users\\\\mateus\\\\Documents\\\\Repos\\\\language-app\" log --oneline -15)",
+      "Bash(git -C \"C:\\\\Users\\\\mateus\\\\Documents\\\\Repos\\\\language-app\" show HEAD:mobile/SCREENS_GUIDE.md)",
+      "Bash(git -C \"C:\\\\Users\\\\mateus\\\\Documents\\\\Repos\\\\language-app\" show HEAD:mobile/src/screens/HomeScreen.tsx)",
+      "Bash(git -C \"C:\\\\Users\\\\mateus\\\\Documents\\\\Repos\\\\language-app\" show HEAD:mobile/src/screens/GameScreen.tsx)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(git checkout:*)",
+      "Bash(npm create:*)",
+      "Bash(git branch:*)",
+      "Bash(git revert:*)",
+      "WebSearch",
+      "WebFetch(domain:stitch.withgoogle.com)",
+      "Bash(npx tsc:*)"
     ]
   }
 }

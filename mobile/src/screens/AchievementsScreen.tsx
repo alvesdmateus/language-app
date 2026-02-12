@@ -7,14 +7,18 @@ import {
   ScrollView,
   ActivityIndicator,
 } from 'react-native';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../context/AuthContext';
+import { colors, gradients, spacing, radii, shadows, typography } from '../theme';
 
 interface Achievement {
   id: string;
   title: string;
   description: string;
-  icon: string;
+  iconName: string;
+  iconLib: 'ion' | 'mci';
   progress: number;
   total: number;
   unlocked: boolean;
@@ -46,7 +50,8 @@ const AchievementsScreen = () => {
       id: '1',
       title: 'First Victory',
       description: 'Win your first battle',
-      icon: '🎯',
+      iconName: 'bullseye-arrow',
+      iconLib: 'mci',
       progress: 1,
       total: 1,
       unlocked: true,
@@ -57,7 +62,8 @@ const AchievementsScreen = () => {
       id: '2',
       title: 'Battle Master',
       description: 'Win 100 battles',
-      icon: '⚔️',
+      iconName: 'sword-cross',
+      iconLib: 'mci',
       progress: 34,
       total: 100,
       unlocked: false,
@@ -68,7 +74,8 @@ const AchievementsScreen = () => {
       id: '3',
       title: 'Week Warrior',
       description: 'Maintain a 7-day streak',
-      icon: '🔥',
+      iconName: 'flame',
+      iconLib: 'ion',
       progress: 7,
       total: 7,
       unlocked: true,
@@ -79,7 +86,8 @@ const AchievementsScreen = () => {
       id: '4',
       title: 'Century Streak',
       description: 'Maintain a 100-day streak',
-      icon: '💯',
+      iconName: 'counter',
+      iconLib: 'mci',
       progress: 23,
       total: 100,
       unlocked: false,
@@ -90,7 +98,8 @@ const AchievementsScreen = () => {
       id: '5',
       title: 'Polyglot',
       description: 'Play in all 8 languages',
-      icon: '🌍',
+      iconName: 'earth',
+      iconLib: 'ion',
       progress: 3,
       total: 8,
       unlocked: false,
@@ -101,7 +110,8 @@ const AchievementsScreen = () => {
       id: '6',
       title: 'Perfect Score',
       description: 'Get all questions correct in a battle',
-      icon: '💯',
+      iconName: 'checkmark-done-circle',
+      iconLib: 'ion',
       progress: 2,
       total: 1,
       unlocked: true,
@@ -112,7 +122,8 @@ const AchievementsScreen = () => {
       id: '7',
       title: 'Speed Demon',
       description: 'Win with average answer time under 10s',
-      icon: '⚡',
+      iconName: 'flash',
+      iconLib: 'ion',
       progress: 0,
       total: 1,
       unlocked: false,
@@ -123,7 +134,8 @@ const AchievementsScreen = () => {
       id: '8',
       title: 'Platinum League',
       description: 'Reach Platinum division',
-      icon: '💎',
+      iconName: 'diamond',
+      iconLib: 'ion',
       progress: 0,
       total: 1,
       unlocked: false,
@@ -134,7 +146,8 @@ const AchievementsScreen = () => {
       id: '9',
       title: 'Grandmaster',
       description: 'Reach Grandmaster division',
-      icon: '👑',
+      iconName: 'crown',
+      iconLib: 'mci',
       progress: 0,
       total: 1,
       unlocked: false,
@@ -143,19 +156,19 @@ const AchievementsScreen = () => {
     },
   ];
 
-  const categories = [
-    { id: 'all', name: 'All', icon: '🏆' },
-    { id: 'battles', name: 'Battles', icon: '⚔️' },
-    { id: 'streak', name: 'Streak', icon: '🔥' },
-    { id: 'learning', name: 'Learning', icon: '📚' },
-    { id: 'elite', name: 'Elite', icon: '👑' },
+  const categories: { id: string; name: string; iconName: string; iconLib: 'ion' | 'mci' }[] = [
+    { id: 'all', name: 'All', iconName: 'trophy', iconLib: 'ion' },
+    { id: 'battles', name: 'Battles', iconName: 'sword-cross', iconLib: 'mci' },
+    { id: 'streak', name: 'Streak', iconName: 'flame', iconLib: 'ion' },
+    { id: 'learning', name: 'Learning', iconName: 'book', iconLib: 'ion' },
+    { id: 'elite', name: 'Elite', iconName: 'crown', iconLib: 'mci' },
   ];
 
-  const rarityColors = {
-    common: '#95a5a6',
-    rare: '#3498db',
-    epic: '#9b59b6',
-    legendary: '#f39c12',
+  const rarityColors: Record<string, string> = {
+    common: colors.textTertiary,
+    rare: colors.secondary,
+    epic: colors.purple,
+    legendary: colors.accent,
   };
 
   const filteredAchievements =
@@ -168,6 +181,7 @@ const AchievementsScreen = () => {
 
   const AchievementCard = ({ achievement }: { achievement: Achievement }) => {
     const progressPercent = (achievement.progress / achievement.total) * 100;
+    const rarityColor = rarityColors[achievement.rarity];
 
     return (
       <View
@@ -180,12 +194,22 @@ const AchievementsScreen = () => {
           <View
             style={[
               styles.iconContainer,
-              { backgroundColor: rarityColors[achievement.rarity] + '20' },
+              { backgroundColor: rarityColor + '20' },
             ]}
           >
-            <Text style={[styles.achievementIcon, !achievement.unlocked && styles.iconLocked]}>
-              {achievement.icon}
-            </Text>
+            {achievement.iconLib === 'ion' ? (
+              <Ionicons
+                name={achievement.iconName as any}
+                size={28}
+                color={achievement.unlocked ? rarityColor : colors.textTertiary}
+              />
+            ) : (
+              <MaterialCommunityIcons
+                name={achievement.iconName as any}
+                size={28}
+                color={achievement.unlocked ? rarityColor : colors.textTertiary}
+              />
+            )}
           </View>
           <View style={styles.achievementInfo}>
             <Text
@@ -207,7 +231,7 @@ const AchievementsScreen = () => {
           </View>
           {achievement.unlocked && (
             <View style={styles.checkmark}>
-              <Text style={styles.checkmarkText}>✓</Text>
+              <Ionicons name="checkmark" size={16} color={colors.textInverse} />
             </View>
           )}
         </View>
@@ -220,7 +244,7 @@ const AchievementsScreen = () => {
                   styles.progressFill,
                   {
                     width: `${progressPercent}%`,
-                    backgroundColor: rarityColors[achievement.rarity],
+                    backgroundColor: rarityColor,
                   },
                 ]}
               />
@@ -235,7 +259,7 @@ const AchievementsScreen = () => {
           <Text
             style={[
               styles.rarityText,
-              { color: rarityColors[achievement.rarity] },
+              { color: rarityColor },
             ]}
           >
             {achievement.rarity.toUpperCase()}
@@ -248,7 +272,7 @@ const AchievementsScreen = () => {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#4A90E2" />
+        <ActivityIndicator size="large" color={colors.secondary} />
         <Text style={styles.loadingText}>Loading achievements...</Text>
       </View>
     );
@@ -257,9 +281,9 @@ const AchievementsScreen = () => {
   return (
     <View style={styles.container}>
       {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Text style={styles.backButton}>← Back</Text>
+      <LinearGradient colors={gradients.ocean} style={styles.header}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButtonTouch}>
+          <Ionicons name="arrow-back" size={24} color={colors.textInverse} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Achievements</Text>
         <View style={styles.progressSummary}>
@@ -275,7 +299,7 @@ const AchievementsScreen = () => {
             />
           </View>
         </View>
-      </View>
+      </LinearGradient>
 
       {/* Category Filters */}
       <ScrollView
@@ -293,7 +317,19 @@ const AchievementsScreen = () => {
             ]}
             onPress={() => setSelectedCategory(category.id)}
           >
-            <Text style={styles.categoryIcon}>{category.icon}</Text>
+            {category.iconLib === 'ion' ? (
+              <Ionicons
+                name={category.iconName as any}
+                size={16}
+                color={selectedCategory === category.id ? colors.textInverse : colors.textSecondary}
+              />
+            ) : (
+              <MaterialCommunityIcons
+                name={category.iconName as any}
+                size={16}
+                color={selectedCategory === category.id ? colors.textInverse : colors.textSecondary}
+              />
+            )}
             <Text
               style={[
                 styles.categoryText,
@@ -311,6 +347,7 @@ const AchievementsScreen = () => {
         {filteredAchievements.map((achievement) => (
           <AchievementCard key={achievement.id} achievement={achievement} />
         ))}
+        <View style={{ height: spacing.xxxl }} />
       </ScrollView>
     </View>
   );
@@ -319,104 +356,93 @@ const AchievementsScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: colors.background,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f5f5f5',
+    backgroundColor: colors.background,
   },
   loadingText: {
-    marginTop: 12,
-    fontSize: 16,
-    color: '#666',
+    marginTop: spacing.md,
+    ...typography.body,
+    color: colors.textSecondary,
   },
   header: {
-    backgroundColor: 'white',
     paddingTop: 50,
-    paddingBottom: 20,
-    paddingHorizontal: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
+    paddingBottom: spacing.xl,
+    paddingHorizontal: spacing.xl,
   },
-  backButton: {
-    fontSize: 16,
-    color: '#4A90E2',
-    marginBottom: 12,
+  backButtonTouch: {
+    marginBottom: spacing.md,
+    alignSelf: 'flex-start',
+    padding: spacing.xs,
   },
   headerTitle: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 12,
+    ...typography.h1,
+    color: colors.textInverse,
+    marginBottom: spacing.md,
   },
   progressSummary: {
-    marginTop: 8,
+    marginTop: spacing.sm,
   },
   progressSummaryText: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 8,
+    ...typography.bodySmall,
+    color: 'rgba(255, 255, 255, 0.85)',
+    marginBottom: spacing.sm,
   },
   progressBarSummary: {
     height: 8,
-    backgroundColor: '#e0e0e0',
-    borderRadius: 4,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    borderRadius: radii.full,
     overflow: 'hidden',
   },
   progressFillSummary: {
     height: '100%',
-    backgroundColor: '#4A90E2',
+    backgroundColor: colors.white,
+    borderRadius: radii.full,
   },
   categoryScroll: {
-    backgroundColor: 'white',
+    backgroundColor: colors.surface,
     borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
+    borderBottomColor: colors.border,
   },
   categoryContainer: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    gap: 8,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    gap: spacing.sm,
   },
   categoryButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: '#f0f0f0',
-    marginRight: 8,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    borderRadius: radii.xl,
+    backgroundColor: colors.surfaceSecondary,
+    marginRight: spacing.sm,
+    gap: spacing.xs + 2,
   },
   categoryButtonActive: {
-    backgroundColor: '#4A90E2',
-  },
-  categoryIcon: {
-    fontSize: 18,
-    marginRight: 6,
+    backgroundColor: colors.secondary,
   },
   categoryText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#666',
+    ...typography.buttonSmall,
+    color: colors.textSecondary,
   },
   categoryTextActive: {
-    color: 'white',
+    color: colors.textInverse,
   },
   achievementsList: {
     flex: 1,
-    padding: 16,
+    padding: spacing.lg,
   },
   achievementCard: {
-    backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    backgroundColor: colors.surface,
+    borderRadius: radii.md,
+    padding: spacing.lg,
+    marginBottom: spacing.md,
+    ...shadows.md,
   },
   achievementCardLocked: {
     opacity: 0.6,
@@ -428,29 +454,21 @@ const styles = StyleSheet.create({
   iconContainer: {
     width: 56,
     height: 56,
-    borderRadius: 28,
+    borderRadius: radii.full,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
-  },
-  achievementIcon: {
-    fontSize: 32,
-  },
-  iconLocked: {
-    opacity: 0.5,
+    marginRight: spacing.md,
   },
   achievementInfo: {
     flex: 1,
   },
   achievementTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 4,
+    ...typography.title,
+    marginBottom: spacing.xs,
   },
   achievementDescription: {
-    fontSize: 14,
-    color: '#666',
+    ...typography.body,
+    color: colors.textSecondary,
   },
   textLocked: {
     opacity: 0.7,
@@ -458,26 +476,21 @@ const styles = StyleSheet.create({
   checkmark: {
     width: 28,
     height: 28,
-    borderRadius: 14,
-    backgroundColor: '#34C759',
+    borderRadius: radii.full,
+    backgroundColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  checkmarkText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
   progressContainer: {
-    marginTop: 12,
+    marginTop: spacing.md,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: spacing.sm,
   },
   progressBar: {
     flex: 1,
     height: 6,
-    backgroundColor: '#e0e0e0',
+    backgroundColor: colors.border,
     borderRadius: 3,
     overflow: 'hidden',
   },
@@ -485,19 +498,17 @@ const styles = StyleSheet.create({
     height: '100%',
   },
   progressText: {
-    fontSize: 12,
-    color: '#666',
+    ...typography.caption,
+    color: colors.textSecondary,
     fontWeight: '600',
     minWidth: 50,
     textAlign: 'right',
   },
   rarityBadge: {
-    marginTop: 8,
+    marginTop: spacing.sm,
   },
   rarityText: {
-    fontSize: 11,
-    fontWeight: 'bold',
-    letterSpacing: 0.5,
+    ...typography.label,
   },
 });
 

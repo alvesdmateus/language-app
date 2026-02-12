@@ -9,12 +9,16 @@ import {
   ActivityIndicator,
   Animated,
 } from 'react-native';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Match, Question, AnswerData, PowerUpType, ActiveEffect } from '../types';
 import { matchService } from '../services/api';
 import { useWebSocket } from '../context/WebSocketContext';
 import OnboardingGuide, { GuideStep } from '../components/OnboardingGuide';
+import { colors, gradients, spacing, radii, shadows, typography, commonStyles } from '../theme';
+import { LANGUAGE_INFO } from '../theme/languages';
 
 // Onboarding guide steps for first battle
 const ONBOARDING_GUIDE_STEPS: GuideStep[] = [
@@ -639,19 +643,21 @@ const GameScreen = () => {
   };
 
   const getTimerColor = () => {
-    if (timeRemaining <= 5) return '#FF3B30';
-    if (timeRemaining <= 10) return '#FF9500';
-    return '#34C759';
+    if (timeRemaining <= 5) return colors.danger;
+    if (timeRemaining <= 10) return colors.accent;
+    return colors.primary;
   };
 
   const getTimerProgress = () => {
     return (timeRemaining / questionDuration) * 100;
   };
 
+  const langInfo = match.language ? LANGUAGE_INFO[match.language as keyof typeof LANGUAGE_INFO] : null;
+
   if (isSubmitting || waitingForOpponent) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#4A90E2" />
+        <ActivityIndicator size="large" color={colors.secondary} />
         <Text style={styles.loadingText}>
           {waitingForOpponent ? 'Waiting for opponent...' : 'Submitting your answers...'}
         </Text>
@@ -668,40 +674,47 @@ const GameScreen = () => {
     <View style={styles.container}>
       {/* Connection Status Banner */}
       {(matchStatus === 'READY_CHECK' || connectionMessage || opponentDisconnected) && (
-        <View
-          style={[
-            styles.connectionBanner,
-            opponentDisconnected ? styles.connectionBannerWarning : styles.connectionBannerInfo,
-          ]}
+        <LinearGradient
+          colors={opponentDisconnected ? gradients.accent : gradients.secondary}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={styles.connectionBanner}
         >
+          <Ionicons
+            name={opponentDisconnected ? 'warning-outline' : 'hourglass-outline'}
+            size={16}
+            color={colors.textInverse}
+            style={{ marginRight: spacing.sm }}
+          />
           <Text style={styles.connectionBannerText}>
             {matchStatus === 'READY_CHECK' && !connectionMessage
-              ? '⏳ Connecting to match...'
+              ? 'Connecting to match...'
               : connectionMessage || 'Opponent disconnected. Waiting for reconnection...'}
           </Text>
-        </View>
+        </LinearGradient>
       )}
 
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerTop}>
           <TouchableOpacity onPress={handleQuit} style={styles.quitButton}>
-            <Text style={styles.quitText}>✕ Quit</Text>
+            <Ionicons name="close" size={18} color={colors.danger} />
+            <Text style={styles.quitText}>Quit</Text>
           </TouchableOpacity>
           <View style={styles.matchInfo}>
-            <Text style={styles.matchType}>
-              {match.isBattleMode ? '⚔️ Battle Mode' : '🎮 Match'}
-            </Text>
-            <Text style={styles.languageFlag}>
-              {match.language === 'ENGLISH' && '🇺🇸'}
-              {match.language === 'SPANISH' && '🇪🇸'}
-              {match.language === 'PORTUGUESE' && '🇧🇷'}
-              {match.language === 'ITALIAN' && '🇮🇹'}
-              {match.language === 'FRENCH' && '🇫🇷'}
-              {match.language === 'GERMAN' && '🇩🇪'}
-              {match.language === 'JAPANESE' && '🇯🇵'}
-              {match.language === 'KOREAN' && '🇰🇷'}
-            </Text>
+            <View style={styles.matchTypeBadge}>
+              <Ionicons
+                name={match.isBattleMode ? 'flash' : 'game-controller'}
+                size={14}
+                color={colors.textInverse}
+              />
+              <Text style={styles.matchTypeText}>
+                {match.isBattleMode ? 'Battle' : 'Match'}
+              </Text>
+            </View>
+            {langInfo && (
+              <Text style={styles.languageFlag}>{langInfo.flag}</Text>
+            )}
           </View>
         </View>
 
@@ -730,7 +743,10 @@ const GameScreen = () => {
           // Async mode: Show deadline timer
           <View style={styles.timerContainer}>
             <View style={styles.asyncTimerContainer}>
-              <Text style={styles.asyncTimerLabel}>⏳ Time Remaining:</Text>
+              <View style={styles.asyncTimerLabelRow}>
+                <Ionicons name="hourglass-outline" size={14} color={colors.textSecondary} />
+                <Text style={styles.asyncTimerLabel}>Time Remaining:</Text>
+              </View>
               <Text style={styles.asyncTimerText}>
                 {deadlineRemaining !== null
                   ? `${Math.floor(deadlineRemaining / 3600)}h ${Math.floor((deadlineRemaining % 3600) / 60)}m`
@@ -742,7 +758,7 @@ const GameScreen = () => {
         ) : (
           // Sync mode: Show per-question timer
           <View style={styles.timerContainer}>
-            <View style={styles.timerCircle}>
+            <View style={[styles.timerCircle, { borderColor: getTimerColor() }]}>
               <Text style={[styles.timerText, { color: getTimerColor() }]}>
                 {timeRemaining}s
               </Text>
@@ -769,8 +785,8 @@ const GameScreen = () => {
             style={[
               styles.powerUpButton,
               powerUpCooldown > 0 && styles.powerUpButtonDisabled,
-              equippedPowerUp === PowerUpType.FREEZE && { backgroundColor: '#4FC3F7' },
-              equippedPowerUp === PowerUpType.BURN && { backgroundColor: '#FF6B6B' },
+              equippedPowerUp === PowerUpType.FREEZE && { backgroundColor: colors.secondary },
+              equippedPowerUp === PowerUpType.BURN && { backgroundColor: colors.danger },
             ]}
             onPress={usePowerUp}
             disabled={powerUpCooldown > 0 || isPaused}
@@ -789,9 +805,13 @@ const GameScreen = () => {
                 },
               ]}
             >
-              <Text style={styles.powerUpIcon}>
-                {equippedPowerUp === PowerUpType.FREEZE ? '❄️' : '🔥'}
-              </Text>
+              <View style={styles.powerUpIconContainer}>
+                <MaterialCommunityIcons
+                  name={equippedPowerUp === PowerUpType.FREEZE ? 'snowflake' : 'fire'}
+                  size={28}
+                  color={colors.textInverse}
+                />
+              </View>
               <View style={styles.powerUpTextContainer}>
                 <Text style={styles.powerUpName}>
                   {equippedPowerUp === PowerUpType.FREEZE ? 'Freeze' : 'Burn'}
@@ -813,11 +833,17 @@ const GameScreen = () => {
                   key={index}
                   style={[
                     styles.activeEffectBadge,
-                    { backgroundColor: effect.type === 'FREEZE' ? '#4FC3F7' : '#FF6B6B' },
+                    { backgroundColor: effect.type === 'FREEZE' ? colors.secondary : colors.danger },
                   ]}
                 >
+                  <MaterialCommunityIcons
+                    name={effect.type === 'FREEZE' ? 'snowflake' : 'fire'}
+                    size={14}
+                    color={colors.textInverse}
+                    style={{ marginRight: spacing.xs }}
+                  />
                   <Text style={styles.activeEffectText}>
-                    {effect.type === 'FREEZE' ? '❄️ Timer Frozen!' : '🔥 Timer Burning!'}
+                    {effect.type === 'FREEZE' ? 'Timer Frozen!' : 'Timer Burning!'}
                   </Text>
                 </View>
               ))}
@@ -855,7 +881,9 @@ const GameScreen = () => {
                       {index + 1}
                     </Text>
                     {isAnswered && !isCurrent && (
-                      <Text style={styles.questionNavCheckmark}>✓</Text>
+                      <View style={styles.questionNavCheckmarkContainer}>
+                        <Ionicons name="checkmark" size={12} color={colors.primary} />
+                      </View>
                     )}
                   </TouchableOpacity>
                 );
@@ -874,9 +902,17 @@ const GameScreen = () => {
           ]}
         >
           <View style={styles.questionTypeContainer}>
-            <Text style={styles.questionType}>
-              {currentQuestion.type === 'grammar' ? '📝 Grammar' : '📖 Comprehension'}
-            </Text>
+            <View style={styles.questionTypeRow}>
+              <Ionicons
+                name={currentQuestion.type === 'grammar' ? 'create-outline' : 'book-outline'}
+                size={16}
+                color={colors.secondary}
+                style={{ marginRight: spacing.xs }}
+              />
+              <Text style={styles.questionType}>
+                {currentQuestion.type === 'grammar' ? 'Grammar' : 'Comprehension'}
+              </Text>
+            </View>
             {currentQuestion.difficulty && (
               <View
                 style={[
@@ -884,10 +920,10 @@ const GameScreen = () => {
                   {
                     backgroundColor:
                       currentQuestion.difficulty === 'EASY'
-                        ? '#34C759'
+                        ? colors.primary
                         : currentQuestion.difficulty === 'MEDIUM'
-                        ? '#FF9500'
-                        : '#FF3B30',
+                        ? colors.accent
+                        : colors.danger,
                   },
                 ]}
               >
@@ -923,7 +959,9 @@ const GameScreen = () => {
                 <Text style={[styles.optionText, isSelected && styles.optionTextSelected]}>
                   {option}
                 </Text>
-                {isSelected && <Text style={styles.checkmark}>✓</Text>}
+                {isSelected && (
+                  <Ionicons name="checkmark-circle" size={22} color={colors.secondary} />
+                )}
               </TouchableOpacity>
             );
           })}
@@ -940,9 +978,25 @@ const GameScreen = () => {
           onPress={handleNextQuestion}
           disabled={!selectedAnswer || isPaused || guidePaused}
         >
-          <Text style={styles.nextButtonText}>
-            {isLastQuestion ? 'Submit Match' : 'Next Question'}
-          </Text>
+          {(!selectedAnswer || isPaused || guidePaused) ? (
+            <Text style={styles.nextButtonText}>
+              {isLastQuestion ? 'Submit Match' : 'Next Question'}
+            </Text>
+          ) : (
+            <LinearGradient
+              colors={gradients.secondary}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.nextButtonGradient}
+            >
+              <Text style={styles.nextButtonText}>
+                {isLastQuestion ? 'Submit Match' : 'Next Question'}
+              </Text>
+              {!isLastQuestion && (
+                <Ionicons name="arrow-forward" size={18} color={colors.textInverse} style={{ marginLeft: spacing.sm }} />
+              )}
+            </LinearGradient>
+          )}
         </TouchableOpacity>
       </View>
 
@@ -963,353 +1017,349 @@ const GameScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: colors.background,
   },
   connectionBanner: {
-    paddingVertical: 12,
-    paddingHorizontal: 20,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.xl,
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  connectionBannerInfo: {
-    backgroundColor: '#4A90E2',
-  },
-  connectionBannerWarning: {
-    backgroundColor: '#FF9500',
-  },
   connectionBannerText: {
-    color: 'white',
-    fontSize: 14,
+    color: colors.textInverse,
+    ...typography.bodySmall,
     fontWeight: '600',
     textAlign: 'center',
+    flex: 1,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f5f5f5',
+    backgroundColor: colors.background,
   },
   loadingText: {
-    marginTop: 16,
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#333',
+    marginTop: spacing.lg,
+    ...typography.title,
+    color: colors.textPrimary,
   },
   loadingSubtext: {
-    marginTop: 8,
-    fontSize: 14,
-    color: '#666',
+    marginTop: spacing.sm,
+    ...typography.bodySmall,
+    color: colors.textSecondary,
   },
   header: {
-    backgroundColor: 'white',
+    backgroundColor: colors.surface,
     paddingTop: 50,
-    paddingBottom: 16,
-    paddingHorizontal: 20,
+    paddingBottom: spacing.lg,
+    paddingHorizontal: spacing.xl,
     borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
+    borderBottomColor: colors.border,
   },
   headerTop: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: spacing.lg,
   },
   quitButton: {
-    padding: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: spacing.sm,
+    gap: spacing.xs,
   },
   quitText: {
-    fontSize: 16,
-    color: '#FF3B30',
-    fontWeight: '600',
+    ...typography.subtitle,
+    color: colors.danger,
   },
   matchInfo: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: spacing.sm,
   },
-  matchType: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#666',
+  matchTypeBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.secondary,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    borderRadius: radii.pill,
+    gap: spacing.xs,
+  },
+  matchTypeText: {
+    ...typography.caption,
+    color: colors.textInverse,
+    fontWeight: '700',
   },
   languageFlag: {
     fontSize: 24,
   },
   progressContainer: {
-    marginBottom: 16,
+    marginBottom: spacing.lg,
   },
   questionCounter: {
-    fontSize: 13,
-    color: '#666',
-    marginBottom: 8,
+    ...typography.caption,
+    color: colors.textSecondary,
+    marginBottom: spacing.sm,
     fontWeight: '600',
   },
   progressBar: {
+    ...commonStyles.progressBarTrack,
     height: 8,
-    backgroundColor: '#e0e0e0',
-    borderRadius: 4,
-    overflow: 'hidden',
   },
   progressFill: {
-    height: '100%',
-    backgroundColor: '#4A90E2',
+    ...commonStyles.progressBarFill,
+    backgroundColor: colors.secondary,
   },
   timerContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: spacing.md,
   },
   timerCircle: {
     width: 60,
     height: 60,
     borderRadius: 30,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: colors.background,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 3,
-    borderColor: '#e0e0e0',
+    borderColor: colors.border,
   },
   timerText: {
+    ...typography.title,
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: '800',
   },
   timerBarContainer: {
     flex: 1,
     height: 12,
-    backgroundColor: '#e0e0e0',
-    borderRadius: 6,
+    backgroundColor: colors.surfaceSecondary,
+    borderRadius: radii.sm,
     overflow: 'hidden',
   },
   timerBar: {
     height: '100%',
-    borderRadius: 6,
+    borderRadius: radii.sm,
   },
   asyncTimerContainer: {
     flexDirection: 'column',
     alignItems: 'center',
     flex: 1,
   },
+  asyncTimerLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    marginBottom: spacing.xs,
+  },
   asyncTimerLabel: {
-    fontSize: 13,
-    color: '#666',
-    marginBottom: 4,
+    ...typography.caption,
+    color: colors.textSecondary,
     fontWeight: '600',
   },
   asyncTimerText: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#4A90E2',
+    ...typography.h2,
+    color: colors.secondary,
   },
   asyncHint: {
-    fontSize: 11,
-    color: '#999',
-    marginTop: 4,
+    ...typography.label,
+    color: colors.textTertiary,
+    marginTop: spacing.xs,
     textAlign: 'center',
+    textTransform: 'none',
   },
   content: {
     flex: 1,
   },
   contentContainer: {
-    padding: 20,
+    padding: spacing.xl,
   },
   questionCard: {
-    backgroundColor: 'white',
-    borderRadius: 16,
-    padding: 24,
-    marginBottom: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 5,
+    backgroundColor: colors.surface,
+    borderRadius: radii.lg,
+    padding: spacing.xxl,
+    marginBottom: spacing.xxl,
+    ...shadows.lg,
   },
   questionTypeContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
-    gap: 8,
+    marginBottom: spacing.lg,
+    gap: spacing.sm,
+  },
+  questionTypeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   questionType: {
-    fontSize: 14,
+    ...typography.bodySmall,
     fontWeight: '600',
-    color: '#4A90E2',
+    color: colors.secondary,
   },
   difficultyBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
+    ...commonStyles.badge,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
   },
   difficultyText: {
-    fontSize: 11,
-    fontWeight: 'bold',
-    color: 'white',
+    ...typography.label,
+    color: colors.textInverse,
   },
   questionText: {
     fontSize: 18,
     lineHeight: 28,
-    color: '#333',
+    color: colors.textPrimary,
     fontWeight: '500',
   },
   optionsContainer: {
-    gap: 12,
+    gap: spacing.md,
   },
   optionButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 16,
+    backgroundColor: colors.surface,
+    borderRadius: radii.md,
+    padding: spacing.lg,
     borderWidth: 2,
-    borderColor: '#e0e0e0',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
+    borderColor: colors.border,
+    ...shadows.sm,
   },
   optionButtonSelected: {
-    borderColor: '#4A90E2',
-    backgroundColor: '#E3F2FD',
+    borderColor: colors.secondary,
+    backgroundColor: colors.secondaryLight,
   },
   optionCircle: {
     width: 40,
     height: 40,
-    borderRadius: 20,
-    backgroundColor: '#f5f5f5',
+    borderRadius: radii.full,
+    backgroundColor: colors.background,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
+    marginRight: spacing.md,
   },
   optionCircleSelected: {
-    backgroundColor: '#4A90E2',
+    backgroundColor: colors.secondary,
   },
   optionLetter: {
     fontSize: 18,
-    fontWeight: 'bold',
-    color: '#666',
+    fontWeight: '800',
+    color: colors.textSecondary,
   },
   optionLetterSelected: {
-    color: 'white',
+    color: colors.textInverse,
   },
   optionText: {
     flex: 1,
-    fontSize: 16,
-    color: '#333',
+    ...typography.body,
+    color: colors.textPrimary,
   },
   optionTextSelected: {
     fontWeight: '600',
-    color: '#4A90E2',
-  },
-  checkmark: {
-    fontSize: 20,
-    color: '#4A90E2',
-    fontWeight: 'bold',
+    color: colors.secondary,
   },
   footer: {
-    padding: 20,
+    padding: spacing.xl,
     paddingBottom: 30,
-    backgroundColor: 'white',
+    backgroundColor: colors.surface,
     borderTopWidth: 1,
-    borderTopColor: '#e0e0e0',
+    borderTopColor: colors.border,
   },
   nextButton: {
-    backgroundColor: '#4A90E2',
-    borderRadius: 12,
-    padding: 18,
+    borderRadius: radii.md,
+    overflow: 'hidden',
+    ...shadows.md,
+  },
+  nextButtonGradient: {
+    flexDirection: 'row',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 6,
-    elevation: 4,
+    justifyContent: 'center',
+    padding: 18,
+    borderRadius: radii.md,
   },
   nextButtonDisabled: {
-    backgroundColor: '#ccc',
+    backgroundColor: colors.surfaceSecondary,
     opacity: 0.6,
+    padding: 18,
+    alignItems: 'center',
   },
   nextButtonText: {
-    color: 'white',
-    fontSize: 18,
-    fontWeight: 'bold',
+    color: colors.textInverse,
+    ...typography.button,
   },
   questionNavContainer: {
-    backgroundColor: 'white',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
+    backgroundColor: colors.surface,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
     borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
+    borderBottomColor: colors.border,
   },
   questionNavTitle: {
-    fontSize: 13,
+    ...typography.caption,
     fontWeight: '600',
-    color: '#666',
-    marginBottom: 8,
+    color: colors.textSecondary,
+    marginBottom: spacing.sm,
   },
   questionNavButtons: {
     flexDirection: 'row',
-    gap: 8,
+    gap: spacing.sm,
   },
   questionNavButton: {
     width: 44,
     height: 44,
-    borderRadius: 8,
-    backgroundColor: '#f5f5f5',
+    borderRadius: radii.sm,
+    backgroundColor: colors.background,
     borderWidth: 2,
-    borderColor: '#e0e0e0',
+    borderColor: colors.border,
     justifyContent: 'center',
     alignItems: 'center',
     position: 'relative',
   },
   questionNavButtonAnswered: {
-    backgroundColor: '#E8F5E9',
-    borderColor: '#34C759',
+    backgroundColor: colors.primaryLight,
+    borderColor: colors.primary,
   },
   questionNavButtonCurrent: {
-    backgroundColor: '#4A90E2',
-    borderColor: '#4A90E2',
+    backgroundColor: colors.secondary,
+    borderColor: colors.secondary,
   },
   questionNavButtonText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#666',
+    ...typography.subtitle,
+    fontWeight: '800',
+    color: colors.textSecondary,
   },
   questionNavButtonTextAnswered: {
-    color: '#34C759',
+    color: colors.primary,
   },
   questionNavButtonTextCurrent: {
-    color: 'white',
+    color: colors.textInverse,
   },
-  questionNavCheckmark: {
+  questionNavCheckmarkContainer: {
     position: 'absolute',
     top: -4,
     right: -4,
-    fontSize: 16,
-    color: '#34C759',
-    backgroundColor: 'white',
-    borderRadius: 10,
     width: 20,
     height: 20,
-    textAlign: 'center',
-    lineHeight: 20,
+    borderRadius: radii.full,
+    backgroundColor: colors.surface,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   // Power-up styles
   powerUpContainer: {
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    backgroundColor: 'white',
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.md,
+    backgroundColor: colors.surface,
     borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
+    borderBottomColor: colors.border,
   },
   powerUpButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 12,
-    borderRadius: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 3,
+    padding: spacing.md,
+    borderRadius: radii.md,
+    ...shadows.md,
   },
   powerUpButtonDisabled: {
     opacity: 0.5,
@@ -1319,41 +1369,41 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flex: 1,
   },
-  powerUpIcon: {
-    fontSize: 32,
-    marginRight: 12,
+  powerUpIconContainer: {
+    marginRight: spacing.md,
   },
   powerUpTextContainer: {
     flex: 1,
   },
   powerUpName: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: 'white',
+    ...typography.subtitle,
+    fontWeight: '800',
+    color: colors.textInverse,
   },
   powerUpCooldown: {
-    fontSize: 12,
-    color: 'white',
+    ...typography.caption,
+    color: colors.textInverse,
     opacity: 0.8,
   },
   powerUpReady: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    color: 'white',
+    ...typography.label,
+    color: colors.textInverse,
   },
   activeEffectsContainer: {
-    marginTop: 8,
+    marginTop: spacing.sm,
     gap: 6,
   },
   activeEffectBadge: {
-    padding: 8,
-    borderRadius: 8,
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    padding: spacing.sm,
+    borderRadius: radii.sm,
   },
   activeEffectText: {
-    color: 'white',
-    fontSize: 13,
-    fontWeight: 'bold',
+    color: colors.textInverse,
+    ...typography.bodySmall,
+    fontWeight: '700',
   },
 });
 

@@ -7,9 +7,12 @@ import {
   ScrollView,
   Animated,
 } from 'react-native';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { MatchCompletedEvent } from '../types';
 import { useAuth } from '../context/AuthContext';
+import { colors, gradients, spacing, radii, shadows, typography, commonStyles } from '../theme';
 
 const MatchResultsScreen = () => {
   const navigation = useNavigation();
@@ -70,7 +73,7 @@ const MatchResultsScreen = () => {
     return (
       <View style={styles.container}>
         <View style={styles.centerContainer}>
-          <Text style={styles.errorIcon}>⚠️</Text>
+          <Ionicons name="alert-circle" size={64} color={colors.accent} />
           <Text style={styles.errorTitle}>Match Incomplete</Text>
           <Text style={styles.errorText}>
             The match results are not available yet. This may happen if not all players finished the match.
@@ -79,7 +82,8 @@ const MatchResultsScreen = () => {
             style={styles.homeButton}
             onPress={() => navigation.navigate('Home' as never)}
           >
-            <Text style={styles.homeButtonText}>🏠 Go Home</Text>
+            <Ionicons name="home" size={18} color={colors.textPrimary} style={{ marginRight: spacing.sm }} />
+            <Text style={styles.homeButtonText}>Go Home</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -87,9 +91,9 @@ const MatchResultsScreen = () => {
   }
 
   const getResultStatus = () => {
-    if (isDraw) return { text: 'Draw!', emoji: '🤝', color: '#FF9500' };
-    if (isWinner) return { text: 'Victory!', emoji: '🏆', color: '#34C759' };
-    return { text: 'Defeat', emoji: '😔', color: '#FF3B30' };
+    if (isDraw) return { text: 'Draw!', icon: 'handshake' as const, color: colors.accent, gradient: gradients.accent };
+    if (isWinner) return { text: 'Victory!', icon: 'trophy' as const, color: colors.primary, gradient: gradients.primary };
+    return { text: 'Defeat', icon: 'emoticon-sad-outline' as const, color: colors.danger, gradient: gradients.danger };
   };
 
   const status = getResultStatus();
@@ -112,7 +116,9 @@ const MatchResultsScreen = () => {
             },
           ]}
         >
-          <Text style={styles.resultEmoji}>{status.emoji}</Text>
+          <View style={[styles.resultIconCircle, { backgroundColor: status.color + '20' }]}>
+            <MaterialCommunityIcons name={status.icon} size={56} color={status.color} />
+          </View>
           <Text style={[styles.resultText, { color: status.color }]}>
             {status.text}
           </Text>
@@ -147,13 +153,19 @@ const MatchResultsScreen = () => {
           {/* Time Comparison */}
           <View style={styles.timeComparisonContainer}>
             <View style={styles.timeRow}>
-              <Text style={styles.timeLabel}>Your Time:</Text>
+              <View style={styles.timeLabelRow}>
+                <Ionicons name="timer-outline" size={16} color={colors.textSecondary} />
+                <Text style={styles.timeLabel}>Your Time:</Text>
+              </View>
               <Text style={styles.timeValue}>
                 {formatTime(userResult?.totalTimeMs || 0)}
               </Text>
             </View>
             <View style={styles.timeRow}>
-              <Text style={styles.timeLabel}>Opponent Time:</Text>
+              <View style={styles.timeLabelRow}>
+                <Ionicons name="timer-outline" size={16} color={colors.textSecondary} />
+                <Text style={styles.timeLabel}>Opponent Time:</Text>
+              </View>
               <Text style={styles.timeValue}>
                 {formatTime(opponentResult?.totalTimeMs || 0)}
               </Text>
@@ -165,25 +177,25 @@ const MatchResultsScreen = () => {
         <View style={styles.statsCard}>
           <Text style={styles.sectionTitle}>Your Performance</Text>
           <View style={styles.statsGrid}>
-            <View style={styles.statItem}>
-              <Text style={styles.statIcon}>✅</Text>
+            <View style={[styles.statItem, { backgroundColor: colors.primaryLight }]}>
+              <Ionicons name="checkmark-circle" size={28} color={colors.primary} />
               <Text style={styles.statValue}>{userResult?.correctAnswers || 0}</Text>
               <Text style={styles.statLabel}>Correct</Text>
             </View>
-            <View style={styles.statItem}>
-              <Text style={styles.statIcon}>⏱️</Text>
+            <View style={[styles.statItem, { backgroundColor: colors.secondaryLight }]}>
+              <Ionicons name="timer" size={28} color={colors.secondary} />
               <Text style={styles.statValue}>
                 {formatTime(userResult?.totalTimeMs || 0)}
               </Text>
               <Text style={styles.statLabel}>Total Time</Text>
             </View>
-            <View style={styles.statItem}>
-              <Text style={styles.statIcon}>⭐</Text>
+            <View style={[styles.statItem, { backgroundColor: colors.goldLight }]}>
+              <Ionicons name="star" size={28} color={colors.gold} />
               <Text style={styles.statValue}>{userResult?.score || 0}</Text>
               <Text style={styles.statLabel}>Points</Text>
             </View>
-            <View style={styles.statItem}>
-              <Text style={styles.statIcon}>📊</Text>
+            <View style={[styles.statItem, { backgroundColor: colors.purpleLight }]}>
+              <Ionicons name="analytics" size={28} color={colors.purple} />
               <Text style={styles.statValue}>
                 {userResult?.correctAnswers
                   ? ((userResult.correctAnswers / result.results[0].score) * 100).toFixed(0)
@@ -205,29 +217,44 @@ const MatchResultsScreen = () => {
                 <Text style={styles.oldElo}>
                   {userEloChange.newRating - userEloChange.change}
                 </Text>
-                <Text
-                  style={[
-                    styles.eloChangeValue,
-                    {
-                      color: userEloChange.change >= 0 ? '#34C759' : '#FF3B30',
-                    },
-                  ]}
-                >
-                  {userEloChange.change >= 0 ? '+' : ''}
-                  {userEloChange.change}
-                </Text>
+                <View style={[styles.eloChangeBadge, { backgroundColor: userEloChange.change >= 0 ? colors.primaryLight : colors.dangerLight }]}>
+                  <Ionicons
+                    name={userEloChange.change >= 0 ? 'arrow-up' : 'arrow-down'}
+                    size={14}
+                    color={userEloChange.change >= 0 ? colors.primary : colors.danger}
+                  />
+                  <Text
+                    style={[
+                      styles.eloChangeValue,
+                      {
+                        color: userEloChange.change >= 0 ? colors.primary : colors.danger,
+                      },
+                    ]}
+                  >
+                    {userEloChange.change >= 0 ? '+' : ''}
+                    {userEloChange.change}
+                  </Text>
+                </View>
                 <Text style={styles.newElo}>{userEloChange.newRating}</Text>
               </View>
             </View>
 
             {userDivisionChange && (
               <View style={styles.divisionChange}>
-                <Text style={styles.divisionChangeTitle}>🎉 Division Promoted!</Text>
+                <LinearGradient
+                  colors={gradients.gold}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={styles.divisionGradient}
+                >
+                  <Ionicons name="ribbon" size={20} color={colors.white} style={{ marginRight: spacing.sm }} />
+                  <Text style={styles.divisionChangeTitle}>Division Promoted!</Text>
+                </LinearGradient>
                 <View style={styles.divisionFlow}>
                   <Text style={styles.divisionOld}>
                     {userDivisionChange.oldDivision}
                   </Text>
-                  <Text style={styles.divisionArrow}>→</Text>
+                  <Ionicons name="arrow-forward" size={20} color={colors.gold} />
                   <Text style={styles.divisionNew}>
                     {userDivisionChange.newDivision}
                   </Text>
@@ -239,19 +266,28 @@ const MatchResultsScreen = () => {
 
         {/* Winner Determination Info */}
         <View style={styles.infoCard}>
-          <Text style={styles.infoTitle}>How Winners Are Determined</Text>
+          <View style={styles.infoTitleRow}>
+            <Ionicons name="information-circle" size={18} color={colors.secondary} style={{ marginRight: spacing.sm }} />
+            <Text style={styles.infoTitle}>How Winners Are Determined</Text>
+          </View>
           <View style={styles.infoRow}>
-            <Text style={styles.infoNumber}>1.</Text>
+            <View style={styles.infoNumberBadge}>
+              <Text style={styles.infoNumber}>1</Text>
+            </View>
             <Text style={styles.infoText}>Most correct answers wins</Text>
           </View>
           <View style={styles.infoRow}>
-            <Text style={styles.infoNumber}>2.</Text>
+            <View style={styles.infoNumberBadge}>
+              <Text style={styles.infoNumber}>2</Text>
+            </View>
             <Text style={styles.infoText}>
               If tied, fastest total time wins
             </Text>
           </View>
           <View style={styles.infoRow}>
-            <Text style={styles.infoNumber}>3.</Text>
+            <View style={styles.infoNumberBadge}>
+              <Text style={styles.infoNumber}>3</Text>
+            </View>
             <Text style={styles.infoText}>If still tied, it's a draw</Text>
           </View>
         </View>
@@ -265,14 +301,25 @@ const MatchResultsScreen = () => {
             // Navigate to Home, which brings user to the Battle tab
             navigation.navigate('Home' as never);
           }}
+          activeOpacity={0.8}
         >
-          <Text style={styles.playAgainText}>⚔️ Play Again</Text>
+          <LinearGradient
+            colors={gradients.secondary}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.playAgainGradient}
+          >
+            <MaterialCommunityIcons name="sword-cross" size={18} color={colors.textInverse} style={{ marginRight: spacing.sm }} />
+            <Text style={styles.playAgainText}>Play Again</Text>
+          </LinearGradient>
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.homeButton}
           onPress={() => navigation.navigate('Home' as never)}
+          activeOpacity={0.8}
         >
-          <Text style={styles.homeButtonText}>🏠 Home</Text>
+          <Ionicons name="home" size={18} color={colors.textPrimary} style={{ marginRight: spacing.sm }} />
+          <Text style={styles.homeButtonText}>Home</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -282,7 +329,7 @@ const MatchResultsScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: colors.background,
   },
   centerContainer: {
     flex: 1,
@@ -290,305 +337,318 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 40,
   },
-  errorIcon: {
-    fontSize: 64,
-    marginBottom: 16,
-  },
   errorTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#FF3B30',
-    marginBottom: 12,
+    ...typography.h2,
+    color: colors.danger,
+    marginTop: spacing.lg,
+    marginBottom: spacing.md,
     textAlign: 'center',
   },
   errorText: {
-    fontSize: 16,
-    color: '#666',
+    ...typography.body,
+    color: colors.textSecondary,
     textAlign: 'center',
     lineHeight: 24,
-    marginBottom: 24,
+    marginBottom: spacing.xxl,
   },
   scrollContent: {
-    padding: 20,
+    padding: spacing.xl,
     paddingTop: 60,
     paddingBottom: 100,
   },
   resultHeader: {
     alignItems: 'center',
-    marginBottom: 24,
+    marginBottom: spacing.xxl,
   },
-  resultEmoji: {
-    fontSize: 80,
-    marginBottom: 16,
+  resultIconCircle: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: spacing.lg,
   },
   resultText: {
+    ...typography.h1,
     fontSize: 36,
-    fontWeight: 'bold',
   },
   resultSubtext: {
-    fontSize: 16,
-    color: '#666',
-    marginTop: 8,
+    ...typography.subtitle,
+    color: colors.textSecondary,
+    marginTop: spacing.sm,
   },
   scoreCard: {
-    backgroundColor: 'white',
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
+    backgroundColor: colors.surface,
+    borderRadius: radii.lg,
+    padding: spacing.xl,
+    marginBottom: spacing.lg,
+    ...shadows.md,
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 16,
+    ...typography.title,
+    color: colors.textPrimary,
+    marginBottom: spacing.lg,
   },
   comparisonRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: spacing.xl,
   },
   playerColumn: {
     flex: 1,
     alignItems: 'center',
-    padding: 16,
-    borderRadius: 12,
-    backgroundColor: '#f5f5f5',
+    padding: spacing.lg,
+    borderRadius: radii.md,
+    backgroundColor: colors.background,
   },
   winnerColumn: {
-    backgroundColor: '#E8F5E9',
+    backgroundColor: colors.primaryLight,
     borderWidth: 2,
-    borderColor: '#34C759',
+    borderColor: colors.primary,
   },
   loserColumn: {
     opacity: 0.7,
   },
   playerLabel: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 8,
+    ...typography.bodySmall,
     fontWeight: '600',
+    color: colors.textSecondary,
+    marginBottom: spacing.sm,
   },
   playerScore: {
     fontSize: 48,
-    fontWeight: 'bold',
-    color: '#333',
+    fontWeight: '800',
+    color: colors.textPrimary,
   },
   playerSubtext: {
-    fontSize: 13,
-    color: '#999',
-    marginTop: 4,
+    ...typography.caption,
+    color: colors.textTertiary,
+    marginTop: spacing.xs,
   },
   vsContainer: {
-    marginHorizontal: 12,
+    marginHorizontal: spacing.md,
   },
   vsText: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#999',
+    ...typography.h3,
+    color: colors.textTertiary,
   },
   timeComparisonContainer: {
     borderTopWidth: 1,
-    borderTopColor: '#e0e0e0',
-    paddingTop: 16,
+    borderTopColor: colors.border,
+    paddingTop: spacing.lg,
   },
   timeRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 8,
+    alignItems: 'center',
+    marginBottom: spacing.sm,
+  },
+  timeLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
   },
   timeLabel: {
-    fontSize: 14,
-    color: '#666',
+    ...typography.bodySmall,
+    color: colors.textSecondary,
   },
   timeValue: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#333',
+    ...typography.bodySmall,
+    fontWeight: '700',
+    color: colors.textPrimary,
   },
   statsCard: {
-    backgroundColor: 'white',
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
+    backgroundColor: colors.surface,
+    borderRadius: radii.lg,
+    padding: spacing.xl,
+    marginBottom: spacing.lg,
+    ...shadows.md,
   },
   statsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 12,
+    gap: spacing.md,
   },
   statItem: {
-    width: '48%',
-    backgroundColor: '#f5f5f5',
-    padding: 16,
-    borderRadius: 12,
+    width: '47%',
+    padding: spacing.lg,
+    borderRadius: radii.md,
     alignItems: 'center',
   },
-  statIcon: {
-    fontSize: 32,
-    marginBottom: 8,
-  },
   statValue: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 4,
+    ...typography.stat,
+    color: colors.textPrimary,
+    marginTop: spacing.sm,
+    marginBottom: spacing.xs,
   },
   statLabel: {
-    fontSize: 12,
-    color: '#666',
+    ...typography.caption,
+    color: colors.textSecondary,
   },
   eloCard: {
-    backgroundColor: 'white',
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
+    backgroundColor: colors.surface,
+    borderRadius: radii.lg,
+    padding: spacing.xl,
+    marginBottom: spacing.lg,
+    ...shadows.md,
   },
   eloChange: {
     alignItems: 'center',
   },
   eloLabel: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 12,
+    ...typography.bodySmall,
+    color: colors.textSecondary,
+    marginBottom: spacing.md,
   },
   eloValues: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 16,
+    gap: spacing.lg,
   },
   oldElo: {
-    fontSize: 24,
-    color: '#999',
+    ...typography.h2,
+    fontSize: 22,
+    color: colors.textTertiary,
     textDecorationLine: 'line-through',
   },
+  eloChangeBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    borderRadius: radii.pill,
+    gap: spacing.xs,
+  },
   eloChangeValue: {
-    fontSize: 28,
-    fontWeight: 'bold',
+    fontSize: 20,
+    fontWeight: '800',
   },
   newElo: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#333',
+    ...typography.h1,
+    color: colors.textPrimary,
   },
   divisionChange: {
-    marginTop: 20,
-    padding: 16,
-    backgroundColor: '#FFF9E6',
-    borderRadius: 12,
+    marginTop: spacing.xl,
+    borderRadius: radii.md,
     borderWidth: 2,
-    borderColor: '#FFD700',
+    borderColor: colors.gold,
+    overflow: 'hidden',
+  },
+  divisionGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
   },
   divisionChangeTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#333',
+    ...typography.subtitle,
+    fontWeight: '800',
+    color: colors.textInverse,
     textAlign: 'center',
-    marginBottom: 12,
   },
   divisionFlow: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    gap: 12,
+    gap: spacing.md,
+    padding: spacing.lg,
+    backgroundColor: colors.goldLight,
   },
   divisionOld: {
-    fontSize: 16,
-    color: '#999',
-  },
-  divisionArrow: {
-    fontSize: 20,
-    color: '#FFD700',
+    ...typography.subtitle,
+    color: colors.textTertiary,
   },
   divisionNew: {
+    ...typography.title,
     fontSize: 18,
-    fontWeight: 'bold',
-    color: '#FFD700',
+    color: colors.gold,
   },
   infoCard: {
-    backgroundColor: '#E3F2FD',
-    borderRadius: 12,
-    padding: 16,
+    backgroundColor: colors.secondaryLight,
+    borderRadius: radii.md,
+    padding: spacing.lg,
+  },
+  infoTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: spacing.md,
   },
   infoTitle: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#1976D2',
-    marginBottom: 12,
+    ...typography.bodySmall,
+    fontWeight: '700',
+    color: colors.secondaryDark,
   },
   infoRow: {
     flexDirection: 'row',
-    marginBottom: 8,
+    alignItems: 'center',
+    marginBottom: spacing.sm,
+    gap: spacing.sm,
+  },
+  infoNumberBadge: {
+    width: 22,
+    height: 22,
+    borderRadius: radii.full,
+    backgroundColor: colors.secondary,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   infoNumber: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#1976D2',
-    marginRight: 8,
-    width: 20,
+    ...typography.label,
+    color: colors.textInverse,
+    textTransform: 'none',
+    fontSize: 12,
+    fontWeight: '800',
   },
   infoText: {
     flex: 1,
-    fontSize: 13,
-    color: '#1976D2',
+    ...typography.bodySmall,
+    color: colors.secondaryDark,
   },
   footer: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    padding: 20,
+    padding: spacing.xl,
     paddingBottom: 30,
-    backgroundColor: 'white',
+    backgroundColor: colors.surface,
     borderTopWidth: 1,
-    borderTopColor: '#e0e0e0',
+    borderTopColor: colors.border,
     flexDirection: 'row',
-    gap: 12,
+    gap: spacing.md,
   },
   playAgainButton: {
     flex: 1,
-    backgroundColor: '#4A90E2',
-    borderRadius: 12,
-    padding: 16,
+    borderRadius: radii.md,
+    overflow: 'hidden',
+    ...shadows.secondaryButton,
+  },
+  playAgainGradient: {
+    flexDirection: 'row',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    justifyContent: 'center',
+    padding: spacing.lg,
+    borderRadius: radii.md,
   },
   playAgainText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: 'bold',
+    color: colors.textInverse,
+    ...typography.button,
   },
   homeButton: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
-    borderRadius: 12,
-    padding: 16,
+    backgroundColor: colors.background,
+    borderRadius: radii.md,
+    padding: spacing.lg,
+    flexDirection: 'row',
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: colors.border,
   },
   homeButtonText: {
-    color: '#333',
-    fontSize: 16,
-    fontWeight: '600',
+    color: colors.textPrimary,
+    ...typography.buttonSmall,
   },
 });
 
